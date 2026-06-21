@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCF Makati Sports — Admin</title>
+<link rel="icon" href="logo.jpg">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   CCF MAKATI SPORTS — app.html (legacy admin variant)
+   ═══════════════════════════════════════════════════════════ */
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:           #0A1124;
+  --surface-1:    #121B36;
+  --surface-2:    #1B2747;
+  --surface-3:    #243366;
+  --border:       rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.16);
+  --border-bright:rgba(255,255,255,.24);
+  --text-1:       #FFFFFF;
+  --text-2:       #B8C2D6;
+  --text-3:       #7B8AA6;
+  --text-4:       #4E5A78;
+  --gold:         #FDB827;
+  --gold-bright:  #FFCB47;
+  --gold-soft:    rgba(253,184,39,.12);
+  --success:      #22C55E;
+  --success-soft: rgba(34,197,94,.12);
+  --danger:       #EF4444;
+  --danger-soft:  rgba(239,68,68,.12);
+  --warning:      #F59E0B;
+  --warning-soft: rgba(245,158,11,.12);
+  --info:         #3B82F6;
+  --info-soft:    rgba(59,130,246,.12);
+
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;--s-7:32px;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--r-full:9999px;
+  --ra:12px;
+
+  --font-display:'Bebas Neue',system-ui,sans-serif;
+  --font-ui:'Inter',system-ui,-apple-system,sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+
+  /* Legacy aliases */
+  --navy:var(--surface-2); --navy-dk:var(--surface-1); --navy-mid:var(--surface-3); --navy-lt:var(--surface-3);
+  --bg2:var(--surface-1); --bg3:var(--surface-1);
+  --tx:var(--text-1); --tx2:var(--text-2); --tx3:var(--text-3);
+  --br:var(--border); --br2:var(--border-strong);
+  --gr:var(--success); --rd:var(--danger); --gd:var(--warning); --bl:var(--info); --pu:#A78BFA;
+}
+
+html{-webkit-tap-highlight-color:transparent}
+body{
+  font-family:var(--font-ui);
+  background:var(--bg);color:var(--text-1);
+  font-size:14px;line-height:1.5;
+  letter-spacing:-.005em;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;height:100dvh}
+
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--surface-1);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+}
+.brand{
+  padding:var(--s-4) var(--s-5);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:var(--s-3);
+}
+.brand-logo{
+  width:36px;height:36px;
+  border-radius:var(--r-sm);
+  object-fit:cover;flex-shrink:0;
+  border:1px solid var(--border-strong);
+}
+.brand-name{
+  font-family:var(--font-display);
+  font-size:16px;letter-spacing:.06em;
+  color:#fff;line-height:1.1;
+}
+.brand-sub{
+  font-size:10px;font-weight:600;letter-spacing:.10em;
+  text-transform:uppercase;
+  color:var(--text-3);margin-top:3px;
+}
+.nav{
+  flex:1;padding:var(--s-3) 0;
+  overflow-y:auto;
+}
+.nav::-webkit-scrollbar{width:6px}
+.nav::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
+.nav-sec{
+  font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-4);
+  padding:var(--s-5) var(--s-5) var(--s-2);
+}
+.nav-item{
+  display:flex;align-items:center;gap:var(--s-3);
+  padding:9px var(--s-5);
+  color:var(--text-3);
+  font-size:13px;font-weight:500;
+  cursor:pointer;
+  border-left:2px solid transparent;
+  transition:all 100ms var(--ease);
+  min-height:38px;
+}
+.nav-item:hover{color:var(--text-2);background:rgba(255,255,255,.025)}
+.nav-item.active{
+  color:var(--text-1);
+  background:rgba(255,255,255,.04);
+  border-left-color:var(--gold);
+  font-weight:600;
+}
+.nav-item i{font-size:17px;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;
+  background:var(--danger);color:#fff;
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:var(--r-full);
+  min-width:18px;text-align:center;
+}
+.sidebar-foot{
+  padding:var(--s-3) var(--s-5) var(--s-4);
+  border-top:1px solid var(--border);
+}
+
+.main{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;min-width:0;
+}
+.topbar{
+  background:rgba(10,17,36,.85);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0 var(--s-6);height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;gap:var(--s-3);
+}
+.page-title{
+  font-size:17px;font-weight:700;
+  letter-spacing:-.01em;
+  color:var(--text-1);
+}
+.topbar-actions{display:flex;gap:var(--s-2);align-items:center}
+.content{
+  flex:1;overflow-y:auto;
+  padding:var(--s-6);
+}
+.panel{display:none}
+.panel.active{display:block;animation:fadeUp 250ms var(--ease)}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface-1);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:var(--s-5);
+  margin-bottom:var(--s-3);
+}
+.card-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--s-3);
+  margin-bottom:var(--s-4);
+}
+.card-title{
+  display:flex;align-items:center;gap:var(--s-2);
+  font-size:13px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-2);
+}
+.card-title i{color:var(--text-3);font-size:16px}
+
+/* ── STATS ── */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);
+  margin-bottom:var(--s-4);
+}
+.stat{
+  position:relative;overflow:hidden;
+  background:var(--surface-1);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:var(--s-5);
+  text-align:left;
+}
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,currentColor,transparent);
+  opacity:.5;
+}
+.stat-n{
+  font-family:var(--font-display);
+  font-size:40px;line-height:1;letter-spacing:.02em;
+}
+.stat-l{
+  font-size:11px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-3);
+  margin-top:var(--s-2);
+}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
+  min-height:38px;padding:0 var(--s-4);
+  border-radius:var(--r-sm);
+  font-size:13px;font-weight:600;
+  cursor:pointer;border:1px solid transparent;
+  transition:background 150ms var(--ease), transform 100ms var(--ease), border-color 150ms var(--ease);
+  font-family:var(--font-ui);
+  white-space:nowrap;
+}
+.btn:active{transform:scale(.97)}
+.btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn i{font-size:15px;flex-shrink:0}
+.btn-nv{background:var(--gold);color:#1A1100}
+.btn-nv:hover{background:var(--gold-bright)}
+.btn-gr{background:var(--success-soft);color:#4ADE80;border-color:rgba(34,197,94,.30)}
+.btn-gr:hover{background:rgba(34,197,94,.20)}
+.btn-rd{background:var(--danger-soft);color:#F87171;border-color:rgba(239,68,68,.30)}
+.btn-rd:hover{background:rgba(239,68,68,.20)}
+.btn-bl{background:var(--info-soft);color:#7DA9F8;border-color:rgba(59,130,246,.30)}
+.btn-bl:hover{background:rgba(59,130,246,.20)}
+.btn-gd{background:var(--warning-soft);color:#FBBF24;border-color:rgba(245,158,11,.30)}
+.btn-gd:hover{background:rgba(245,158,11,.20)}
+.btn-ghost{background:transparent;color:var(--text-2);border-color:var(--border-strong)}
+.btn-ghost:hover{background:rgba(255,255,255,.04);color:var(--text-1);border-color:var(--border-bright)}
+.btn-sm{min-height:32px;padding:0 var(--s-3);font-size:12px}
+.btn-sm i{font-size:14px}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-flex;align-items:center;gap:var(--s-1);
+  padding:3px var(--s-2);
+  border-radius:var(--r-sm);
+  border:1px solid transparent;
+  font-size:10px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.b-on { background:var(--success-soft); color:#4ADE80;        border-color:rgba(34,197,94,.30)}
+.b-tbd{ background:var(--warning-soft); color:#FBBF24;        border-color:rgba(245,158,11,.30)}
+.b-rd { background:var(--danger-soft);  color:#F87171;        border-color:rgba(239,68,68,.30)}
+.b-nv { background:var(--info-soft);    color:#7DA9F8;        border-color:rgba(59,130,246,.30)}
+.b-gd { background:var(--gold-soft);    color:var(--gold-bright); border-color:rgba(253,184,39,.35)}
+
+/* ── FORMS ── */
+.fl{
+  display:block;
+  font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-3);
+  margin-bottom:var(--s-2);margin-top:var(--s-4);
+}
+.fl:first-child{margin-top:0}
+.fi{
+  width:100%;min-height:40px;
+  padding:0 var(--s-3);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  color:var(--text-1);
+  font-family:var(--font-ui);
+  font-size:14px;
+  outline:none;
+  transition:border-color 150ms var(--ease), background 150ms var(--ease);
+  -webkit-appearance:none;
+}
+.fi:focus{border-color:var(--gold);background:var(--surface-1)}
+.fi::placeholder{color:var(--text-4)}
+textarea.fi{padding-top:10px;padding-bottom:10px;line-height:1.5;min-height:auto}
+select.fi{
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B8AA6' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  padding-right:30px;
+}
+.fi option{background:var(--surface-2);color:var(--text-1)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-3)}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-3);
+  padding:var(--s-3) var(--s-4);
+  text-align:left;
+  border-bottom:1px solid var(--border);
+  background:var(--surface-2);
+  white-space:nowrap;
+}
+.tbl td{
+  padding:var(--s-4);
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+  color:var(--text-2);
+}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.025)}
+.tbl td strong{color:var(--text-1);font-weight:600}
+
+/* ── MODAL ── */
+.overlay,.ovl{
+  display:none;position:fixed;inset:0;
+  background:rgba(5,9,20,.78);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  z-index:500;
+  align-items:center;justify-content:center;
+  padding:var(--s-5);
+}
+.overlay.open,.ovl.open{display:flex}
+.modal,.mdl{
+  background:var(--surface-1);
+  border:1px solid var(--border-strong);
+  border-radius:var(--r-xl);
+  width:100%;max-width:520px;max-height:90vh;
+  overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.50);
+  animation:fadeUp 300ms var(--ease);
+}
+.modal-h,.mdl-h{
+  position:sticky;top:0;
+  background:var(--surface-1);
+  padding:var(--s-4) var(--s-5);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:var(--s-3);z-index:1;
+}
+.modal-ht,.mdl-ht{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.modal-b,.mdl-b{padding:var(--s-5)}
+.modal-f,.mdl-f{
+  padding:var(--s-4) var(--s-5);
+  border-top:1px solid var(--border);
+  display:flex;gap:var(--s-2);justify-content:flex-end;
+}
+.x-btn{
+  width:36px;height:36px;
+  border-radius:var(--r-full);
+  border:1px solid var(--border-strong);
+  background:transparent;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-2);font-size:16px;
+  transition:all 150ms var(--ease);flex-shrink:0;
+}
+.x-btn:hover{background:rgba(255,255,255,.06);color:var(--text-1)}
+
+/* ── MISC ── */
+.empty{
+  text-align:center;padding:var(--s-7) var(--s-5);
+  color:var(--text-3);font-size:14px;font-weight:500;
+}
+.note{
+  display:flex;align-items:flex-start;gap:var(--s-3);
+  background:var(--info-soft);
+  border:1px solid rgba(59,130,246,.20);
+  border-left:3px solid var(--info);
+  border-radius:0 var(--r-md) var(--r-md) 0;
+  padding:var(--s-3) var(--s-4);
+  font-size:13px;color:var(--text-2);
+  line-height:1.6;margin-bottom:var(--s-4);
+}
+.note strong{color:var(--text-1);font-weight:600}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--surface-3);color:var(--text-1);
+  padding:var(--s-3) var(--s-5);
+  border:1px solid var(--border-strong);
+  border-radius:var(--r-md);
+  box-shadow:0 12px 32px rgba(0,0,0,.40);
+  font-size:14px;font-weight:600;
+  opacity:0;transform:translateY(10px);
+  transition:all 200ms var(--ease);
+  z-index:9000;pointer-events:none;
+  display:flex;align-items:center;gap:var(--s-2);
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.er{background:var(--danger);color:#fff;border-color:rgba(255,255,255,.15)}
+.toast.in{background:var(--info);color:#fff;border-color:rgba(255,255,255,.15)}
+.toast.ok i{color:var(--success)}
+
+@media(max-width:768px){
+  .sidebar{display:none}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .g2,.g3{grid-template-columns:1fr}
+  .content{padding:var(--s-4)}
+}
+
+</style>
+</head>
+<body>
+
+<!-- APP -->
+<div class="app" id="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name">CCF Makati Sports</div>
+      <div class="brand-sub">Admin Panel</div>
+    </div>
+    </div>
+    <div class="nav">
+      <div class="nav-sec">Overview</div>
+      <div class="nav-item active" onclick="go('dashboard')" id="nav-dashboard"><i class="ti ti-dashboard"></i>Dashboard</div>
+      <div class="nav-item" onclick="go('schedule')" id="nav-schedule"><i class="ti ti-calendar-event"></i>Game Schedule</div>
+      <div class="nav-item" onclick="go('registrations')" id="nav-registrations"><i class="ti ti-clipboard-list"></i>Registrations<span class="nav-badge" id="pending-badge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="go('players')" id="nav-players"><i class="ti ti-users"></i>Players</div>
+      <div class="nav-sec">Game Day</div>
+      <div class="nav-item" onclick="go('gameday')" id="nav-gameday"><i class="ti ti-ball-basketball"></i>Game Day</div>
+      <div class="nav-sec">Records</div>
+      <div class="nav-item" onclick="go('leaderboard')" id="nav-leaderboard"><i class="ti ti-trophy"></i>Leaderboard</div>
+      <div class="nav-item" onclick="go('history')" id="nav-history"><i class="ti ti-history"></i>History</div>
+      <div class="nav-sec">Config</div>
+      <div class="nav-item" onclick="go('settings')" id="nav-settings"><i class="ti ti-settings"></i>Settings</div>
+    </div>
+    <div class="sidebar-foot">
+      <button onclick="lockApp()" style="width:100%;padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Barlow',sans-serif"><i class="ti ti-lock" style="font-size:13px"></i>Lock</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i>Export</button>
+        <button class="btn btn-nv btn-sm" onclick="OM('add-game')"><i class="ti ti-calendar-plus"></i>Schedule Game</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="stats-row">
+          <div class="stat"><div class="stat-n" id="ds-p" style="color:var(--navy)">0</div><div class="stat-l">Players</div></div>
+          <div class="stat"><div class="stat-n" id="ds-r" style="color:var(--bl)">0</div><div class="stat-l">Registrations</div></div>
+          <div class="stat"><div class="stat-n" id="ds-pend" style="color:var(--gd)">0</div><div class="stat-l">Pending</div></div>
+          <div class="stat"><div class="stat-n" id="ds-rev" style="color:var(--gr)">₱0</div><div class="stat-l">Revenue</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="card"><div class="card-head"><div class="card-title"><i class="ti ti-calendar-event"></i>Upcoming Games</div><button class="btn btn-nv btn-sm" onclick="go('schedule')">Manage</button></div><div id="dash-games"></div></div>
+          <div class="card"><div class="card-head"><div class="card-title"><i class="ti ti-clock"></i>Pending Approvals</div><button class="btn btn-gd btn-sm" onclick="go('registrations')">Review</button></div><div id="dash-pending"></div></div>
+        </div>
+        <div class="card"><div class="card-head"><div class="card-title"><i class="ti ti-bolt"></i>Quick Actions</div></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn btn-nv" onclick="OM('add-game')"><i class="ti ti-calendar-plus"></i>Schedule Game</button>
+            <button class="btn btn-bl" onclick="go('registrations')"><i class="ti ti-clipboard-list"></i>Review Registrations</button>
+            <button class="btn btn-gr" onclick="go('gameday')"><i class="ti ti-ball-basketball"></i>Game Day</button>
+            <button class="btn btn-ghost" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i>Export CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCHEDULE -->
+      <div class="panel" id="panel-schedule">
+        <div class="note"><strong>Game Schedule</strong> — set game status here. Players see this on the registration page and their dashboard.</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px"><button class="btn btn-nv" onclick="OM('add-game')"><i class="ti ti-calendar-plus"></i>Schedule Game</button></div>
+        <div id="schedule-list"></div>
+      </div>
+
+      <!-- REGISTRATIONS -->
+      <div class="panel" id="panel-registrations">
+        <div class="search-row">
+          <input id="r-q" placeholder="Search name or phone…" oninput="rRegs()">
+          <select id="r-g" onchange="rRegs()"><option value="">All Games</option></select>
+          <select id="r-s" onchange="rRegs()"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div class="card">
+          <table class="tbl">
+            <thead><tr><th>Player</th><th>Phone</th><th>Game</th><th>Payment</th><th>Proof</th><th>Dgroup</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="r-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PLAYERS -->
+      <div class="panel" id="panel-players">
+        <div class="search-row">
+          <input id="p-q" placeholder="Search players…" oninput="rPlayers()">
+          <select id="p-dg" onchange="rPlayers()"><option value="">All Players</option><option value="yes">Has Dgroup</option><option value="no">No Dgroup</option></select>
+        </div>
+        <div class="card">
+          <table class="tbl">
+            <thead><tr><th></th><th>Player</th><th>Phone</th><th>Position</th><th>Dgroup Leader</th><th>Wins</th><th>Games</th><th>W%</th><th>Actions</th></tr></thead>
+            <tbody id="p-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- GAME DAY -->
+      <div class="panel" id="panel-gameday">
+        <div class="gameday-wrap">
+          <div class="gameday-title">🏀 Game Day Manager</div>
+          <div class="gameday-sub">Randomize teams and record match winners</div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="ti ti-users"></i>Who showed up today?</div></div>
+          <div class="note">Select the confirmed players who are physically present. This is who gets randomized into teams.</div>
+          <div style="margin-bottom:10px"><button class="btn btn-ghost btn-sm" onclick="selAllPresent()">Select All Confirmed</button><button class="btn btn-ghost btn-sm" style="margin-left:6px" onclick="clearPresent()">Clear</button></div>
+          <div id="present-chips" style="display:flex;flex-wrap:wrap;padding:4px"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <div class="fg" style="width:80px"><label>Teams</label><input type="number" id="gd-teams" value="4" min="2" max="8"></div>
+            <div style="display:flex;align-items:flex-end"><button class="btn btn-nv" onclick="randomizeTeams()"><i class="ti ti-dice"></i>Randomize Teams</button></div>
+          </div>
+        </div>
+        <div id="gd-teams-display" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"></div>
+        <div id="gd-matches-section" style="display:none">
+          <div class="card">
+            <div class="card-head"><div class="card-title"><i class="ti ti-tournament"></i>Record Match Results</div></div>
+            <div class="note"><strong>Tap the winning team</strong> for each match to record the result and add wins to player records.</div>
+            <div id="gd-matches"></div>
+            <button class="btn btn-rd" style="margin-top:12px;width:100%" onclick="endWeek()"><i class="ti ti-flag"></i>End Game Day & Archive Results</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div class="panel" id="panel-leaderboard">
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn btn-nv btn-sm" id="lb-w" onclick="setLb('wins')"><i class="ti ti-trophy"></i>By Wins</button>
+          <button class="btn btn-ghost btn-sm" id="lb-g" onclick="setLb('games')">Games Played</button>
+          <button class="btn btn-ghost btn-sm" id="lb-r" onclick="setLb('rate')">Win Rate</button>
+        </div>
+        <div class="card" id="lb-list"></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="panel" id="panel-history">
+        <div class="card" id="hist-list"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="panel" id="panel-settings">
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="ti ti-lock"></i>Admin PIN</div></div>
+          <div class="form-row full"><div class="fg"><label>Current PIN</label><input type="password" id="cur-pin" maxlength="4" placeholder="••••"></div></div>
+          <div class="form-row"><div class="fg"><label>New PIN</label><input type="password" id="new-pin" maxlength="4" placeholder="••••"></div><div class="fg"><label>Confirm</label><input type="password" id="con-pin" maxlength="4" placeholder="••••"></div></div>
+          <button class="btn btn-nv" onclick="changePin()"><i class="ti ti-lock-check"></i>Update PIN</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="ti ti-map-pin"></i>Game Defaults</div></div>
+          <div class="note">These are pre-filled when you schedule a new game. You can still override them per game.</div>
+          <div class="form-row full"><div class="fg"><label>Default Venue</label><input id="def-venue" placeholder="e.g. Metrowest Court, Makati"></div></div>
+          <div class="form-row"><div class="fg"><label>Default Contribution (₱)</label><input type="number" id="def-fee" placeholder="200"></div><div class="fg"><label>Default Max Players</label><input type="number" id="def-spots" placeholder="20"></div></div>
+          <div class="form-row"><div class="fg"><label>Default Game Time</label><input id="def-time" placeholder="e.g. 7:00 AM"></div><div class="fg"><label>GCash / Paymaya Number</label><input id="def-gcash" placeholder="09274179132"></div></div>
+          <button class="btn btn-nv" onclick="saveGameDefaults()"><i class="ti ti-check"></i>Save Defaults</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="ti ti-mail"></i>EmailJS Configuration</div></div>
+          <div class="form-row full"><div class="fg"><label>Service ID</label><input id="ejs-svc" placeholder="service_xxxxxxx"></div></div>
+          <div class="form-row"><div class="fg"><label>Player Template ID</label><input id="ejs-player" placeholder="template_xxxxxxx"></div><div class="fg"><label>Admin Template ID</label><input id="ejs-admin" placeholder="template_xxxxxxx"></div></div>
+          <div class="form-row full"><div class="fg"><label>Public Key</label><input id="ejs-key" placeholder="xxxxxxxxxxxxxxxxxxxxxx"></div></div>
+          <div class="form-row full"><div class="fg"><label>Admin Email</label><input type="email" id="admin-email" placeholder="charlesgregorious@gmail.com"></div></div>
+          <button class="btn btn-nv" onclick="saveSettings()"><i class="ti ti-check"></i>Save Settings</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title"><i class="ti ti-database"></i>Data Export</div></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-bl" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i>Players CSV</button>
+            <button class="btn btn-nv" onclick="exportRegsCSV()"><i class="ti ti-file-spreadsheet"></i>Registrations CSV</button>
+            <button class="btn btn-ghost" onclick="exportHistoryCSV()"><i class="ti ti-file-spreadsheet"></i>History CSV</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="modal-add-game">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">📅 Schedule Game</div><button class="xbtn" onclick="CM('add-game')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="form-row full"><div class="fg"><label>Date *</label><input type="date" id="ag-date"></div></div>
+      <div class="form-row"><div class="fg"><label>Time</label><input id="ag-time" placeholder="7:00 AM"></div><div class="fg"><label>Venue</label><input id="ag-venue" placeholder="Metrowest Court"></div></div>
+      <div class="form-row"><div class="fg"><label>Max Players</label><input type="number" id="ag-spots" value="20" min="1" max="50"></div><div class="fg"><label>Contribution (₱)</label><input type="number" id="ag-fee" value="200"></div></div>
+      <div class="form-row full"><div class="fg"><label>Status</label>
+        <select id="ag-status" onchange="document.getElementById('ag-reason-row').style.display=this.value==='cancelled'?'block':'none'">
+          <option value="confirmed">✅ Confirmed — Game is ON</option>
+          <option value="tbd">⏳ TBD — Not confirmed yet</option>
+          <option value="cancelled">❌ Cancelled</option>
+        </select>
+      </div></div>
+      <div id="ag-reason-row" style="display:none" class="form-row full"><div class="fg"><label>Cancellation Reason</label><input id="ag-reason" placeholder="e.g. Court unavailable"></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="CM('add-game')">Cancel</button><button class="btn btn-nv" onclick="addGame()"><i class="ti ti-check"></i>Save</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-view-proof">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title" id="proof-title">Payment Proof</div><button class="xbtn" onclick="CM('view-proof')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body"><div id="proof-content"></div><div id="proof-actions" style="display:flex;gap:8px;margin-top:12px"></div></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-reset-pin">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Reset Player PIN</div><button class="xbtn" onclick="CM('reset-pin')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div id="reset-player-info" style="margin-bottom:12px"></div>
+      <div class="form-row full"><div class="fg"><label>New PIN for player</label><input type="text" id="new-player-pin" maxlength="4" placeholder="4 digits" inputmode="numeric"></div></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="CM('reset-pin')">Cancel</button><button class="btn btn-nv" onclick="savePlayerPinReset()"><i class="ti ti-check"></i>Reset PIN</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="t-msg"></span></div>
+
+<script>
+// Auth check
+if(!sessionStorage.getItem('ccf_unlocked')){
+  window.location.href='admin.html';
+}
+
+const SHEETS_URL="https://script.google.com/macros/s/AKfycby7_Lcp_XUEjz6-5_i4BGpmTaetqD-Mpksw3CYI6ZRgUKgEhtxdoLFbYTqcXlNvB1fPCw/exec";
+emailjs.init(localStorage.getItem("ejs_key")||"");
+
+const COLORS=["#1B5E8C","#E74C3C","#27AE60","#8B5CF6","#F39C12","#06B6D4","#F97316","#EC4899"];
+const TEAM_NAMES=["Blazers","Raptors","Warriors","Celtics","Nets","Wolves","Bulls","Heat"];
+
+let adminPin=localStorage.getItem("ccf_admin_pin")||"1234";
+let lbSort="wins";
+let presentPlayers=[];
+let currentTeams=[];
+let currentMatches=[];
+let resetPlayerId=null;
+
+function getPlayers(){return JSON.parse(localStorage.getItem("ccf_players")||"[]");}
+function savePlayers(p){localStorage.setItem("ccf_players",JSON.stringify(p));}
+function getGames(){return JSON.parse(localStorage.getItem("ccf_games")||"[]");}
+function saveGames(g){localStorage.setItem("ccf_games",JSON.stringify(g));}
+
+async function fetchGamesFromSheets(){
+  try{
+    const res=await fetch(SHEETS_URL+"?action=getGames");
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length){
+      const games=data.filter(g=>g.label||g.Label).map(g=>({
+        id:g.id||g["Game ID"]||"G"+Date.now(),
+        label:g.label||g["Label"]||"",
+        date:g.date||g["Date"]||"",
+        time:g.time||g["Time"]||"7:00 AM",
+        venue:g.venue||g["Venue"]||"Metrowest Court",
+        spots:parseInt(g.spots||g["Max Spots"])||20,
+        fee:parseInt(g.fee||g["Fee"])||200,
+        status:(g.status||g["Status"]||"tbd").toLowerCase(),
+        cancelReason:g.cancelReason||g["Cancel Reason"]||""
+      }));
+      if(games.length){saveGames(games);return games;}
+    }
+  }catch(e){console.warn("Sheets fetch:",e);}
+  return getGames();
+}
+function getRegs(){return JSON.parse(localStorage.getItem("ccf_r")||"[]");}
+function saveRegs(r){localStorage.setItem("ccf_r",JSON.stringify(r));}
+
+async function fetchRegsFromSheets(){
+  try{
+    const res=await fetch(SHEETS_URL+"?action=getRegistrations");
+    const data=await res.json();
+    if(Array.isArray(data)&&data.length){
+      // Keep local regs that have proofData (images can't be stored in sheets)
+      const local=getRegs();
+      const merged=data.map(row=>({
+        id:row.id||"R"+Date.now(),
+        playerId:row.playerId||"",
+        playerName:row["Player"]||row.playerName||"",
+        phone:row["Phone"]||row.phone||"",
+        email:row["Email"]||row.email||"",
+        gameLabel:row["Game Date"]||row.gameLabel||"",
+        game:row["Game"]||row.game||"",
+        payType:(row["Payment"]||row.payType||"cash").toLowerCase().includes("advance")?"advance":"cash",
+        refNum:row["Reference #"]||row.refNum||"",
+        hasProof:(row["Has Proof"]||"").toLowerCase()==="yes",
+        proofData:(local.find(l=>l.playerName===row["Player"]&&l.gameLabel===row["Game Date"])||{}).proofData||"",
+        status:(row["Status"]||"pending").toLowerCase(),
+        registered:row["Registered"]||row.registered||""
+      }));
+      localStorage.setItem("ccf_r",JSON.stringify(merged));
+      return merged;
+    }
+  }catch(e){console.warn("Regs fetch:",e);}
+  return getRegs();
+}
+function getHistory(){return JSON.parse(localStorage.getItem("ccf_history")||"[]");}
+function saveHistory(h){localStorage.setItem("ccf_history",JSON.stringify(h));}
+function col(i){return COLORS[i%COLORS.length];}
+function ini(fn,ln){return((fn||"?")[0]+(ln||"?")[0]).toUpperCase();}
+
+async function syncSheets(action,data){
+  try{await fetch(SHEETS_URL,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,...data})});}
+  catch(e){console.warn("Sheets:",e);}
+}
+
+function toast(msg,type="ok"){
+  const t=document.getElementById("toast");
+  t.querySelector("i").className=type==="ok"?"ti ti-check":type==="er"?"ti ti-alert-circle":"ti ti-info-circle";
+  t.className="toast "+type;
+  document.getElementById("t-msg").textContent=msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),3000);
+}
+
+// PIN
+function checkPinInput(val, force){
+  val = val.replace(/[^0-9]/g,'');
+  const input = document.getElementById("pin-input");
+  if(input) input.value = val;
+  document.getElementById("pin-err").textContent = "";
+  if(val.length === 4 || force){
+    if(val === adminPin){
+      document.getElementById("pin-screen").style.display = "none";
+      document.getElementById("app").style.display = "flex";
+      if(input) input.value = "";
+      refresh();
+    } else if(val.length === 4 || force){
+      document.getElementById("pin-err").textContent = "Incorrect PIN";
+      if(input){ input.value = ""; input.focus(); }
+      setTimeout(()=>document.getElementById("pin-err").textContent="", 1500);
+    }
+  }
+}
+function lockApp(){
+  document.getElementById("app").style.display = "none";
+  document.getElementById("pin-screen").style.display = "flex";
+  const input = document.getElementById("pin-input");
+  if(input){ input.value = ""; input.focus(); }
+}
+function changePin(){
+  var c=document.getElementById("cur-pin").value.trim();
+  var n=document.getElementById("new-pin").value.trim();
+  var cn=document.getElementById("con-pin").value.trim();
+  if(c!==adminPin){toast("Wrong current PIN","er");return;}
+  if(n.length!==4||isNaN(n)){toast("PIN must be 4 digits","er");return;}
+  if(n!==cn){toast("PINs do not match","er");return;}
+  adminPin=n;
+  localStorage.setItem("ccf_admin_pin",n);
+  toast("PIN updated ✓");
+}
+
+// NAV
+function go(p){
+  document.querySelectorAll(".panel").forEach(e=>e.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("active"));
+  document.getElementById("panel-"+p).classList.add("active");
+  document.getElementById("nav-"+p).classList.add("active");
+  const titles={dashboard:"Dashboard",schedule:"Game Schedule",registrations:"Registrations",players:"Players",gameday:"Game Day",leaderboard:"Leaderboard",history:"Game History",settings:"Settings"};
+  document.getElementById("page-title").textContent=titles[p]||p;
+  if(p==="schedule"){fetchGamesFromSheets().then(()=>rSchedule());}
+  if(p==="registrations"){fetchRegsFromSheets().then(()=>rRegs());}
+  if(p==="players")rPlayers();
+  if(p==="gameday")rGameDay();
+  if(p==="leaderboard")rLb();
+  if(p==="history")rHist();
+  if(p==="dashboard"){fetchGamesFromSheets().then(()=>refresh());}
+  if(p==="settings")loadSettings();
+}
+function OM(id){
+  if(id==="add-game"){
+    document.getElementById("ag-date").value=nextSunday();
+    document.getElementById("ag-time").value=localStorage.getItem("def_time")||"7:00 AM";
+    document.getElementById("ag-venue").value=localStorage.getItem("def_venue")||"Metrowest Court";
+    document.getElementById("ag-spots").value=localStorage.getItem("def_spots")||"20";
+    document.getElementById("ag-fee").value=localStorage.getItem("def_fee")||"200";
+  }
+  document.getElementById("modal-"+id).classList.add("open");
+}
+function CM(id){document.getElementById("modal-"+id).classList.remove("open");}
+function nextSunday(){const d=new Date();d.setDate(d.getDate()+(7-d.getDay())%7||7);return d.toISOString().split("T")[0];}
+function fmtDate(s){if(!s)return"";const d=new Date(s+"T00:00:00");return d.toLocaleDateString("en-PH",{weekday:"short",month:"short",day:"numeric",year:"numeric"});}
+
+// GAME SCHEDULE
+function addGame(){
+  const date=document.getElementById("ag-date").value;
+  if(!date){toast("Pick a date","er");return;}
+  const g={id:"G"+Date.now(),label:fmtDate(date),date,time:document.getElementById("ag-time").value||"7:00 AM",venue:document.getElementById("ag-venue").value||"Metrowest Court",spots:parseInt(document.getElementById("ag-spots").value)||20,fee:parseInt(document.getElementById("ag-fee").value)||200,status:document.getElementById("ag-status").value,cancelReason:document.getElementById("ag-reason").value||""};
+  const list=getGames();list.push(g);list.sort((a,b)=>a.date.localeCompare(b.date));saveGames(list);
+  CM("add-game");rSchedule();refresh();syncSheets("addGame",g);toast("Game scheduled: "+g.label);
+}
+function updateGameStatus(id,status){
+  const list=getGames();const g=list.find(x=>x.id===id);if(!g)return;
+  if(status==="cancelled"){const r=prompt("Cancellation reason (optional):","Court unavailable");g.cancelReason=r||"";}
+  g.status=status;saveGames(list);rSchedule();refresh();
+  syncSheets("updateGameStatus",{id:g.id,status:g.status,cancelReason:g.cancelReason||""});
+  const labels={confirmed:"✅ Game confirmed!",tbd:"⏳ Set to TBD",cancelled:"❌ Game cancelled"};
+  toast(labels[status]||"Updated");
+}
+function rSchedule(){
+  const list=getGames();const cont=document.getElementById("schedule-list");
+  if(!list.length){cont.innerHTML="<div class="empty"><i class="ti ti-calendar-off"></i><p>No games scheduled yet.</p></div>";return;}
+  const regs=getRegs();
+  cont.innerHTML=list.map(g=>{
+    const count=regs.filter(x=>x.gameId===g.id&&x.status!=="cancelled").length;
+    const conf=regs.filter(x=>x.gameId===g.id&&x.status==="confirmed").length;
+    const pend=regs.filter(x=>x.gameId===g.id&&x.status==="pending").length;
+    const bg=g.status==="confirmed"?"#0D3D25":g.status==="cancelled"?"#3D0D0D":"#2A3550";
+    return`<div class="gsc">
+      <div class="gsc-hdr" style="background:${bg}">
+        <div><div class="gsc-date">${g.label}</div><div class="gsc-sub">${g.time} · ${g.venue} · Max ${g.spots} · ₱${g.fee||200}</div></div>
+        <span class="badge ${g.status==="confirmed"?"badge-gr":g.status==="cancelled"?"badge-rd":"badge-gd"}">${g.status==="confirmed"?"✅ ON":g.status==="cancelled"?"❌ OFF":"⏳ TBD"}</span>
+      </div>
+      <div class="gsc-body">
+        <div class="gsc-stat"><span style="color:var(--tx2)">Registered</span><strong>${count}/${g.spots}</strong></div>
+        <div class="gsc-stat"><span style="color:var(--tx2)">Confirmed</span><strong style="color:var(--gr)">${conf}</strong></div>
+        <div class="gsc-stat"><span style="color:var(--tx2)">Pending</span><strong style="color:var(--gd)">${pend}</strong></div>
+        ${g.cancelReason?`<div style="font-size:12px;color:var(--rd);margin-top:4px">Reason: ${g.cancelReason}</div>`:""}
+        <div class="gsc-actions">
+          <button class="st-btn st-on ${g.status==="confirmed"?"act":""}" onclick="updateGameStatus('${g.id}','confirmed')">✅ ON</button>
+          <button class="st-btn st-tbd ${g.status==="tbd"?"act":""}" onclick="updateGameStatus('${g.id}','tbd')">⏳ TBD</button>
+          <button class="st-btn st-off ${g.status==="cancelled"?"act":""}" onclick="updateGameStatus('${g.id}','cancelled')">❌ OFF</button>
+          <button class="btn btn-ghost btn-sm" onclick="if(confirm('Delete game?'))deleteGame('${g.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+function deleteGame(id){saveGames(getGames().filter(x=>x.id!==id));rSchedule();refresh();toast("Game removed","in");}
+
+// REGISTRATIONS
+function rRegs(){
+  const r=getRegs();
+  const q=(document.getElementById("r-q")||{value:""}).value.toLowerCase();
+  const gf=(document.getElementById("r-g")||{value:""}).value;
+  const sf=(document.getElementById("r-s")||{value:""}).value;
+  const gsel=document.getElementById("r-g");
+  if(gsel&&gsel.options.length<=1){getGames().forEach(g=>{const o=document.createElement("option");o.value=g.id;o.textContent=g.label;gsel.appendChild(o);});}
+  const players=getPlayers();
+  const list=r.filter(x=>{const n=(x.playerName||"").toLowerCase();return(!q||n.includes(q)||x.phone.includes(q))&&(!gf||x.gameId===gf)&&(!sf||x.status===sf);});
+  const pend=r.filter(x=>x.status==="pending").length;
+  const badge=document.getElementById("pending-badge");
+  badge.style.display=pend>0?"inline":"none";badge.textContent=pend;
+  const tbody=document.getElementById("r-tbody");
+  if(!list.length){tbody.innerHTML="<tr><td colspan="8"><div class="empty"><i class="ti ti-clipboard-list"></i><p>No registrations</p></div></td></tr>";return;}
+  tbody.innerHTML=list.map(r=>{
+    const p=players.find(x=>x.id===r.playerId);
+    const dg=p?(p.hasDgroup?(p.dgroupLeader||"Has Dgroup"):"No Dgroup"):"—";
+    return`<tr>
+      <td><div style="font-weight:600;font-size:13px">${r.playerName||"—"}</div><div style="font-size:10px;color:var(--tx2)">${r.registered||""}</div></td>
+      <td style="font-size:12px">${r.phone||"—"}</td>
+      <td><div style="font-size:12px;font-weight:600">${r.gameLabel||"—"}</div><div style="font-size:10px;color:var(--tx2)">${r.gameTime||""}</div></td>
+      <td><span class="badge ${r.payType==="advance"?"badge-nv":"badge-gr"}">${r.payType==="advance"?"Advance":"Cash"}</span>${r.refNum?`<div style="font-size:10px;color:var(--tx2)">Ref: ${r.refNum}</div>`:""}</td>
+      <td>${r.hasProof?`<button class="btn btn-bl btn-sm" onclick="viewProof('${r.id}')"><i class="ti ti-photo"></i>View</button>`:"<span style="font-size:12px;color:var(--tx3)">None</span>"}</td>
+      <td style="font-size:12px">${dg}</td>
+      <td><span class="badge ${r.status==="confirmed"?"badge-gr":r.status==="cancelled"?"badge-rd":"badge-gd"}">${r.status}</span></td>
+      <td><div class="tbl-act">
+        ${r.status==="pending"?`<button class="btn btn-gr btn-sm" onclick="confR('${r.id}')"><i class="ti ti-check"></i>Confirm</button>`:""}
+        ${r.status!=="cancelled"?`<button class="btn btn-rd btn-sm" onclick="cancelR('${r.id}')"><i class="ti ti-x"></i></button>`:""}
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+function viewProof(id){
+  const r=getRegs().find(x=>x.id===id);if(!r)return;
+  document.getElementById("proof-title").textContent=(r.playerName||"Player")+" — Payment Proof";
+  const cont=document.getElementById("proof-content");
+  if(r.proofData&&r.proofData.startsWith("data:image")){
+    cont.innerHTML=`<img src="${r.proofData}" style="width:100%;border-radius:8px;border:1px solid var(--br)" alt="proof">
+    <div style="margin-top:10px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--br)"><span style="color:var(--tx2)">Player</span><strong>${r.playerName}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--br)"><span style="color:var(--tx2)">Game</span><strong>${r.gameLabel||"—"}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--br)"><span style="color:var(--tx2)">Reference #</span><strong>${r.refNum||"N/A"}</strong></div>
+      <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="color:var(--tx2)">Status</span><span class="badge ${r.status==="confirmed"?"badge-gr":r.status==="cancelled"?"badge-rd":"badge-gd"}">${r.status}</span></div>
+    </div>`;
+  } else {
+    cont.innerHTML="<div style="text-align:center;padding:24px;color:var(--tx3)"><i class="ti ti-photo-off" style="font-size:32px;display:block;margin-bottom:8px"></i>No image available</div>";
+  }
+  document.getElementById("proof-actions").innerHTML=`
+    ${r.status==="pending"?`<button class="btn btn-gr" style="flex:1" onclick="confR('${r.id}');CM('view-proof')"><i class="ti ti-check"></i>Confirm Slot</button>`:""}
+    ${r.status!=="cancelled"?`<button class="btn btn-rd" onclick="cancelR('${r.id}');CM('view-proof')"><i class="ti ti-x"></i>Cancel</button>`:""}`;
+  OM("view-proof");
+}
+function confR(id){
+  const regs=getRegs();const reg=regs.find(x=>x.id===id);if(!reg)return;
+  reg.status="confirmed";saveRegs(regs);rRegs();refresh();
+  syncSheets("updateStatus",{slot:reg.id,status:"confirmed",playerName:reg.playerName});
+  toast(reg.playerName+" confirmed ✓");
+  // Send confirmation email
+  const svc=localStorage.getItem("ejs_svc");const key=localStorage.getItem("ejs_key");
+  if(svc&&key){emailjs.send(svc,localStorage.getItem("ejs_player")||"",{player_name:reg.playerName,player_email:reg.email,game:reg.gameLabel,slot_number:regs.indexOf(reg)+1,to_email:reg.email}).catch(e=>console.warn(e));}
+}
+function cancelR(id){const regs=getRegs();const reg=regs.find(x=>x.id===id);if(!reg)return;reg.status="cancelled";saveRegs(regs);rRegs();refresh();toast("Cancelled","in");}
+
+// PLAYERS
+function rPlayers(){
+  const q=(document.getElementById("p-q")||{value:""}).value.toLowerCase();
+  const dg=(document.getElementById("p-dg")||{value:""}).value;
+  const list=getPlayers().filter(p=>{
+    const n=(p.firstName+" "+p.lastName).toLowerCase();
+    const matchQ=!q||n.includes(q)||p.phone.includes(q);
+    const matchDg=!dg||(dg==="yes"?p.hasDgroup:!p.hasDgroup);
+    return matchQ&&matchDg;
+  });
+  const tbody=document.getElementById("p-tbody");
+  if(!list.length){tbody.innerHTML="<tr><td colspan="9"><div class="empty"><i class="ti ti-users"></i><p>No players yet</p></div></td></tr>";return;}
+  tbody.innerHTML=list.map((p,i)=>`<tr>
+    <td><div style="width:30px;height:30px;border-radius:50%;background:${col(i)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${ini(p.firstName,p.lastName)}</div></td>
+    <td><div style="font-weight:600">${p.firstName} ${p.lastName}</div><div style="font-size:10px;color:var(--tx2)">${p.joined||""}</div></td>
+    <td style="font-size:12px">${p.phone}</td>
+    <td style="font-size:12px;color:var(--tx2)">${p.position||"—"}</td>
+    <td style="font-size:12px">${p.hasDgroup?(p.dgroupLeader||"Has Dgroup"):"<span style="color:var(--tx3)">None</span>"}</td>
+    <td><span style="font-family:'Barlow Condensed';font-size:20px;font-weight:900;color:var(--navy)">${p.wins||0}</span></td>
+    <td style="color:var(--tx2)">${p.games||0}</td>
+    <td>${(p.games||0)>0?Math.round((p.wins||0)/(p.games||1)*100)+"%":"—"}</td>
+    <td><div class="tbl-act">
+      <button class="btn btn-bl btn-sm" onclick="openResetPin('${p.id}')"><i class="ti ti-key"></i>PIN</button>
+      <button class="btn btn-rd btn-sm" onclick="if(confirm('Remove player?'))deletePlayer('${p.id}')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join("");
+}
+function openResetPin(id){
+  resetPlayerId=id;
+  const p=getPlayers().find(x=>x.id===id);if(!p)return;
+  document.getElementById("reset-player-info").innerHTML=`<div style="font-weight:600">${p.firstName} ${p.lastName}</div><div style="font-size:12px;color:var(--tx2)">${p.phone}</div>`;
+  document.getElementById("new-player-pin").value="";
+  OM("reset-pin");
+}
+function savePlayerPinReset(){
+  const newPin=document.getElementById("new-player-pin").value.trim();
+  if(!/^\d{4}$/.test(newPin)){toast("PIN must be 4 digits","er");return;}
+  const players=getPlayers();const p=players.find(x=>x.id===resetPlayerId);if(!p)return;
+  p.pin=newPin;p.pinReset=false;savePlayers(players);
+  CM("reset-pin");toast("PIN reset for "+p.firstName+" ✓");
+  // Optionally email the new PIN
+  const svc=localStorage.getItem("ejs_svc"),key=localStorage.getItem("ejs_key");
+  if(svc&&key&&p.email){emailjs.send(svc,localStorage.getItem("ejs_player")||"",{player_name:p.firstName+" "+p.lastName,player_email:p.email,temp_pin:newPin,to_email:p.email}).catch(e=>console.warn(e));}
+}
+function deletePlayer(id){savePlayers(getPlayers().filter(x=>x.id!==id));rPlayers();toast("Player removed","in");}
+
+// GAME DAY
+function rGameDay(){
+  const regs=getRegs();
+  const games=getGames();
+  const nextGame=games.find(g=>g.status==="confirmed"||g.status==="tbd");
+  const confirmed=nextGame?regs.filter(r=>r.gameId===nextGame.id&&r.status==="confirmed"):[];
+  const players=getPlayers();
+  const chips=document.getElementById("present-chips");
+  if(!confirmed.length){chips.innerHTML="<div style="font-size:13px;color:var(--tx3);padding:8px">No confirmed players yet. Confirm registrations first.</div>";return;}
+  chips.innerHTML=confirmed.map(r=>{
+    const p=players.find(x=>x.id===r.playerId);
+    if(!p)return"";
+    return`<div class="chip on" id="pchip-${p.id}" onclick="togPresent('${p.id}')" data-pid="${p.id}"><div class="av" style="background:var(--navy);width:20px;height:20px;font-size:9px">${ini(p.firstName,p.lastName)}</div>${p.firstName} ${p.lastName}</div>`;
+  }).join("");
+  presentPlayers=confirmed.map(r=>r.playerId).filter(id=>players.find(x=>x.id===id));
+}
+function togPresent(id){
+  const i=presentPlayers.indexOf(id);
+  i>-1?presentPlayers.splice(i,1):presentPlayers.push(id);
+  document.getElementById("pchip-"+id)?.classList.toggle("on",presentPlayers.includes(id));
+}
+function selAllPresent(){
+  presentPlayers=Array.from(document.querySelectorAll("[data-pid]")).map(e=>e.dataset.pid);
+  document.querySelectorAll("[data-pid]").forEach(e=>e.classList.add("on"));
+}
+function clearPresent(){presentPlayers=[];document.querySelectorAll("[data-pid]").forEach(e=>e.classList.remove("on"));}
+
+function randomizeTeams(){
+  if(presentPlayers.length<4){toast("Need at least 4 players","er");return;}
+  const cnt=parseInt(document.getElementById("gd-teams").value)||4;
+  const players=getPlayers();
+  const shuffled=[...presentPlayers].sort(()=>Math.random()-0.5);
+  const per=Math.floor(shuffled.length/cnt);
+  currentTeams=Array.from({length:cnt},(_,i)=>({
+    id:"T"+i,name:TEAM_NAMES[i]||"Team "+(i+1),color:COLORS[i%COLORS.length],
+    players:shuffled.slice(i*per,(i+1)*per),wins:0
+  }));
+  // Generate round robin matches
+  currentMatches=[];
+  for(let i=0;i<currentTeams.length;i++){
+    for(let j=i+1;j<currentTeams.length;j++){
+      currentMatches.push({id:"M"+i+"_"+j,teamA:currentTeams[i].id,teamB:currentTeams[j].id,winner:null,recorded:false});
+    }
+  }
+  renderTeamsDisplay();
+  renderMatchCards();
+  document.getElementById("gd-matches-section").style.display="block";
+  toast("Teams randomized! "+cnt+" teams, "+currentMatches.length+" matches");
+}
+
+function renderTeamsDisplay(){
+  const players=getPlayers();
+  document.getElementById("gd-teams-display").innerHTML=currentTeams.map(t=>`
+    <div class="team-card">
+      <div class="team-hdr" style="background:${t.color}">
+        <div class="team-nm">${t.name}</div>
+        <span style="background:rgba(0,0,0,0.25);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px">${t.players.length} players</span>
+      </div>
+      <div class="team-body">${t.players.map(pid=>{const p=players.find(x=>x.id===pid);return p?`<div class="t-player"><div class="av" style="background:${t.color};width:22px;height:22px;font-size:9px">${ini(p.firstName,p.lastName)}</div>${p.firstName} ${p.lastName}</div>`:""}).join("")}</div>
+    </div>`).join("");
+}
+
+function renderMatchCards(){
+  const cont=document.getElementById("gd-matches");
+  cont.innerHTML=currentMatches.map((m,idx)=>{
+    const ta=currentTeams.find(t=>t.id===m.teamA);
+    const tb=currentTeams.find(t=>t.id===m.teamB);
+    return`<div class="match-card" id="match-${m.id}">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--tx3);margin-bottom:8px">Match ${idx+1}</div>
+      <div class="match-teams">
+        <button class="match-team-btn ${m.winner===m.teamA?"winner":""}" onclick="recordWin('${m.id}','${m.teamA}')" style="border-color:${m.winner===m.teamA?"var(--gr)":"var(--br)"}">
+          <div style="font-size:14px;font-weight:700">${ta?.name||"?"}</div>
+          ${m.winner===m.teamA?"<div style="font-size:11px;color:var(--gr);margin-top:2px">🏆 Winner</div>":""}
+        </button>
+        <div class="match-vs">VS</div>
+        <button class="match-team-btn ${m.winner===m.teamB?"winner":""}" onclick="recordWin('${m.id}','${m.teamB}')" style="border-color:${m.winner===m.teamB?"var(--gr)":"var(--br)"}">
+          <div style="font-size:14px;font-weight:700">${tb?.name||"?"}</div>
+          ${m.winner===m.teamB?"<div style="font-size:11px;color:var(--gr);margin-top:2px">🏆 Winner</div>":""}
+        </button>
+      </div>
+      ${m.recorded?"<div style="font-size:11px;color:var(--gr);text-align:center">✅ Result recorded</div>":""}
+    </div>`;
+  }).join("");
+}
+
+function recordWin(matchId,winnerId){
+  const m=currentMatches.find(x=>x.id===matchId);if(!m||m.recorded)return;
+  m.winner=winnerId;m.recorded=true;
+  const loserId=winnerId===m.teamA?m.teamB:m.teamA;
+  const wt=currentTeams.find(t=>t.id===winnerId);
+  const lt=currentTeams.find(t=>t.id===loserId);
+  if(wt)wt.wins++;
+
+  // Update player win counts
+  const players=getPlayers();
+  if(wt)wt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p){p.wins=(p.wins||0)+1;p.games=(p.games||0)+1;}});
+  if(lt)lt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p){p.games=(p.games||0)+1;}});
+  savePlayers(players);
+
+  // Sync to sheets
+  const date=new Date().toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"});
+  syncSheets("addGameResult",{date,round:"Round Robin",teamA:wt?.name||"?",scoreA:1,scoreB:0,teamB:lt?.name||"?",winner:wt?.name||"?"});
+  players.forEach(p=>syncSheets("updatePlayerWins",{firstName:p.firstName,lastName:p.lastName,wins:p.wins||0,games:p.games||0}));
+
+  renderMatchCards();renderTeamsDisplay();
+  const allDone=currentMatches.every(x=>x.recorded);
+  if(allDone)toast("All matches recorded! 🏆 Click End Game Day to archive.");
+  else toast(wt?.name+" wins! ✓");
+}
+
+function endWeek(){
+  if(!currentMatches.length){toast("No matches to archive","er");return;}
+  if(!confirm("End Game Day? This will archive results and clear teams/matches."))return;
+  const hist=getHistory();
+  const date=new Date().toLocaleDateString("en-PH",{month:"short",day:"numeric",year:"numeric"});
+  const entry={id:"W"+Date.now(),date,teams:currentTeams.map(t=>({name:t.name,wins:t.wins})),matches:currentMatches.map(m=>{const ta=currentTeams.find(x=>x.id===m.teamA),tb=currentTeams.find(x=>x.id===m.teamB),wt=currentTeams.find(x=>x.id===m.winner);return{teamA:ta?.name||"?",teamB:tb?.name||"?",winner:wt?.name||"?"};}),playerCount:presentPlayers.length};
+  hist.push(entry);saveHistory(hist);
+  currentTeams=[];currentMatches=[];presentPlayers=[];
+  document.getElementById("gd-teams-display").innerHTML="";
+  document.getElementById("gd-matches-section").style.display="none";
+  document.getElementById("present-chips").innerHTML="";
+  rGameDay();toast("Game Day archived! See you next Sunday 🏀");
+}
+
+// LEADERBOARD
+function setLb(s){lbSort=s;["wins","games","rate"].forEach(x=>{document.getElementById("lb-"+x).className="btn btn-"+(x===s?"nv":"ghost")+" btn-sm";});rLb();}
+function rLb(){
+  let list=[...getPlayers()].filter(p=>(p.games||0)>0);
+  if(lbSort==="wins")list.sort((a,b)=>(b.wins||0)-(a.wins||0));
+  else if(lbSort==="games")list.sort((a,b)=>(b.games||0)-(a.games||0));
+  else list.sort((a,b)=>((b.wins||0)/Math.max(b.games||1,1))-((a.wins||0)/Math.max(a.games||1,1)));
+  const max=Math.max(...list.map(p=>p.wins||0),1);
+  const cont=document.getElementById("lb-list");
+  if(!list.length){cont.innerHTML="<div class="empty"><i class="ti ti-trophy"></i><p>No games played yet</p></div>";return;}
+  cont.innerHTML=list.map((p,i)=>`<div class="lb-row">
+    <div style="width:28px;font-family:'Barlow Condensed';font-size:20px;font-weight:900;color:${i<3?"var(--gd)":"var(--tx3)"};text-align:center">${i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}</div>
+    <div class="lb-av" style="background:${col(i)}">${ini(p.firstName,p.lastName)}</div>
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:14px">${p.firstName} ${p.lastName} ${p.hasDgroup&&p.dgroupLeader?`<span style="font-size:11px;color:var(--tx2);font-weight:400">· ${p.dgroupLeader}</span>`:""}</div>
+      <div style="font-size:11px;color:var(--tx2)">${p.games||0} games · ${(p.games||0)>0?Math.round((p.wins||0)/(p.games||1)*100):0}% win rate</div>
+      <div class="lb-bar"><div class="lb-fill" style="width:${Math.round((p.wins||0)/max*100)}%;background:${col(i)}"></div></div>
+    </div>
+    <div style="text-align:center"><div style="font-family:'Barlow Condensed';font-size:24px;font-weight:900;color:var(--navy)">${p.wins||0}</div><div style="font-size:9px;color:var(--tx3)">wins</div></div>
+  </div>`).join("");
+}
+
+// HISTORY
+function rHist(){
+  const hist=getHistory();
+  const cont=document.getElementById("hist-list");
+  if(!hist.length){cont.innerHTML="<div class="empty"><i class="ti ti-history"></i><p>No game days recorded yet</p></div>";return;}
+  cont.innerHTML=[...hist].reverse().map(w=>`
+    <div style="padding:12px;border-bottom:1px solid var(--br)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-family:'Barlow Condensed';font-size:17px;font-weight:800">${w.date}</div>
+        <span class="badge badge-nv">${w.playerCount||"?"} players</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${(w.matches||[]).map(m=>`<div style="background:var(--bg2);border-radius:8px;padding:6px 10px;font-size:12px"><span style="color:var(--tx2)">${m.teamA} vs ${m.teamB}</span> · <strong style="color:var(--gr)">🏆 ${m.winner}</strong></div>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+// DASHBOARD
+function refresh(){
+  const r=getRegs(),g=getGames(),p=getPlayers();
+  // Fetch fresh data in background
+  fetchGamesFromSheets().then(()=>{});
+  document.getElementById("ds-p").textContent=p.length;
+  document.getElementById("ds-r").textContent=r.length;
+  const pend=r.filter(x=>x.status==="pending").length;
+  document.getElementById("ds-pend").textContent=pend;
+  const rev=r.filter(x=>x.status==="confirmed"&&x.payType==="advance").length*200;
+  document.getElementById("ds-rev").textContent="₱"+rev.toLocaleString();
+  const badge=document.getElementById("pending-badge");
+  badge.style.display=pend>0?"inline":"none";badge.textContent=pend;
+  // Upcoming games
+  const upcoming=g.filter(x=>x.status!=="cancelled").slice(0,3);
+  document.getElementById("dash-games").innerHTML=upcoming.length?upcoming.map(gm=>{
+    const count=r.filter(x=>x.gameId===gm.id&&x.status!=="cancelled").length;
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--br)">
+      <div><div style="font-weight:600;font-size:13px">${gm.label}</div><div style="font-size:11px;color:var(--tx2)">${gm.time} · ${gm.venue}</div></div>
+      <div style="text-align:right"><span class="badge ${gm.status==="confirmed"?"badge-gr":"badge-gd"}">${gm.status==="confirmed"?"✅ ON":"⏳ TBD"}</span><div style="font-size:11px;color:var(--tx2);margin-top:2px">${count}/${gm.spots}</div></div>
+    </div>`;}).join(""):"<div class="empty" style="padding:16px"><i class="ti ti-calendar"></i><p>No games scheduled</p></div>";
+  // Pending
+  const pendList=r.filter(x=>x.status==="pending").slice(0,5);
+  document.getElementById("dash-pending").innerHTML=pendList.length?pendList.map(reg=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--br)">
+      <div><div style="font-weight:600;font-size:13px">${reg.playerName||"—"}</div><div style="font-size:11px;color:var(--tx2)">${reg.gameLabel||"—"}</div></div>
+      <div style="display:flex;gap:5px">
+        ${reg.hasProof?`<button class="btn btn-bl btn-sm" onclick="viewProof('${reg.id}')"><i class="ti ti-photo"></i></button>`:""}
+        <button class="btn btn-gr btn-sm" onclick="confR('${reg.id}');refresh()"><i class="ti ti-check"></i></button>
+      </div>
+    </div>`).join(""):"<div class="empty" style="padding:16px"><i class="ti ti-check"></i><p>All caught up!</p></div>";
+}
+
+// SETTINGS
+function loadSettings(){
+  document.getElementById("ejs-svc").value=localStorage.getItem("ejs_svc")||"";
+  document.getElementById("ejs-player").value=localStorage.getItem("ejs_player")||"";
+  document.getElementById("ejs-admin").value=localStorage.getItem("ejs_admin")||"";
+  document.getElementById("ejs-key").value=localStorage.getItem("ejs_key")||"";
+  document.getElementById("admin-email").value=localStorage.getItem("admin_email")||"charlesgregorious@gmail.com";
+  document.getElementById("def-venue").value=localStorage.getItem("def_venue")||"Metrowest Court";
+  document.getElementById("def-fee").value=localStorage.getItem("def_fee")||"200";
+  document.getElementById("def-spots").value=localStorage.getItem("def_spots")||"20";
+  document.getElementById("def-time").value=localStorage.getItem("def_time")||"7:00 AM";
+  document.getElementById("def-gcash").value=localStorage.getItem("def_gcash")||"09274179132";
+}
+function saveGameDefaults(){
+  localStorage.setItem("def_venue",document.getElementById("def-venue").value);
+  localStorage.setItem("def_fee",document.getElementById("def-fee").value);
+  localStorage.setItem("def_spots",document.getElementById("def-spots").value);
+  localStorage.setItem("def_time",document.getElementById("def-time").value);
+  localStorage.setItem("def_gcash",document.getElementById("def-gcash").value);
+  toast("Game defaults saved ✓");
+}
+function saveSettings(){
+  ["ejs-svc","ejs-player","ejs-admin","ejs-key","admin-email"].forEach(id=>localStorage.setItem(id.replace("-","_"),document.getElementById(id).value));
+  emailjs.init(document.getElementById("ejs-key").value);
+  toast("Settings saved ✓");
+}
+
+// EXPORTS
+function exportCSV(){
+  const p=getPlayers();if(!p.length){toast("No players","er");return;}
+  dlCSV("players_"+td()+".csv",[["Name","Phone","Email","Position","Dgroup","Dgroup Leader","Wins","Games","Win%","Joined"],...p.map(x=>[x.firstName+" "+x.lastName,x.phone,x.email,x.position,x.hasDgroup?"Yes":"No",x.dgroupLeader||"",x.wins||0,x.games||0,(x.games||0)>0?Math.round((x.wins||0)/(x.games||1)*100)+"%":"0%",x.joined])]);
+  toast("Exported");
+}
+function exportRegsCSV(){
+  const r=getRegs();if(!r.length){toast("No registrations","er");return;}
+  dlCSV("registrations_"+td()+".csv",[["Player","Phone","Email","Game","Payment","Proof","Status","Registered"],...r.map(x=>[x.playerName,x.phone,x.email,x.gameLabel,x.payType,x.hasProof?"Yes":"No",x.status,x.registered])]);
+  toast("Exported");
+}
+function exportHistoryCSV(){
+  const h=getHistory();if(!h.length){toast("No history","er");return;}
+  const rows=[["Date","Team A","Team B","Winner"]];
+  h.forEach(w=>(w.matches||[]).forEach(m=>rows.push([w.date,m.teamA,m.teamB,m.winner])));
+  dlCSV("history_"+td()+".csv",rows);toast("Exported");
+}
+function dlCSV(fn,rows){const csv=rows.map(r=>r.map(c=>'"'+( c||"").toString().replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);a.download=fn;a.click();}
+function td(){return new Date().toISOString().split("T")[0];}
+go('dashboard');
+</script>
+</body>
+</html>
