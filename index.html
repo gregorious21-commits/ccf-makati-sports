@@ -1367,6 +1367,7 @@ footer a:hover{color:var(--text-1)}
 .lq-card{border:1px solid rgba(34,197,94,.4);background:linear-gradient(160deg,rgba(34,197,94,.07),transparent);margin-bottom:18px}
 .lq-live{font-size:11px;font-weight:800;color:#22C55E;letter-spacing:.05em;display:flex;align-items:center;gap:4px;animation:lqpulse 2s ease-in-out infinite}
 @keyframes lqpulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
 .lq-you{font-size:13px;font-weight:600;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:flex;align-items:center;gap:7px;background:var(--surface-2,rgba(255,255,255,.04));color:var(--tx2)}
 .lq-you.playing{background:rgba(34,197,94,.14);color:#22C55E}
 .lq-you.next{background:rgba(253,184,39,.16);color:var(--gold);font-weight:700}
@@ -1665,27 +1666,10 @@ footer a:hover{color:var(--text-1)}
           <div class="dev-body" id="dev-body" style="display:none"></div>
       </div>
     </div>
+      <!-- Live Now Tournament Banner -->
+      <div id="live-now-banner" style="display:none;margin-bottom:14px"></div>
       <div class="sec-h"><div class="sec-t">Community Feed</div><div class="sec-link" onclick="switchTab('feed')">See all posts →</div></div>
       <div id="feed-preview" style="margin-bottom:8px"><div class="empty">Loading…</div></div>
-      <div class="sec-h"><div class="sec-t">Leaderboard</div><div class="sec-link" onclick="switchTab('players')">View all →</div></div>
-      <div class="sport-pills" style="margin-bottom:var(--s-2)">
-        <button type="button" class="sport-pill on" data-lbsport="basketball" onclick="setLbSport('basketball')"><span class="spi spi-b"></span><span class="pl">Basketball</span></button>
-        <button type="button" class="sport-pill" data-lbsport="pickleball" onclick="setLbSport('pickleball')"><span class="spi spi-p"></span><span class="pl">Pickleball</span></button>
-        <button type="button" class="sport-pill" data-lbsport="running" onclick="setLbSport('running')"><span class="spi spi-r"></span><span class="pl">Running</span></button>
-        <button type="button" class="sport-pill" data-lbsport="badminton" onclick="setLbSport('badminton')"><span class="spi spi-bd"></span><span class="pl">Badminton</span></button>
-        <button type="button" class="sport-pill" data-lbsport="dragonboat" onclick="setLbSport('dragonboat')"><span class="spi spi-db"></span><span class="pl">Dragonboat</span></button>
-    </div>
-      <div class="lb-toggle" id="lb-stat-tabs">
-        <button type="button" class="lb-tab on" id="plb-wins" onclick="setPlayerLb('wins')">Wins</button>
-        <button type="button" class="lb-tab" id="plb-games" onclick="setPlayerLb('games')">Games</button>
-        <button type="button" class="lb-tab" id="plb-rate" onclick="setPlayerLb('rate')">Win Rate</button>
-    </div>
-      <div class="card" style="padding:0;overflow:hidden"><div id="lb-list"><div class="empty">Loading rankings…</div></div></div>
-      <!-- Recent pickleball session results (collapsed; pickleball board only) -->
-      <div id="lb-sessions-wrap" style="margin-top:14px;display:none">
-        <button type="button" id="lb-sessions-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleSessionLog()"><i class="ti ti-history"></i>View Recent Match Results</button>
-        <div id="lb-sessions" style="display:none;margin-top:12px"></div>
-      </div>
   </div>
 
     <!-- ───── FEED TAB ───── -->
@@ -2222,7 +2206,7 @@ async function syncAll() {
     }
   }
   renderAnn(); renderHeroStatus();
-  if (ME) { renderProfile(); renderDevotion(); renderWeekGames(); renderLeaderboard(); renderDirectory(); renderMyHist(); renderNotifs(); renderFeedPreview(); }
+  if (ME) { renderProfile(); renderDevotion(); renderWeekGames(); renderLeaderboard(); renderDirectory(); renderMyHist(); renderNotifs(); renderFeedPreview(); renderLiveNowBanner(); }
 }
 function startRefresh(){if(refreshTimer)clearInterval(refreshTimer);refreshTimer=setInterval(syncAll,30000)}
 function stopRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer=null}}
@@ -4350,10 +4334,150 @@ function renderTournDetail(id) {
       </table>
     </div>` : '';
 
+  // ── my team ───────────────────────────────────────────────────
+  const myTeamObj = ME ? teams.find(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : null;
+  const iAmCaptain = myTeamObj && (myTeamObj.owner===ME?.id || myTeamObj.captain===ME?.id);
+  const isLocked = myTeamObj?.locked === true;
+  let myTeamSection = '';
+  if (myTeamObj) {
+    const jerseyNums = myTeamObj.jerseyNumbers || {};
+    const captainName = myTeamObj.captain ? _tpName(myTeamObj.captain) : (myTeamObj.owner ? _tpName(myTeamObj.owner) : '—');
+    const memberRows = (myTeamObj.players||[]).map(pid=>{
+      const isMe = ME && pid===ME.id;
+      const isCap = pid===myTeamObj.captain||pid===myTeamObj.owner;
+      const jNum = jerseyNums[pid];
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
+        ${jNum?`<div style="width:28px;height:28px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--tx3);flex-shrink:0">#${jNum}</div>`:'<div style="width:28px;flex-shrink:0"></div>'}
+        <div style="flex:1;font-size:13px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--tx)':'var(--tx2)'}">${_tpName(pid)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px">CAPTAIN</span>':''}
+      </div>`;
+    }).join('');
+    // payment status for this team member
+    const myPay2 = _tournPayments.find(p=>p.team_id===myTeamObj.id);
+    const payStatus2 = myPay2?.status||'unpaid';
+    const payColor2 = payStatus2==='verified'?'var(--gr)':payStatus2==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
+    const payLabel2 = payStatus2==='verified'?'Paid & Verified':payStatus2==='pending'?'Payment Pending':'Unpaid';
+    const lockBtn = iAmCaptain && !isLocked
+      ? `<button type="button" onclick="lockTournRoster('${t.id}','${myTeamObj.id}')" style="margin-top:12px;background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-lock"></i>Lock Roster</button>`
+      : '';
+    myTeamSection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">My Team</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${isLocked?'<span style="font-size:10px;font-weight:700;color:var(--tx3);background:var(--b2);padding:2px 8px;border-radius:20px"><i class="ti ti-lock" style="font-size:9px"></i> LOCKED</span>':''}
+          <span style="font-size:11px;font-weight:700;color:${payColor2}">${payLabel2}</span>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-weight:800;font-size:16px;margin-bottom:2px">${myTeamObj.name}</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">Captain: ${captainName}</div>
+        ${memberRows}
+        ${lockBtn}
+      </div>`;
+  }
+
+  // ── my tournament stats ───────────────────────────────────────
+  let myStatsSection = '';
+  if (ME && allStats[ME.id]) {
+    const ms = allStats[ME.id];
+    const avg = (v) => ms.games>0 ? (v/ms.games).toFixed(1) : '—';
+    myStatsSection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">My Stats</div>
+        <span style="font-size:12px;color:var(--tx3)">${ms.games} game${ms.games===1?'':'s'}</span>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center">
+          ${STAT_COLS.map(f=>`<div>
+            <div style="font-size:20px;font-weight:800">${ms[f]}</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${f.toUpperCase()}</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">${avg(ms[f])} avg</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  // ── game schedule (readable) ──────────────────────────────────
+  const allRounds = [...RR_ROUNDS,'3rd','final'];
+  const roundLabel = {rr1:'Game 1',rr2:'Game 2',rr3:'Game 3',rr4:'Game 4',rr5:'Game 5',rr6:'Game 6','3rd':'3rd Place Match',final:'Championship'};
+  const schedRows = allRounds.map((r,i)=>{
+    const m = matches.find(x=>x.round===r);
+    const aName = m?.teamA ? teamName(m.teamA) : 'TBD';
+    const bName = m?.teamB ? teamName(m.teamB) : 'TBD';
+    const done = m?.winner;
+    const aWon = done && m.winner==='A', bWon = done && m.winner==='B';
+    const timeStr = m?.time ? m.time : '';
+    const dateStr = m?.date ? new Date(m.date+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    const isMyGame = myTeamObj && m && (m.teamA===myTeamObj.id||m.teamB===myTeamObj.id);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMyGame?'background:rgba(212,175,55,.04);margin:0 -14px;padding:10px 14px':''}">
+      <div style="width:68px;flex-shrink:0">
+        <div style="font-size:10px;font-weight:700;color:${r==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.4px">${roundLabel[r]}</div>
+        ${dateStr||timeStr?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">${dateStr}${dateStr&&timeStr?' · ':''}${timeStr}</div>`:''}
+      </div>
+      <div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">
+        <span style="font-size:13px;font-weight:${aWon?'800':'500'};color:${aWon?'var(--tx)':'var(--tx2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${aName}</span>
+        ${done?`<span style="font-size:12px;color:var(--tx3);flex-shrink:0">${m.scoreA}–${m.scoreB}</span>`:'<span style="font-size:11px;color:var(--tx3);flex-shrink:0">vs</span>'}
+        <span style="font-size:13px;font-weight:${bWon?'800':'500'};color:${bWon?'var(--tx)':'var(--tx2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${bName}</span>
+      </div>
+      ${done?`<span style="font-size:10px;font-weight:700;color:var(--gr);flex-shrink:0">FINAL</span>`:(m?'':'<span style="font-size:10px;color:var(--tx3);flex-shrink:0">TBD</span>')}
+    </div>`;
+  }).join('');
+  const scheduleSection = `
+    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Schedule</div></div>
+    <div class="card" style="margin-bottom:14px;padding:0 14px">${schedRows}</div>`;
+
+  // ── tournament leaderboard ────────────────────────────────────
+  const tournLbSection = statPlayers.length>=2 ? `
+    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Tournament Leaders</div></div>
+    <div class="card" style="margin-bottom:14px;padding:0;overflow:hidden">
+      ${STAT_COLS.map(f=>{
+        const sorted=[...statPlayers].sort((a,b)=>b[f]-a[f]).slice(0,3);
+        return `<div style="padding:10px 14px;border-bottom:1px solid var(--b)">
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${f.toUpperCase()}</div>
+          ${sorted.map((s,i)=>{
+            const isMe=ME&&s.playerId===ME.id;
+            return `<div style="display:flex;align-items:center;gap:8px;${i>0?'margin-top:5px':''}">
+              <span style="font-size:11px;color:${i===0?'var(--gold)':'var(--tx3)'};font-weight:700;width:14px">${i+1}</span>
+              <span style="flex:1;font-size:13px;font-weight:${isMe?'700':'400'}">${_tpName(s.playerId)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</span>
+              <span style="font-weight:800;font-size:14px">${s[f]}</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  // ── waitlist ─────────────────────────────────────────────────
+  const maxTeams = t.max_teams || 8;
+  const teamsFull = teams.length >= maxTeams;
+  const myWaitEntry = ME ? _tournRegs.find(r=>r.captain_id===ME.id&&r.status==='waitlist') : null;
+  let waitlistSection = '';
+  if (!myTeamObj && !myReg && ME && (t.status==='upcoming'||t.status==='active')) {
+    if (myWaitEntry) {
+      waitlistSection = `
+        <div class="sec-h" style="margin-top:4px"><div class="sec-t">Waitlist</div></div>
+        <div class="card" style="margin-bottom:14px;background:var(--b2)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <i class="ti ti-clock-hour-4" style="font-size:20px;color:var(--gold);flex-shrink:0"></i>
+            <div>
+              <div style="font-weight:700;font-size:14px">You're on the waitlist</div>
+              <div style="font-size:13px;color:var(--tx2);margin-top:3px">You'll be notified if a spot opens up.</div>
+            </div>
+          </div>
+          <button type="button" onclick="leaveTournWaitlist('${t.id}','${myWaitEntry.id}')" style="margin-top:12px;background:none;border:1px solid var(--b);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--tx3);cursor:pointer;width:100%">Leave Waitlist</button>
+        </div>`;
+    } else if (teamsFull && iDesignatedCaptain) {
+      waitlistSection = `
+        <div class="sec-h" style="margin-top:4px"><div class="sec-t">Waitlist</div></div>
+        <div class="card" style="margin-bottom:14px">
+          <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">All team slots are filled. Join the waitlist to be first in line if a spot opens.</div>
+          <button type="button" onclick="joinTournWaitlist('${t.id}')" class="btn"><i class="ti ti-list-check"></i>Join Waitlist</button>
+        </div>`;
+    }
+  }
+
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournDetail()"><i class="ti ti-arrow-left"></i> Back</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;flex:1">${t.name}</div>
+      ${t.status==='active'?'<span style="font-size:11px;font-weight:700;color:#fff;background:#e53e3e;padding:3px 10px;border-radius:20px;letter-spacing:.3px;flex-shrink:0">LIVE</span>':''}
     </div>
 
     <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
@@ -4374,18 +4498,23 @@ function renderTournDetail(id) {
       })()}
     </div>
 
-    <div class="sec-h"><div class="sec-t">Round Robin</div></div>
-    ${RR_ROUNDS.map((r,i)=>matchCard(teamFor(r),'Game '+(i+1))).join('')}
+    ${myTeamSection}
+    ${myStatsSection}
+    ${scheduleSection}
+
+    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Round Robin</div></div>
+    ${RR_ROUNDS.map((r,i)=>matchCard(matches.find(x=>x.round===r),'Game '+(i+1))).join('')}
 
     ${standingsHtml}
-    ${topPerformersHtml}
+    ${tournLbSection}
 
     <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
-    ${matchCard(teamFor('final'),'Championship','🏆')}
-    ${matchCard(teamFor('3rd'),'3rd Place Match')}
+    ${matchCard(matches.find(x=>x.round==='final'),'Championship','🏆')}
+    ${matchCard(matches.find(x=>x.round==='3rd'),'3rd Place Match')}
 
     ${paySection}
     ${regSection}
+    ${waitlistSection}
 
     <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
     <div class="card" style="margin-bottom:14px">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
@@ -4419,6 +4548,63 @@ async function submitTournPayment(tournId, teamId, totalFee) {
   const fresh = await dbGet('tournament_payments','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
   if (Array.isArray(fresh)) _tournPayments = fresh;
   renderTournDetail(tournId);
+}
+
+// ── TOURNAMENT ROSTER LOCK ────────────────────────────────────
+async function lockTournRoster(tournId, teamId) {
+  if (!confirm('Lock roster? No players can be added or removed after this.')) return;
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const teams = JSON.parse(JSON.stringify(t.teams||[]));
+  const tm = teams.find(x=>x.id===teamId);
+  if (!tm) return;
+  tm.locked = true;
+  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{teams});
+  if (!ok) return toast('Failed to lock roster','er');
+  toast('Roster locked');
+  const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('tournaments',fresh);
+  renderTournDetail(tournId);
+}
+
+// ── TOURNAMENT WAITLIST ───────────────────────────────────────
+async function joinTournWaitlist(tournId) {
+  if (!ME) return;
+  const ok = await dbInsert('tournament_registrations',{
+    tournament_id:tournId, captain_id:ME.id, team_name:'', players:[], status:'waitlist'
+  });
+  if (!ok) return toast('Failed to join waitlist','er');
+  toast('Added to waitlist');
+  const fresh = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+  if (Array.isArray(fresh)) _tournRegs = fresh;
+  renderTournDetail(tournId);
+}
+
+async function leaveTournWaitlist(tournId, regId) {
+  const ok = await dbUpdate('tournament_registrations','id=eq.'+regId,{status:'cancelled'});
+  if (!ok) return toast('Failed','er');
+  toast('Removed from waitlist','in');
+  const fresh = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+  if (Array.isArray(fresh)) _tournRegs = fresh;
+  renderTournDetail(tournId);
+}
+
+// ── LIVE NOW BANNER ───────────────────────────────────────────
+function renderLiveNowBanner() {
+  const el = document.getElementById('live-now-banner');
+  if (!el) return;
+  const live = LC.arr('tournaments').filter(t=>t.status==='active');
+  if (!live.length) { el.style.display='none'; return; }
+  el.style.display='';
+  el.innerHTML = live.map(t=>`
+    <div onclick="switchTab('tournaments');setTimeout(()=>openTournDetail('${t.id}'),80)" style="background:linear-gradient(135deg,#c0392b,#e74c3c);border-radius:12px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block;animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0"></span>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;font-size:14px;color:#fff">${t.name}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px">${t.venue||t.sport||'Tournament'} · Tap to view</div>
+      </div>
+      <i class="ti ti-chevron-right" style="color:rgba(255,255,255,.7);font-size:16px"></i>
+    </div>`).join('');
 }
 
 // ── TOURNAMENT TEAM REGISTRATION ──────────────────────────────

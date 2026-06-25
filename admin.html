@@ -1706,6 +1706,7 @@ select.fi{
       <div id="admin-tourn-payments" style="display:none"></div>
       <!-- Stats entry -->
       <div id="admin-tourn-stats" style="display:none"></div>
+      <div id="admin-tourn-gameday" style="display:none"></div>
     </div>
 
     <div class="panel" id="panel-settings">
@@ -5237,6 +5238,7 @@ function renderAdminTournaments() {
         <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm" onclick="openTournGameDay('${t.id}')" style="flex:1;background:var(--gr);color:#fff"><i class="ti ti-calendar-event"></i>Game Day</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournRegs('${t.id}')" style="flex:1"><i class="ti ti-users-plus"></i>Regs</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournStats('${t.id}')" style="flex:1"><i class="ti ti-chart-bar"></i>Stats</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
@@ -5249,7 +5251,7 @@ function renderAdminTournaments() {
 
 // ── panel visibility helper ───────────────────────────────────
 function _showTournPanel(which) {
-  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats'].forEach(id=>{
+  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats','admin-tourn-gameday'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = id===which ? '' : 'none';
   });
@@ -5452,12 +5454,199 @@ async function saveTournMatchStats(tournId, round) {
   const ok = await dbUpdate('tournaments','id=eq.'+tournId,{ matches });
   if (!ok) return toast('Save failed','er');
   toast('Stats saved');
-  // refresh local cache
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
   if (Array.isArray(fresh)) LC.set('tournaments', fresh);
-  // re-render with updated data
   const updated = LC.arr('tournaments').find(x=>x.id===tournId);
   if (updated) renderTournStatsPanel(updated);
+}
+
+// ── bracket auto-progression ──────────────────────────────────
+async function autoProgressBracket(tournId) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const teams = t.teams||[];
+  const matches = JSON.parse(JSON.stringify(t.matches||[]));
+  const RR = ['rr1','rr2','rr3','rr4','rr5','rr6'];
+  const rrDone = RR.every(r=>matches.find(m=>m.round===r&&m.winner));
+  if (!rrDone) return; // not all RR complete yet
+
+  // compute standings
+  const standings = teams.map(tm=>{
+    let w=0,l=0,pf=0,pa=0;
+    RR.forEach(r=>{
+      const m=matches.find(x=>x.round===r);
+      if(!m||!m.winner) return;
+      const isA=m.teamA===tm.id,isB=m.teamB===tm.id;
+      if(!isA&&!isB) return;
+      const my=isA?m.scoreA:m.scoreB, op=isA?m.scoreB:m.scoreA;
+      pf+=Number(my); pa+=Number(op);
+      if((isA&&m.winner==='A')||(isB&&m.winner==='B')) w++; else l++;
+    });
+    return {id:tm.id,w,diff:pf-pa};
+  }).sort((a,b)=>b.w-a.w||b.diff-a.diff);
+
+  if (standings.length < 4) return;
+  const [s1,s2,s3,s4] = standings;
+
+  // only auto-set if not already set (respect manual overrides)
+  let changed = false;
+  const setMatch = (round, teamA, teamB) => {
+    const idx = matches.findIndex(m=>m.round===round);
+    if (idx>=0) {
+      if (!matches[idx].winner && (!matches[idx].teamA || !matches[idx].teamB)) {
+        matches[idx].teamA = teamA; matches[idx].teamB = teamB; changed=true;
+      }
+    } else {
+      matches.push({round, teamA, teamB, scoreA:null, scoreB:null, winner:null}); changed=true;
+    }
+  };
+  setMatch('final', s1.id, s2.id);
+  setMatch('3rd',   s3.id, s4.id);
+
+  if (!changed) return;
+  await dbUpdate('tournaments','id=eq.'+tournId,{matches});
+  const fresh2 = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh2)) LC.set('tournaments',fresh2);
+  toast('Finals auto-set from standings');
+}
+
+// ── tournament game day view ──────────────────────────────────
+async function openTournGameDay(tournId) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  _showTournPanel('admin-tourn-gameday');
+  renderTournGameDay(t);
+}
+
+function closeTournGameDay() { _showTournPanel('admin-tourn-list'); }
+
+function renderTournGameDay(t) {
+  const el = document.getElementById('admin-tourn-gameday');
+  if (!el) return;
+  const teams = t.teams||[];
+  const matches = t.matches||[];
+  const allRounds = ['rr1','rr2','rr3','rr4','rr5','rr6','3rd','final'];
+  const roundLabel = {rr1:'Game 1',rr2:'Game 2',rr3:'Game 3',rr4:'Game 4',rr5:'Game 5',rr6:'Game 6','3rd':'3rd Place Match',final:'Championship'};
+  const teamName = id => (teams.find(x=>x.id===id)||{}).name||'TBD';
+
+  const cards = allRounds.map(rid=>{
+    const m = matches.find(x=>x.round===rid);
+    if (!m || (!m.teamA && !m.teamB)) return '';
+    const aName = teamName(m.teamA), bName = teamName(m.teamB);
+    const done = !!m.winner;
+    const aWon = done && m.winner==='A', bWon = done && m.winner==='B';
+    const statusBadge = done
+      ? `<span style="font-size:11px;font-weight:700;color:var(--gr)">FINAL</span>`
+      : `<span style="font-size:11px;font-weight:700;color:var(--gold)">UPCOMING</span>`;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px">${roundLabel[rid]}</div>
+        ${statusBadge}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-bottom:${done?'10px':'0'}">
+        <div style="text-align:right">
+          <div style="font-weight:${aWon?'800':'600'};font-size:15px;color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
+          ${aWon?'<div style="font-size:10px;color:var(--gr);font-weight:700">WINNER</div>':''}
+        </div>
+        <div style="text-align:center;min-width:56px">
+          ${done?`<div style="display:flex;gap:6px;align-items:center;justify-content:center">
+            <span style="font-size:22px;font-weight:800;color:${aWon?'var(--gr)':'var(--tx3)'}">${m.scoreA??'—'}</span>
+            <span style="color:var(--tx3)">–</span>
+            <span style="font-size:22px;font-weight:800;color:${bWon?'var(--gr)':'var(--tx3)'}">${m.scoreB??'—'}</span>
+          </div>`:
+          `<span style="font-size:12px;color:var(--tx3);font-weight:600">VS</span>`}
+        </div>
+        <div>
+          <div style="font-weight:${bWon?'800':'600'};font-size:15px;color:${bWon?'var(--tx)':'var(--tx2)'}">${bName}</div>
+          ${bWon?'<div style="font-size:10px;color:var(--gr);font-weight:700">WINNER</div>':''}
+        </div>
+      </div>
+      ${!done?`
+      <div style="display:flex;gap:8px;align-items:center;padding-top:10px;border-top:1px solid var(--b)">
+        <input type="number" min="0" placeholder="0" id="gd-scoreA-${rid}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
+        <span style="color:var(--tx3)">–</span>
+        <input type="number" min="0" placeholder="0" id="gd-scoreB-${rid}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
+        <select id="gd-winner-${rid}" style="flex:1;padding:6px 8px;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx);font-size:13px">
+          <option value="">— Select winner —</option>
+          <option value="A">${aName} wins</option>
+          <option value="B">${bName} wins</option>
+        </select>
+        <button type="button" onclick="saveGameDayResult('${t.id}','${rid}')" class="btn btn-sm" style="width:auto;padding:7px 14px"><i class="ti ti-check"></i>Save</button>
+      </div>` : ''}
+    </div>`;
+  }).filter(Boolean).join('');
+
+  // standings
+  const RR = ['rr1','rr2','rr3','rr4','rr5','rr6'];
+  const rrPlayed = RR.some(r=>matches.find(m=>m.round===r&&m.winner));
+  const standingsHtml = rrPlayed ? (()=>{
+    const st = teams.map(tm=>{
+      let w=0,l=0,pf=0,pa=0;
+      RR.forEach(r=>{const m=matches.find(x=>x.round===r);if(!m||!m.winner)return;const isA=m.teamA===tm.id,isB=m.teamB===tm.id;if(!isA&&!isB)return;const my=isA?m.scoreA:m.scoreB,op=isA?m.scoreB:m.scoreA;pf+=Number(my);pa+=Number(op);if((isA&&m.winner==='A')||(isB&&m.winner==='B'))w++;else l++;});
+      return {id:tm.id,name:tm.name,w,l,diff:pf-pa};
+    }).sort((a,b)=>b.w-a.w||b.diff-a.diff);
+    return `<div style="font-weight:700;font-size:14px;margin:16px 0 8px">Standings</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase">
+          <th style="padding:7px 12px;text-align:left">#</th><th style="padding:7px 12px;text-align:left">Team</th>
+          <th style="padding:7px 6px;text-align:center">W</th><th style="padding:7px 6px;text-align:center">L</th><th style="padding:7px 12px;text-align:center">+/-</th>
+        </tr></thead><tbody>
+        ${st.map((s,i)=>`<tr style="border-top:1px solid var(--b)${i<2?';background:rgba(0,200,100,.04)':''}">
+          <td style="padding:9px 12px;font-weight:700;color:${i===0?'var(--gold)':i<2?'var(--gr)':'var(--tx3)'}">${i+1}</td>
+          <td style="padding:9px 12px;font-weight:${i<2?'700':'400'}">${s.name}</td>
+          <td style="padding:9px 6px;text-align:center;color:var(--gr);font-weight:700">${s.w}</td>
+          <td style="padding:9px 6px;text-align:center;color:var(--tx3)">${s.l}</td>
+          <td style="padding:9px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'#e53e3e'}">${s.diff>0?'+':''}${s.diff}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  })() : '';
+
+  const rrAllDone = RR.every(r=>matches.find(m=>m.round===r&&m.winner));
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="closeTournGameDay()"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-weight:700;font-size:16px;flex:1">${t.name} — Game Day</div>
+    </div>
+    ${rrAllDone?`<button type="button" onclick="autoProgressBracket('${t.id}')" class="btn" style="margin-bottom:14px;background:rgba(0,200,100,.1);border:1px solid var(--gr);color:var(--gr)"><i class="ti ti-arrows-right"></i>Auto-set Finals from Standings</button>`:''}
+    ${standingsHtml}
+    ${cards||'<div class="empty" style="padding:24px;text-align:center">No matchups assigned yet. Edit the tournament to set up the bracket.</div>'}
+  `;
+}
+
+async function saveGameDayResult(tournId, round) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const sA = Number(document.getElementById('gd-scoreA-'+round)?.value||0);
+  const sB = Number(document.getElementById('gd-scoreB-'+round)?.value||0);
+  const winner = document.getElementById('gd-winner-'+round)?.value;
+  if (!winner) return toast('Select a winner','er');
+  const matches = JSON.parse(JSON.stringify(t.matches||[]));
+  const m = matches.find(x=>x.round===round);
+  if (!m) return toast('Match not found','er');
+  m.scoreA = sA; m.scoreB = sB; m.winner = winner;
+  // also add time recorded
+  m.time = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+  m.date = new Date().toISOString().slice(0,10);
+  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{matches});
+  if (!ok) return toast('Save failed','er');
+  toast('Result saved');
+  const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('tournaments',fresh);
+  // auto-progress bracket if all RR done
+  await autoProgressBracket(tournId);
+  // prompt for community feed post
+  const wTeam = (t.teams||[]).find(x=>x.id===(winner==='A'?m.teamA:m.teamB));
+  const lTeam = (t.teams||[]).find(x=>x.id===(winner==='A'?m.teamB:m.teamA));
+  if (wTeam && lTeam && confirm(`Post result to Community Feed?\n"${wTeam.name} defeated ${lTeam.name} ${sA}–${sB}"`)) {
+    const msg = `${wTeam.name} defeated ${lTeam.name} ${winner==='A'?sA+' – '+sB:sB+' – '+sA} in the ${t.name}!`;
+    await rpc('post_feed_message',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_message:msg,p_type:'result'}).catch(()=>{});
+    toast('Posted to feed');
+  }
+  const updated = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (updated) renderTournGameDay(updated);
 }
 
 // ── payment monitoring ────────────────────────────────────────
@@ -5680,8 +5869,31 @@ function renderTournTeamsForm() {
         <span style="font-size:11px;font-weight:700;background:var(--surface-2);border-radius:20px;padding:3px 10px;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
+      ${selected.length ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border-1,rgba(255,255,255,.08))">
+        <label class="fl" style="margin:0 0 8px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional)</span></label>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          ${selected.map(pid=>{
+            const p = allPlayers.find(x=>x.id===pid);
+            const nm = p ? p.firstName+(p.lastName?' '+p.lastName:'') : pid;
+            const jn = (tm.jerseyNumbers||{})[pid]||'';
+            return `<div style="display:flex;align-items:center;gap:8px">
+              <span style="flex:1;font-size:13px;color:var(--text-2)">${nm}</span>
+              <input type="number" min="0" max="99" placeholder="#" value="${jn}" oninput="_setJersey(${i},'${pid}',this.value)"
+                style="width:54px;padding:5px;text-align:center;font-size:13px;font-weight:700;border:1px solid var(--border-1,rgba(255,255,255,.1));border-radius:6px;background:var(--surface-2);color:var(--tx)">
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
     </div>`;
   }).join('');
+}
+
+function _setJersey(teamIdx, pid, val) {
+  const tm = _tTeams[teamIdx];
+  if (!tm.jerseyNumbers) tm.jerseyNumbers = {};
+  if (val) tm.jerseyNumbers[pid] = Number(val);
+  else delete tm.jerseyNumbers[pid];
 }
 
 function _toggleTeamPlayer(teamIdx, pid) {
