@@ -1713,6 +1713,7 @@ footer a:hover{color:var(--text-1)}
 
       <!-- Sport tabs -->
       <div class="tog-row filter-row" style="margin-top:0;margin-bottom:14px">
+        <button type="button" class="tog" id="dir-f-all" onclick="setDirSport('all')"><span class="pl">All <span id="dir-count-all" style="font-size:11px;opacity:.7"></span></span></button>
         <button type="button" class="tog on" id="dir-f-basketball" onclick="setDirSport('basketball')"><span class="spi spi-b"></span><span class="pl">Basketball</span></button>
         <button type="button" class="tog" id="dir-f-pickleball" onclick="setDirSport('pickleball')"><span class="spi spi-p"></span><span class="pl">Pickleball</span></button>
         <button type="button" class="tog" id="dir-f-running" onclick="setDirSport('running')"><span class="spi spi-r"></span><span class="pl">Running</span></button>
@@ -3498,7 +3499,7 @@ function setDirSort(s){
 }
 function setDirSport(s){
   dirSport=s;
-  ['basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
+  ['all','basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
     const b=document.getElementById('dir-f-'+k);
     if(b) b.className='tog'+(k===s?' on':'');
   });
@@ -3510,13 +3511,19 @@ function setDirSport(s){
 function renderDirectory() {
   const el=document.getElementById('dir-list'); if(!el) return;
   const q=(document.getElementById('dir-search')||{value:''}).value.toLowerCase().trim();
-  let list=LC.arr('roster').filter(p=>(p.sports||'basketball').split(',').map(s=>s.trim()).includes(dirSport));
+  const allRoster=LC.arr('roster');
+  // update All count badge
+  const cntEl=document.getElementById('dir-count-all');
+  if(cntEl) cntEl.textContent=allRoster.length||'';
+  let list=dirSport==='all'?[...allRoster]:allRoster.filter(p=>(p.sports||'basketball').split(',').map(s=>s.trim()).includes(dirSport));
   if(q) list=list.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q));
   if(!list.length){el.innerHTML='<div class="empty" style="padding:24px;text-align:center">No players found</div>';return;}
 
   // sport-specific: enrich list with computed stats then sort
   let statLabel='';
-  if(dirSport==='basketball'){
+  if(dirSport==='all'){
+    list.sort((a,b)=>(a.firstName+' '+a.lastName).localeCompare(b.firstName+' '+b.lastName));
+  } else if(dirSport==='basketball'){
     if(dirSort==='wins')      { list.sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0)); statLabel='Wins'; }
     else if(dirSort==='games'){ list.sort((a,b)=>(b.games||0)-(a.games||0)); statLabel='Games'; }
     else                      { list.sort((a,b)=>{ const ra=a.games>0?(a.wins||0)/a.games:0,rb=b.games>0?(b.wins||0)/b.games:0; return rb-ra||(b.games||0)-(a.games||0); }); statLabel='Win %'; }
@@ -3552,7 +3559,7 @@ function renderDirectory() {
     const rankColor=rank===1?'var(--gold)':rank===2?'#C0C0C0':rank===3?'#CD7F32':'var(--tx3)';
     const rankStyle=rank<=3?`font-weight:800;font-size:15px;color:${rankColor}`:`font-size:13px;color:var(--tx3)`;
 
-    let statVal='—';
+    let statVal='';
     if(dirSport==='basketball'){
       statVal=dirSort==='wins'?p.wins||0:dirSort==='games'?p.games||0:winRate(p.wins,p.games);
     } else if(dirSport==='pickleball'){
@@ -3565,7 +3572,9 @@ function renderDirectory() {
       statVal=p._games;
     }
 
-    const sub=dirSport==='basketball'
+    const sub=dirSport==='all'
+      ? (p.sports||'basketball').split(',').map(s=>s.trim()).map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join(' · ')
+      : dirSport==='basketball'
       ? `${p.position||'Player'} · ${p.games||0} games`
       : dirSport==='pickleball'
       ? (()=>{ const wl=playerWL(p.id); return (p.pickleballSkill||'')+(wl.w+wl.l>0?' · '+wl.w+'W '+wl.l+'L':''); })()
