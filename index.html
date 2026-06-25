@@ -1722,9 +1722,9 @@ footer a:hover{color:var(--text-1)}
 
       <!-- Sort tabs (basketball only) -->
       <div id="dir-sort-tabs" style="display:flex;gap:6px;margin-bottom:12px">
-        <button type="button" class="lb-tab on" id="plb-wins" onclick="setPlayerLb('wins')">Wins</button>
-        <button type="button" class="lb-tab" id="plb-games" onclick="setPlayerLb('games')">Games</button>
-        <button type="button" class="lb-tab" id="plb-rate" onclick="setPlayerLb('rate')">Win Rate</button>
+        <button type="button" class="lb-tab on" id="dir-plb-wins" onclick="setDirSort('wins')">Wins</button>
+        <button type="button" class="lb-tab" id="dir-plb-games" onclick="setDirSort('games')">Games</button>
+        <button type="button" class="lb-tab" id="dir-plb-rate" onclick="setDirSort('rate')">Win Rate</button>
       </div>
 
       <!-- Search -->
@@ -3487,6 +3487,15 @@ window.addEventListener('popstate', _handleHash);
 
 // ── PLAYERS DIRECTORY ─────────────────────────────────────────
 let dirSport='basketball';
+let dirSort='wins';
+function setDirSort(s){
+  dirSort=s;
+  ['wins','games','rate'].forEach(k=>{
+    const b=document.getElementById('dir-plb-'+k);
+    if(b) b.className='lb-tab'+(k===s?' on':'');
+  });
+  renderDirectory();
+}
 function setDirSport(s){
   dirSport=s;
   ['basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
@@ -3505,23 +3514,20 @@ function renderDirectory() {
   if(q) list=list.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q));
   if(!list.length){el.innerHTML='<div class="empty" style="padding:24px;text-align:center">No players found</div>';return;}
 
-  // sort
+  // sport-specific sort + stat
+  let statLabel='';
   if(dirSport==='basketball'){
-    if(playerLbSort==='wins') list.sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
-    else if(playerLbSort==='games') list.sort((a,b)=>(b.games||0)-(a.games||0));
-    else list.sort((a,b)=>{
-      const ra=a.games>0?(a.wins||0)/a.games:0, rb=b.games>0?(b.wins||0)/b.games:0;
-      return rb-ra||(b.games||0)-(a.games||0);
-    });
+    if(dirSort==='wins')      { list.sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0)); statLabel='Wins'; }
+    else if(dirSort==='games'){ list.sort((a,b)=>(b.games||0)-(a.games||0)); statLabel='Games'; }
+    else                      { list.sort((a,b)=>{ const ra=a.games>0?(a.wins||0)/a.games:0,rb=b.games>0?(b.wins||0)/b.games:0; return rb-ra||(b.games||0)-(a.games||0); }); statLabel='Win %'; }
   } else if(dirSport==='pickleball'){
-    list.sort((a,b)=>(b.dupr||b.pickleballRating||0)-(a.dupr||a.pickleballRating||0));
+    list.sort((a,b)=>(b.pickleballMatches||0)-(a.pickleballMatches||0));
+    statLabel='Matches';
   } else {
-    list.sort((a,b)=>(b.games||0)-(a.games||0));
+    // running/badminton/dragonboat — no game count tracked per sport yet, sort by name
+    list.sort((a,b)=>(a.firstName+' '+a.lastName).localeCompare(b.firstName+' '+b.lastName));
+    statLabel='';
   }
-
-  const statLabel = dirSport==='basketball'
-    ? (playerLbSort==='wins'?'Wins':playerLbSort==='games'?'Games':'Win %')
-    : dirSport==='pickleball' ? 'DUPR' : 'Games';
 
   const meIdx = ME ? list.findIndex(p=>p.id===ME.id) : -1;
 
@@ -3535,14 +3541,13 @@ function renderDirectory() {
 
     let statVal='—';
     if(dirSport==='basketball'){
-      if(playerLbSort==='wins') statVal=p.wins||0;
-      else if(playerLbSort==='games') statVal=p.games||0;
+      if(dirSort==='wins') statVal=p.wins||0;
+      else if(dirSort==='games') statVal=p.games||0;
       else statVal=winRate(p.wins,p.games);
     } else if(dirSport==='pickleball'){
-      statVal=p.dupr||p.pickleballRating||'—';
-    } else {
-      statVal=p.games||0;
+      statVal=p.pickleballMatches||0;
     }
+    // running/badminton/dragonboat: no stat shown yet
 
     const sub=dirSport==='basketball'
       ? `${p.position||'Player'} · ${p.games||0} games`
