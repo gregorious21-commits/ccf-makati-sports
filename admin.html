@@ -1620,34 +1620,40 @@ select.fi{
       <!-- Create / Edit form (hidden by default) -->
       <div id="admin-tourn-form" style="display:none">
         <div class="card" style="margin-bottom:12px">
-          <div class="card-h" style="margin-bottom:14px"><div class="card-t" id="tourn-form-title">New Tournament</div></div>
-          <label class="lbl">Tournament Name</label>
-          <input type="text" class="inp" id="tf-name" placeholder="e.g. CCF Summer Basketball League">
-          <label class="lbl" style="margin-top:10px">Sport</label>
-          <select class="inp" id="tf-sport">
-            <option value="basketball">Basketball</option>
-            <option value="pickleball">Pickleball</option>
-            <option value="badminton">Badminton</option>
-            <option value="running">Running</option>
-            <option value="dragonboat">Dragonboat</option>
-          </select>
-          <label class="lbl" style="margin-top:10px">Format</label>
-          <select class="inp" id="tf-format">
-            <option value="single_elim_4">Single Elimination – 4 Teams</option>
-          </select>
-          <div style="display:flex;gap:10px;margin-top:10px">
-            <div style="flex:1"><label class="lbl">Start Date</label><input type="date" class="inp" id="tf-start"></div>
-            <div style="flex:1"><label class="lbl">End Date</label><input type="date" class="inp" id="tf-end"></div>
+          <div class="card-h" style="margin-bottom:16px"><div class="card-t" id="tourn-form-title">New Tournament</div></div>
+          <label class="fl">Tournament Name</label>
+          <input type="text" class="fi" id="tf-name" placeholder="e.g. CCF Summer Basketball League">
+          <div class="g2" style="margin-top:10px">
+            <div>
+              <label class="fl" style="margin-top:0">Sport</label>
+              <select class="fi" id="tf-sport">
+                <option value="basketball">Basketball</option>
+                <option value="pickleball">Pickleball</option>
+                <option value="badminton">Badminton</option>
+                <option value="running">Running</option>
+                <option value="dragonboat">Dragonboat</option>
+              </select>
+            </div>
+            <div>
+              <label class="fl" style="margin-top:0">Format</label>
+              <select class="fi" id="tf-format">
+                <option value="single_elim_4">Single Elimination – 4 Teams</option>
+              </select>
+            </div>
           </div>
-          <label class="lbl" style="margin-top:10px">Status</label>
-          <select class="inp" id="tf-status">
+          <div class="g2" style="margin-top:10px">
+            <div><label class="fl" style="margin-top:0">Start Date</label><input type="date" class="fi" id="tf-start"></div>
+            <div><label class="fl" style="margin-top:0">End Date</label><input type="date" class="fi" id="tf-end"></div>
+          </div>
+          <label class="fl" style="margin-top:10px">Status</label>
+          <select class="fi" id="tf-status">
             <option value="upcoming">Upcoming</option>
             <option value="active">Active / Ongoing</option>
             <option value="completed">Completed</option>
           </select>
-          <label class="lbl" style="margin-top:10px">Designated Captains <span style="color:var(--tx3);font-weight:400">(only they can register a team)</span></label>
-          <select multiple class="inp" id="tf-captains" style="height:120px;font-size:13px"></select>
-          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Hold Ctrl / Cmd to select multiple</div>
+          <label class="fl" style="margin-top:16px">Designated Captains <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(only captains can register a team)</span></label>
+          <div id="tf-captains-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:36px;padding:8px;background:var(--surface-1);border:1px solid var(--border-1);border-radius:10px"></div>
+          <select multiple id="tf-captains" style="display:none"></select>
         </div>
 
         <!-- Fee breakdown -->
@@ -5176,9 +5182,10 @@ async function endGameDay(){
 }
 
 // ── TOURNAMENTS ───────────────────────────────────────────────
-let _tEditId = null;
-let _tTeams  = [];
-let _tFees   = [];
+let _tEditId    = null;
+let _tTeams     = [];
+let _tFees      = [];
+let _tCaptains  = [];
 
 const MAX_TOURN_PLAYERS = 15;
 
@@ -5513,14 +5520,33 @@ async function rejectTournPayment(payId, tournId) {
 function _showTournForm() { _showTournPanel('admin-tourn-form'); }
 
 function _populateCaptainsPicker(selected) {
-  const sel = document.getElementById('tf-captains');
-  if (!sel) return;
-  const all = LC.arr('players').filter(p=>p.isActive!==false);
-  sel.innerHTML = all.map(p=>{
-    const name = p.firstName+(p.lastName?' '+p.lastName:'');
-    const isSelected = (selected||[]).includes(p.id);
-    return `<option value="${p.id}" ${isSelected?'selected':''}>${name}</option>`;
+  _tCaptains = Array.isArray(selected) ? [...selected] : [];
+  _renderCaptainPills();
+}
+
+function _renderCaptainPills() {
+  const container = document.getElementById('tf-captains-pills');
+  if (!container) return;
+  const all = LC.arr('players').filter(p=>p.isActive!==false).sort((a,b)=>{
+    const an=(a.firstName+' '+a.lastName).toLowerCase(), bn=(b.firstName+' '+b.lastName).toLowerCase();
+    return an<bn?-1:an>bn?1:0;
+  });
+  container.innerHTML = all.map(p=>{
+    const name = (p.firstName+' '+(p.lastName||'')).trim();
+    const on = _tCaptains.includes(p.id);
+    return `<button type="button" onclick="_toggleCaptain('${p.id}')" style="
+      padding:5px 12px;border-radius:20px;border:1.5px solid ${on?'var(--gold)':'var(--border-1)'};
+      background:${on?'rgba(var(--gold-rgb,212,175,55),.15)':'var(--surface-2)'};
+      color:${on?'var(--gold)':'var(--text-2)'};font-size:12px;font-weight:${on?'700':'500'};
+      cursor:pointer;transition:all .15s;white-space:nowrap
+    ">${on?'<i class="ti ti-check" style="margin-right:4px;font-size:11px"></i>':''}${name}</button>`;
   }).join('');
+}
+
+function _toggleCaptain(pid) {
+  const idx = _tCaptains.indexOf(pid);
+  if (idx>=0) _tCaptains.splice(idx,1); else _tCaptains.push(pid);
+  _renderCaptainPills();
 }
 
 function openNewTournForm() {
@@ -5719,7 +5745,7 @@ async function saveTournament() {
     start_date:    document.getElementById('tf-start').value||null,
     end_date:      document.getElementById('tf-end').value||null,
     fee_breakdown: _tFees.filter(f=>f.label),
-    captains:      Array.from(document.getElementById('tf-captains').selectedOptions).map(o=>o.value),
+    captains:      _tCaptains,
     teams:         _tTeams,
     matches:       bracketEl._matches || [],
   };
