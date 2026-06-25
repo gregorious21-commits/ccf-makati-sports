@@ -1709,19 +1709,30 @@ footer a:hover{color:var(--text-1)}
 
     <!-- ───── PLAYERS TAB ───── -->
     <div id="tab-players" class="tab-panel" style="display:none">
-      <div class="sec-h"><div class="sec-t">Players</div></div>
-      <div class="tog-row filter-row" style="margin-top:0;margin-bottom:10px">
-        <button type="button" class="tog on" id="dir-f-all" onclick="setDirSport('all')">All</button>
-        <button type="button" class="tog" id="dir-f-basketball" onclick="setDirSport('basketball')"><span class="spi spi-b"></span><span class="pl">Basketball</span></button>
+      <div class="sec-h"><div class="sec-t">Leaderboard</div></div>
+
+      <!-- Sport tabs -->
+      <div class="tog-row filter-row" style="margin-top:0;margin-bottom:14px">
+        <button type="button" class="tog on" id="dir-f-basketball" onclick="setDirSport('basketball')"><span class="spi spi-b"></span><span class="pl">Basketball</span></button>
         <button type="button" class="tog" id="dir-f-pickleball" onclick="setDirSport('pickleball')"><span class="spi spi-p"></span><span class="pl">Pickleball</span></button>
         <button type="button" class="tog" id="dir-f-running" onclick="setDirSport('running')"><span class="spi spi-r"></span><span class="pl">Running</span></button>
         <button type="button" class="tog" id="dir-f-badminton" onclick="setDirSport('badminton')"><span class="spi spi-bd"></span><span class="pl">Badminton</span></button>
         <button type="button" class="tog" id="dir-f-dragonboat" onclick="setDirSport('dragonboat')"><span class="spi spi-db"></span><span class="pl">Dragonboat</span></button>
+      </div>
+
+      <!-- Sort tabs (basketball only) -->
+      <div id="dir-sort-tabs" style="display:flex;gap:6px;margin-bottom:12px">
+        <button type="button" class="lb-tab on" id="plb-wins" onclick="setPlayerLb('wins')">Wins</button>
+        <button type="button" class="lb-tab" id="plb-games" onclick="setPlayerLb('games')">Games</button>
+        <button type="button" class="lb-tab" id="plb-rate" onclick="setPlayerLb('rate')">Win Rate</button>
+      </div>
+
+      <!-- Search -->
+      <input class="dir-search" id="dir-search" placeholder="Search by name…" oninput="renderDirectory()" style="margin-bottom:12px">
+
+      <!-- Board -->
+      <div id="dir-list"><div class="empty">Loading…</div></div>
     </div>
-      <input class="dir-search" id="dir-search" placeholder="Search players by name…" oninput="renderDirectory()">
-      <div id="dir-count" style="font-size:11px;color:var(--tx3);margin:10px 2px;letter-spacing:.3px"></div>
-      <div class="card" style="padding:0;overflow:hidden"><div id="dir-list"><div class="empty">Loading players…</div></div></div>
-  </div>
 
     <!-- ───── MY PROFILE TAB ───── -->
     <div id="tab-profile" class="tab-panel" style="display:none">
@@ -3475,43 +3486,96 @@ function _handleHash() {
 window.addEventListener('popstate', _handleHash);
 
 // ── PLAYERS DIRECTORY ─────────────────────────────────────────
-let dirSport='all';
+let dirSport='basketball';
 function setDirSport(s){
   dirSport=s;
-  ['all','basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
+  ['basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
     const b=document.getElementById('dir-f-'+k);
     if(b) b.className='tog'+(k===s?' on':'');
   });
+  const sortTabs=document.getElementById('dir-sort-tabs');
+  if(sortTabs) sortTabs.style.display=s==='basketball'?'flex':'none';
   renderDirectory();
 }
+
 function renderDirectory() {
   const el=document.getElementById('dir-list'); if(!el) return;
-  const q=(document.getElementById('dir-search')||{value:''}).value.toLowerCase();
-  let list=LC.arr('roster').slice().sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
-  if (dirSport!=='all') list=list.filter(p=>(p.sports||'basketball').split(',').map(s=>s.trim()).includes(dirSport));
-  if (q) list=list.filter(p=>((p.firstName+' '+p.lastName).toLowerCase().includes(q))||(p.position||'').toLowerCase().includes(q));
-  const cnt=document.getElementById('dir-count');
-  if (cnt) cnt.textContent=list.length+' player'+(list.length===1?'':'s');
-  if (!list.length) { el.innerHTML='<div class="empty">No players found</div>'; return; }
-  el.innerHTML=list.map((p,i)=>{
-    const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(i)}`;
-    const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
-    const dg=p.hasDgroup?'Dgroup':'';
-    const sportsArr=(p.sports||'basketball').split(',').map(s=>s.trim()).filter(Boolean);
-    const sportIcons=sportsArr.map(s=>s==='pickleball'?'<span class="spi spi-p"></span>':s==='running'?'<span class="spi spi-r"></span>':s==='badminton'?'<span class="spi spi-bd"></span>':s==='dragonboat'?'<span class="spi spi-db"></span>':'<span class="spi spi-b"></span>').join('');
-    const role=sportsArr.length===1&&sportsArr[0]==='pickleball'
-      ? (p.pickleballSkill||'Pickleball')
-      : sportsArr.length===1&&sportsArr[0]==='running'
-      ? 'Runner'
-      : (p.position||'Player');
-    const meta=[sportIcons,role,dg,(p.games||0)+' games'].filter(Boolean).join(' · ');
+  const q=(document.getElementById('dir-search')||{value:''}).value.toLowerCase().trim();
+  let list=LC.arr('roster').filter(p=>(p.sports||'basketball').split(',').map(s=>s.trim()).includes(dirSport));
+  if(q) list=list.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q));
+  if(!list.length){el.innerHTML='<div class="empty" style="padding:24px;text-align:center">No players found</div>';return;}
+
+  // sort
+  if(dirSport==='basketball'){
+    if(playerLbSort==='wins') list.sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
+    else if(playerLbSort==='games') list.sort((a,b)=>(b.games||0)-(a.games||0));
+    else list.sort((a,b)=>{
+      const ra=a.games>0?(a.wins||0)/a.games:0, rb=b.games>0?(b.wins||0)/b.games:0;
+      return rb-ra||(b.games||0)-(a.games||0);
+    });
+  } else if(dirSport==='pickleball'){
+    list.sort((a,b)=>(b.dupr||b.pickleballRating||0)-(a.dupr||a.pickleballRating||0));
+  } else {
+    list.sort((a,b)=>(b.games||0)-(a.games||0));
+  }
+
+  const statLabel = dirSport==='basketball'
+    ? (playerLbSort==='wins'?'Wins':playerLbSort==='games'?'Games':'Win %')
+    : dirSport==='pickleball' ? 'DUPR' : 'Games';
+
+  const meIdx = ME ? list.findIndex(p=>p.id===ME.id) : -1;
+
+  el.innerHTML = list.map((p,i)=>{
+    const rank=i+1;
     const mine=ME&&p.id===ME.id;
-    return `<div class="dir-row" onclick="viewPlayer('${p.id}')">
-      <div class="dir-av" style="${avStyle}">${avTxt}</div>
-      <div style="flex:1;min-width:0"><div class="dir-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div><div class="dir-meta">${meta}</div></div>
-      <i class="ti ti-chevron-right dir-chev"></i>
-  </div>`;
+    const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}');background-size:cover`:`background:${lbCol(i)}`;
+    const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
+    const rankColor=rank===1?'var(--gold)':rank===2?'#C0C0C0':rank===3?'#CD7F32':'var(--tx3)';
+    const rankStyle=rank<=3?`font-weight:800;font-size:15px;color:${rankColor}`:`font-size:13px;color:var(--tx3)`;
+
+    let statVal='—';
+    if(dirSport==='basketball'){
+      if(playerLbSort==='wins') statVal=p.wins||0;
+      else if(playerLbSort==='games') statVal=p.games||0;
+      else statVal=winRate(p.wins,p.games);
+    } else if(dirSport==='pickleball'){
+      statVal=p.dupr||p.pickleballRating||'—';
+    } else {
+      statVal=p.games||0;
+    }
+
+    const sub=dirSport==='basketball'
+      ? `${p.position||'Player'} · ${p.games||0} games`
+      : dirSport==='pickleball'
+      ? (p.pickleballSkill||'Pickleball')
+      : p.position||'Player';
+
+    return `<div onclick="viewPlayer('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
+      <div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank<=3?['🥇','🥈','🥉'][rank-1]:rank}</div>
+      <div class="dir-av" style="${avStyle};flex-shrink:0">${avTxt}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold);font-weight:700">(You)</span>':''}</div>
+        <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sub}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-weight:800;font-size:16px;color:${rank<=3?rankColor:'var(--tx)'}">${statVal}</div>
+        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px">${statLabel}</div>
+      </div>
+    </div>`;
   }).join('');
+
+  // wrap in card
+  el.innerHTML=`<div class="card" style="padding:0;overflow:hidden">${el.innerHTML}</div>`;
+
+  // pin "You" banner if off-screen
+  if(meIdx>9&&meIdx!==-1){
+    const p=list[meIdx]; const rank=meIdx+1;
+    let sv=dirSport==='basketball'?(playerLbSort==='wins'?p.wins||0:playerLbSort==='games'?p.games||0:winRate(p.wins,p.games)):dirSport==='pickleball'?(p.dupr||p.pickleballRating||'—'):p.games||0;
+    el.innerHTML+=`<div style="margin-top:8px;padding:10px 14px;background:rgba(var(--gold-rgb,212,175,55),.1);border:1px solid rgba(var(--gold-rgb,212,175,55),.25);border-radius:10px;display:flex;align-items:center;gap:10px">
+      <div style="font-size:12px;color:var(--gold);font-weight:700">#${rank}</div>
+      <div style="flex:1;font-size:13px;font-weight:600">${p.firstName} ${p.lastName} <span style="color:var(--gold)">(You)</span></div>
+      <div style="font-weight:800;font-size:15px">${sv} <span style="font-size:10px;color:var(--tx3);font-weight:400">${statLabel}</span></div>
+  }
 }
 
 // ── MY HISTORY ────────────────────────────────────────────────

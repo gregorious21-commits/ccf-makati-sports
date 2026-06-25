@@ -5655,35 +5655,47 @@ function addTournTeam() {
 }
 
 function renderTournTeamsForm() {
-  const allPlayers = LC.arr('players').filter(p=>p.isActive!==false);
+  const allPlayers = LC.arr('players').filter(p=>p.isActive!==false).sort((a,b)=>(a.firstName+' '+(a.lastName||'')).localeCompare(b.firstName+' '+(b.lastName||'')));
   const el = document.getElementById('tf-teams-list');
   el.innerHTML = _tTeams.map((tm,i) => {
     const selected = tm.players||[];
     const count = selected.length;
     const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count===MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
-    const playerOpts = allPlayers.map(p => {
-      const pname = p.firstName+(p.lastName?' '+p.lastName:'');
-      return `<option value="${p.id}" ${selected.includes(p.id)?'selected':''}>${pname}</option>`;
-    }).join('');
-    // owner dropdown: only players in this team (or all if none selected yet)
     const ownerPool = selected.length ? allPlayers.filter(p=>selected.includes(p.id)) : allPlayers;
     const ownerOpts = `<option value="">— Select captain —</option>`+ownerPool.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
-    return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <input type="text" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
-        <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
+    const pills = allPlayers.map(p => {
+      const on = selected.includes(p.id);
+      const name = p.firstName+(p.lastName?' '+p.lastName:'');
+      return `<button type="button" onclick="_toggleTeamPlayer(${i},'${p.id}')" style="padding:5px 11px;border-radius:20px;border:1.5px solid ${on?'var(--gr)':'var(--border-1,rgba(255,255,255,.1))'};background:${on?'rgba(72,199,142,.12)':'var(--surface-2)'};color:${on?'var(--gr)':'var(--text-2)'};font-size:12px;font-weight:${on?'700':'500'};cursor:pointer;transition:all .15s;white-space:nowrap">${on?'<i class="ti ti-check" style="margin-right:3px;font-size:11px"></i>':''}${name}</button>`;
+    }).join('');
+    return `<div style="background:var(--surface-1,var(--b2));border:1px solid var(--border-1,rgba(255,255,255,.08));border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="text" class="fi" style="flex:1;font-size:14px;font-weight:600" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
+        <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
       </div>
-      <label class="lbl" style="font-size:11px">Team Captain <span style="color:var(--tx3);font-weight:400">(pays on behalf of team)</span></label>
-      <select class="inp" style="margin-bottom:8px;font-size:13px;padding:6px 10px" onchange="_tTeams[${i}].owner=this.value||null;renderTournTeamsForm()">${ownerOpts}</select>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <label class="lbl" style="font-size:11px;margin:0">Players</label>
-        <span style="font-size:11px;font-weight:700;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
+      <label class="fl" style="margin-top:0">Team Captain <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(pays on behalf of team)</span></label>
+      <select class="fi" style="margin-bottom:12px" onchange="_tTeams[${i}].owner=this.value||null;renderTournTeamsForm()">${ownerOpts}</select>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <label class="fl" style="margin:0">Players</label>
+        <span style="font-size:11px;font-weight:700;background:var(--surface-2);border-radius:20px;padding:3px 10px;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
       </div>
-      <select multiple class="inp" style="height:110px;font-size:13px" onchange="(function(sel,idx){const picked=Array.from(sel.selectedOptions).map(o=>o.value);if(picked.length>MAX_TOURN_PLAYERS){toast('Max '+MAX_TOURN_PLAYERS+' players per team','er');Array.from(sel.options).forEach(o=>o.selected=_tTeams[idx].players.includes(o.value));return;}_tTeams[idx].players=picked;if(_tTeams[idx].owner&&!picked.includes(_tTeams[idx].owner))_tTeams[idx].owner=null;renderTournTeamsForm()})(this,${i})">
-        ${playerOpts}
-      </select>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
     </div>`;
   }).join('');
+}
+
+function _toggleTeamPlayer(teamIdx, pid) {
+  const tm = _tTeams[teamIdx];
+  const idx = (tm.players||[]).indexOf(pid);
+  if (idx >= 0) {
+    tm.players.splice(idx, 1);
+    if (tm.owner === pid) tm.owner = null;
+  } else {
+    if ((tm.players||[]).length >= MAX_TOURN_PLAYERS) { toast('Max '+MAX_TOURN_PLAYERS+' players per team','er'); return; }
+    if (!tm.players) tm.players = [];
+    tm.players.push(pid);
+  }
+  renderTournTeamsForm();
 }
 
 // ── bracket form ──────────────────────────────────────────────
