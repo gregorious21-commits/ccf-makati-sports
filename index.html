@@ -3416,8 +3416,8 @@ function switchTab(name, { pushState=true }={}) {
   if (name==='tournaments') { _tournDetailId=null; renderTournaments(); }
   window.scrollTo(0,0);
   if (pushState) {
-    const hash = name==='home' ? '' : name;
-    history.pushState({tab:name}, '', hash ? '#'+hash : location.pathname);
+    const hash = name==='home' ? ' ' : name;
+    history.replaceState({tab:name}, '', '#'+hash.trim());
   }
 }
 
@@ -3433,7 +3433,7 @@ function openTournDetail(id) {
   const t = LC.arr('tournaments').find(x=>x.id===id);
   if (t) {
     const slug = _slugify(t.name) || id;
-    history.pushState({tab:'tournaments', tournId:id}, '', '#tournaments/'+slug+'/'+id);
+    history.replaceState({tab:'tournaments', tournId:id}, '', '#tournaments/'+slug+'/'+id);
   }
   Promise.all([
     dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
@@ -3955,11 +3955,13 @@ function renderTournaments() {
         <span style="font-size:11px;font-weight:700;background:${t.status==='active'?'rgba(72,199,142,.15)':t.status==='completed'?'var(--b3,rgba(255,255,255,.08))':'rgba(255,193,7,.15)'};color:${statusColor};border-radius:6px;padding:3px 9px;white-space:nowrap">${sportLabel}</span>
       </div>
       <div style="padding:12px 16px 14px">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-bottom:${captainNames.length||teamsCount?'10px':'0'}">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-bottom:${captainNames.length||teamsCount||t.venue?'10px':'0'}">
           <span><i class="ti ti-calendar" style="margin-right:4px;opacity:.6"></i>${dateStr}</span>
+          ${t.game_days?`<span><i class="ti ti-repeat" style="margin-right:4px;opacity:.6"></i>${t.game_days}</span>`:''}
           ${teamsCount?`<span><i class="ti ti-users" style="margin-right:4px;opacity:.6"></i>${teamsCount} team${teamsCount>1?'s':''}</span>`:''}
           ${t.format?`<span style="text-transform:capitalize"><i class="ti ti-tournament" style="margin-right:4px;opacity:.6"></i>${t.format.replace(/_/g,' ')}</span>`:''}
         </div>
+        ${t.venue?`<div style="font-size:12px;color:var(--tx2);margin-bottom:6px"><i class="ti ti-map-pin" style="margin-right:4px;opacity:.6"></i>${t.venue}</div>`:''}
         ${captainNames.length?`<div style="font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Captains:</span> ${captainNames.join(', ')}</div>`:''}
       </div>
     </div>`;
@@ -4253,6 +4255,24 @@ function renderTournDetail(id) {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
       <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournDetail()"><i class="ti ti-arrow-left"></i> Back</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;flex:1">${t.name}</div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+      ${(()=>{
+        const ds2 = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '';
+        const de2 = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '';
+        const dateStr2 = ds2 && de2 ? ds2+' – '+de2 : ds2||de2||'TBD';
+        const statusColor2 = t.status==='completed'?'var(--tx3)':t.status==='active'?'var(--gr)':'var(--gold)';
+        const statusLabel2 = t.status==='completed'?'Completed':t.status==='active'?'Ongoing':'Upcoming';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;color:var(--tx2)"><i class="ti ti-calendar" style="margin-right:6px;opacity:.6"></i>${dateStr2}</span>
+            <span style="font-size:11px;font-weight:700;color:${statusColor2};text-transform:uppercase;letter-spacing:.5px">${statusLabel2}</span>
+          </div>
+          ${t.game_days?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-repeat" style="margin-right:6px;opacity:.6"></i>${t.game_days}</div>`:''}
+          ${t.venue?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-map-pin" style="margin-right:6px;opacity:.6"></i>${t.venue}</div>`:''}
+        `;
+      })()}
     </div>
 
     <div class="sec-h"><div class="sec-t">Round Robin</div></div>

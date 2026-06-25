@@ -1645,12 +1645,22 @@ select.fi{
             <div><label class="fl" style="margin-top:0">Start Date</label><input type="date" class="fi" id="tf-start"></div>
             <div><label class="fl" style="margin-top:0">End Date</label><input type="date" class="fi" id="tf-end"></div>
           </div>
-          <label class="fl" style="margin-top:10px">Status</label>
-          <select class="fi" id="tf-status">
-            <option value="upcoming">Upcoming</option>
-            <option value="active">Active / Ongoing</option>
-            <option value="completed">Completed</option>
-          </select>
+          <label class="fl" style="margin-top:10px">Venue</label>
+          <input type="text" class="fi" id="tf-venue" placeholder="e.g. Metrowest Court, Makati">
+          <div class="g2" style="margin-top:10px">
+            <div>
+              <label class="fl" style="margin-top:0">Status</label>
+              <select class="fi" id="tf-status">
+                <option value="upcoming">Upcoming</option>
+                <option value="active">Active / Ongoing</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+            <div>
+              <label class="fl" style="margin-top:0">Game Days</label>
+              <input type="text" class="fi" id="tf-gamedays" placeholder="e.g. Sundays, Every Sunday">
+            </div>
+          </div>
           <label class="fl" style="margin-top:16px">Designated Captains <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(only captains can register a team)</span></label>
           <div id="tf-captains-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:36px;padding:8px;background:var(--surface-1);border:1px solid var(--border-1);border-radius:10px"></div>
           <select multiple id="tf-captains" style="display:none"></select>
@@ -5572,6 +5582,8 @@ function openNewTournForm() {
   document.getElementById('tf-start').value = '';
   document.getElementById('tf-end').value = '';
   document.getElementById('tf-status').value = 'upcoming';
+  document.getElementById('tf-venue').value = '';
+  document.getElementById('tf-gamedays').value = '';
   _showTournForm();
   _populateCaptainsPicker([]);
   renderTournFeesForm();
@@ -5592,6 +5604,8 @@ function editTournament(id) {
   document.getElementById('tf-start').value = t.start_date||'';
   document.getElementById('tf-end').value = t.end_date||'';
   document.getElementById('tf-status').value = t.status||'upcoming';
+  document.getElementById('tf-venue').value = t.venue||'';
+  document.getElementById('tf-gamedays').value = t.game_days||'';
   _showTournForm();
   _populateCaptainsPicker(t.captains||[]);
   renderTournFeesForm();
@@ -5762,6 +5776,8 @@ async function saveTournament() {
     status:        document.getElementById('tf-status').value,
     start_date:    document.getElementById('tf-start').value||null,
     end_date:      document.getElementById('tf-end').value||null,
+    venue:         document.getElementById('tf-venue').value.trim()||null,
+    game_days:     document.getElementById('tf-gamedays').value.trim()||null,
     fee_breakdown: _tFees.filter(f=>f.label),
     captains:      _tCaptains,
     teams:         _tTeams,
