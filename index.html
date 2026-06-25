@@ -3879,20 +3879,31 @@ function renderTournaments() {
     const statusColor = t.status==='completed' ? 'var(--tx3)' : t.status==='active' ? 'var(--gr)' : 'var(--gold)';
     const statusLabel = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Ongoing' : 'Upcoming';
     const teams = Array.isArray(t.teams) ? t.teams : [];
-    const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
-    const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
-    const dateStr = ds && de ? ds+' – '+de : ds||de||'';
-    return `<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="openTournDetail('${t.id}')">
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:28px;color:var(--gr)"><i class="ti ${icon}"></i></span>
+    const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
+    const dateStr = ds && de ? ds+' – '+de : ds||de||'TBD';
+    const captainIds = Array.isArray(t.captains) ? t.captains : [];
+    const captainNames = captainIds.map(cid=>_tpName(cid)).filter(Boolean);
+    const sportLabel = (t.sport||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const teamsCount = teams.length;
+    return `<div class="card" style="margin-bottom:12px;cursor:pointer;padding:0;overflow:hidden" onclick="openTournDetail('${t.id}')">
+      <div style="background:var(--b2);padding:14px 16px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--b3,rgba(255,255,255,.06))">
+        <span style="width:40px;height:40px;border-radius:10px;background:var(--gr);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <i class="ti ${icon}" style="font-size:20px;color:#fff"></i>
+        </span>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
-          <div style="font-size:12px;color:var(--tx2);margin-top:2px;text-transform:capitalize">${t.sport}${dateStr?' · '+dateStr:''}</div>
+          <div style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.6px;margin-top:2px">${statusLabel}</div>
         </div>
-        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">${statusLabel}</span>
+        <span style="font-size:11px;font-weight:700;background:${t.status==='active'?'rgba(72,199,142,.15)':t.status==='completed'?'var(--b3,rgba(255,255,255,.08))':'rgba(255,193,7,.15)'};color:${statusColor};border-radius:6px;padding:3px 9px;white-space:nowrap">${sportLabel}</span>
       </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-        ${teams.map(tm=>`<span style="background:var(--b2);border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600">${tm.name}</span>`).join('')}
+      <div style="padding:12px 16px 14px">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--tx2);margin-bottom:${captainNames.length||teamsCount?'10px':'0'}">
+          <span><i class="ti ti-calendar" style="margin-right:4px;opacity:.6"></i>${dateStr}</span>
+          ${teamsCount?`<span><i class="ti ti-users" style="margin-right:4px;opacity:.6"></i>${teamsCount} team${teamsCount>1?'s':''}</span>`:''}
+          ${t.format?`<span style="text-transform:capitalize"><i class="ti ti-tournament" style="margin-right:4px;opacity:.6"></i>${t.format.replace(/_/g,' ')}</span>`:''}
+        </div>
+        ${captainNames.length?`<div style="font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Captains:</span> ${captainNames.join(', ')}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -4089,9 +4100,11 @@ function renderTournDetail(id) {
   }
 
   // ── team registration section ─────────────────────────────────
+  const tCaptains = Array.isArray(t.captains) ? t.captains : [];
+  const iDesignatedCaptain = ME ? tCaptains.includes(ME.id) : false;
   const myReg = ME ? _tournRegs.find(r=>r.captain_id===ME.id) : null;
   const alreadyOnTeam = ME ? teams.some(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : false;
-  const canRegister = ME && (t.status==='upcoming'||t.status==='active') && !alreadyOnTeam && !myReg;
+  const canRegister = iDesignatedCaptain && (t.status==='upcoming'||t.status==='active') && !alreadyOnTeam && !myReg;
   let regSection = '';
 
   if (myReg) {
@@ -4114,6 +4127,20 @@ function renderTournDetail(id) {
       <div class="card" style="margin-bottom:14px">
         <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">Register your team. The organizer will review and confirm your spot.</div>
         <button type="button" class="btn" onclick="openTournRegForm('${t.id}')"><i class="ti ti-users-plus"></i>Register a Team</button>
+      </div>`;
+  } else if (ME && !alreadyOnTeam && !myReg && tCaptains.length && (t.status==='upcoming'||t.status==='active')) {
+    const captainNames = tCaptains.map(cid=>_tpName(cid)).filter(Boolean).join(', ');
+    regSection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Team Registration</div></div>
+      <div class="card" style="margin-bottom:14px;background:var(--b2)">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <i class="ti ti-info-circle" style="font-size:20px;color:var(--gold);margin-top:1px;flex-shrink:0"></i>
+          <div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px">Registration is captain-only</div>
+            <div style="font-size:13px;color:var(--tx2);line-height:1.6">Only designated captains can register a team for this tournament. Reach out to a captain to get added to their roster:</div>
+            <div style="margin-top:8px;font-size:13px;font-weight:600;color:var(--gr)">${captainNames}</div>
+          </div>
+        </div>
       </div>`;
   }
 

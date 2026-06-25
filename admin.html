@@ -1645,6 +1645,9 @@ select.fi{
             <option value="active">Active / Ongoing</option>
             <option value="completed">Completed</option>
           </select>
+          <label class="lbl" style="margin-top:10px">Designated Captains <span style="color:var(--tx3);font-weight:400">(only they can register a team)</span></label>
+          <select multiple class="inp" id="tf-captains" style="height:120px;font-size:13px"></select>
+          <div style="font-size:11px;color:var(--tx3);margin-top:4px">Hold Ctrl / Cmd to select multiple</div>
         </div>
 
         <!-- Fee breakdown -->
@@ -5509,6 +5512,17 @@ async function rejectTournPayment(payId, tournId) {
 // ── create / edit form ────────────────────────────────────────
 function _showTournForm() { _showTournPanel('admin-tourn-form'); }
 
+function _populateCaptainsPicker(selected) {
+  const sel = document.getElementById('tf-captains');
+  if (!sel) return;
+  const all = LC.arr('players').filter(p=>p.isActive!==false);
+  sel.innerHTML = all.map(p=>{
+    const name = p.firstName+(p.lastName?' '+p.lastName:'');
+    const isSelected = (selected||[]).includes(p.id);
+    return `<option value="${p.id}" ${isSelected?'selected':''}>${name}</option>`;
+  }).join('');
+}
+
 function openNewTournForm() {
   _tEditId = null;
   _tFees   = [];
@@ -5521,6 +5535,7 @@ function openNewTournForm() {
   document.getElementById('tf-end').value = '';
   document.getElementById('tf-status').value = 'upcoming';
   _showTournForm();
+  _populateCaptainsPicker([]);
   renderTournFeesForm();
   renderTournTeamsForm();
   renderTournBracketForm();
@@ -5540,6 +5555,7 @@ function editTournament(id) {
   document.getElementById('tf-end').value = t.end_date||'';
   document.getElementById('tf-status').value = t.status||'upcoming';
   _showTournForm();
+  _populateCaptainsPicker(t.captains||[]);
   renderTournFeesForm();
   renderTournTeamsForm();
   renderTournBracketForm(t.matches||[]);
@@ -5703,6 +5719,7 @@ async function saveTournament() {
     start_date:    document.getElementById('tf-start').value||null,
     end_date:      document.getElementById('tf-end').value||null,
     fee_breakdown: _tFees.filter(f=>f.label),
+    captains:      Array.from(document.getElementById('tf-captains').selectedOptions).map(o=>o.value),
     teams:         _tTeams,
     matches:       bracketEl._matches || [],
   };
