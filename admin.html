@@ -5672,28 +5672,48 @@ async function openTournPayments(id) {
   const payments = await dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]);
 
   const rows = teams.map(tm => {
-    const pay = (payments||[]).find(p=>p.team_id===tm.id);
-    const paidAmt = pay ? Number(pay.amount) : 0;
-    const status = pay ? pay.status : 'unpaid';
-    const statusColor = status==='verified'?'var(--gr)':status==='pending'?'var(--gold)':'var(--tx3)';
-    const statusLabel = status==='verified'?'Verified':status==='pending'?'Pending':'Unpaid';
+    const tmPays = (payments||[]).filter(p=>p.team_id===tm.id);
+    const totalPaid = tmPays.reduce((s,p)=>s+Number(p.amount||0),0);
+    const balance = Math.max(0, teamFee - totalPaid);
+    const fullyPaid = totalPaid >= teamFee;
+    const anyPending = tmPays.some(p=>p.status==='pending');
+    const anyVerified = tmPays.some(p=>p.status==='verified');
+    const overallStatus = fullyPaid && anyVerified ? 'verified' : totalPaid > 0 ? 'partial' : anyPending ? 'pending' : 'unpaid';
+    const statusColor = overallStatus==='verified'?'var(--gr)':overallStatus==='partial'?'var(--gold)':overallStatus==='pending'?'var(--gold)':'var(--tx3)';
+    const statusLabel = overallStatus==='verified'?'Fully Paid':overallStatus==='partial'?'Partial':overallStatus==='pending'?'Pending':'Unpaid';
     const ownerName = tm.owner ? _tPlayerName(tm.owner) : '—';
+
+    const installmentRows = tmPays.map((p,i)=>{
+      const sc = p.status==='verified'?'var(--gr)':p.status==='rejected'?'#e53e3e':'var(--gold)';
+      const sl = p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Pending';
+      const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b)">
+        <div style="flex:1">
+          <span style="font-size:12px;font-weight:600">Installment ${i+1}</span>
+          ${dateStr?`<span style="font-size:11px;color:var(--tx3);margin-left:6px">${dateStr}</span>`:''}
+          <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;letter-spacing:.4px;margin-left:8px">${sl}</span>
+        </div>
+        <span style="font-weight:700;font-size:13px">₱${Number(p.amount).toLocaleString()}</span>
+        ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr);flex-shrink:0">Proof</a>`:''}
+        ${p.status==='pending'?`<button type="button" onclick="verifyTournPayment('${p.id}','${id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--gr);color:#fff;border:none;cursor:pointer;flex-shrink:0">✓</button><button type="button" onclick="rejectTournPayment('${p.id}','${id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;background:none;border:1px solid var(--b);color:var(--tx3);cursor:pointer;flex-shrink:0">✗</button>`:''}
+      </div>`;
+    }).join('');
+
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
           <div style="font-weight:700">${tm.name}</div>
           <div style="font-size:12px;color:var(--tx2)">Captain: ${ownerName}</div>
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:8px">
-        <span style="color:var(--tx2)">Paid: <strong style="color:var(--tx)">₱${paidAmt.toLocaleString()}</strong> / ₱${teamFee.toLocaleString()}</span>
-        ${pay&&pay.proof_url?`<a href="${pay.proof_url}" target="_blank" style="font-size:12px;color:var(--gr)">View proof</a>`:'<span style="font-size:12px;color:var(--tx3)">No proof yet</span>'}
+      <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+        <span style="color:var(--tx2)">Paid: <strong style="color:var(--gr)">₱${totalPaid.toLocaleString()}</strong></span>
+        <span style="color:var(--tx2)">Due: <strong>₱${teamFee.toLocaleString()}</strong></span>
+        ${balance>0?`<span style="color:var(--tx2)">Balance: <strong style="color:#e53e3e">₱${balance.toLocaleString()}</strong></span>`:''}
       </div>
-      ${pay && status==='pending' ? `<div style="display:flex;gap:6px">
-        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="verifyTournPayment('${pay.id}','${id}')"><i class="ti ti-check"></i>Verify</button>
-        <button type="button" class="btn btn-sm btn-ghost" style="flex:1" onclick="rejectTournPayment('${pay.id}','${id}')"><i class="ti ti-x"></i>Reject</button>
-      </div>` : ''}
+      ${installmentRows?`<div style="margin-bottom:8px">${installmentRows}</div>`:'<div style="font-size:12px;color:var(--tx3);margin-bottom:8px">No payments submitted yet.</div>'}
+      <button type="button" onclick="openAdminAddPayment('${tm.id}','${id}',${teamFee})" style="width:100%;padding:7px;border:1px dashed var(--b);border-radius:8px;background:none;color:var(--tx3);font-size:12px;cursor:pointer;margin-top:2px"><i class="ti ti-plus"></i> Record Payment Manually</button>
     </div>`;
   }).join('');
 
@@ -5733,6 +5753,48 @@ async function rejectTournPayment(payId, tournId) {
   const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'rejected'});
   if (ok) { toast('Payment rejected','in'); openTournPayments(tournId); }
   else toast('Failed','er');
+}
+
+function openAdminAddPayment(teamId, tournId, teamFee) {
+  const el = document.getElementById('admin-tourn-payments');
+  // inject a quick inline form at the top
+  const formId = 'admin-pay-form-'+teamId;
+  if (document.getElementById(formId)) return; // already open
+  const form = document.createElement('div');
+  form.id = formId;
+  form.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:flex-end';
+  form.innerHTML = `
+    <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto">
+      <div style="font-weight:700;font-size:16px;margin-bottom:16px">Record Payment Manually</div>
+      <label class="fl">Amount (₱)</label>
+      <input type="number" class="fi" id="adm-pay-amt" placeholder="${teamFee}" style="margin-bottom:12px">
+      <label class="fl">Note <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional — e.g. "Cash on site")</span></label>
+      <input type="text" class="fi" id="adm-pay-note" placeholder="e.g. Cash, GCash partial" style="margin-bottom:12px">
+      <label class="fl">Status</label>
+      <select class="fi" id="adm-pay-status" style="margin-bottom:16px">
+        <option value="verified">Verified (confirmed received)</option>
+        <option value="pending">Pending (awaiting confirmation)</option>
+      </select>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn" style="flex:1" onclick="submitAdminPayment('${teamId}','${tournId}')"><i class="ti ti-check"></i>Save</button>
+        <button type="button" class="btn btn-ghost" style="flex:1" onclick="document.getElementById('${formId}').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(form);
+  form.addEventListener('click', e=>{ if(e.target===form) form.remove(); });
+}
+
+async function submitAdminPayment(teamId, tournId) {
+  const amt = Number(document.getElementById('adm-pay-amt')?.value||0);
+  if (!amt || amt<=0) return toast('Enter an amount','er');
+  const note = document.getElementById('adm-pay-note')?.value.trim()||'';
+  const status = document.getElementById('adm-pay-status')?.value||'verified';
+  const payload = { tournament_id:tournId, team_id:teamId, player_id:null, amount:amt, proof_url:null, status, notes:note };
+  const ok = await dbInsert('tournament_payments', payload);
+  if (!ok) return toast('Save failed','er');
+  toast('Payment recorded');
+  document.getElementById('admin-pay-form-'+teamId)?.remove();
+  openTournPayments(tournId);
 }
 
 // ── create / edit form ────────────────────────────────────────

@@ -4176,11 +4176,15 @@ function renderTournDetail(id) {
   const myTeam = ME ? teams.find(tm=>tm.owner===ME.id) : null;
   let paySection = '';
   if (myTeam && teamFee > 0) {
-    const myPay = _tournPayments.find(p=>p.team_id===myTeam.id);
-    const paidAmt = myPay ? Number(myPay.amount) : 0;
-    const pStatus = myPay ? myPay.status : 'unpaid';
-    const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
-    const statusLabel = pStatus==='verified'?'Paid & Verified':pStatus==='pending'?'Payment Pending Review':'Unpaid';
+    const myPays = _tournPayments.filter(p=>p.team_id===myTeam.id);
+    const totalPaid = myPays.reduce((s,p)=>s+Number(p.amount||0), 0);
+    const balance = Math.max(0, teamFee - totalPaid);
+    const anyVerified = myPays.some(p=>p.status==='verified');
+    const anyPending = myPays.some(p=>p.status==='pending');
+    const fullyPaid = totalPaid >= teamFee;
+    const pStatus = anyVerified && fullyPaid ? 'verified' : anyPending ? 'pending' : totalPaid > 0 ? 'partial' : 'unpaid';
+    const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='partial'?'var(--gr)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
+    const statusLabel = pStatus==='verified'?'Fully Paid':pStatus==='partial'?'Partially Paid':pStatus==='pending'?'Pending Review':'Unpaid';
     const payMethods = LC.arr('payment_methods').filter(m=>m.sport===t.sport||m.sport==='all');
 
     const methodsList = payMethods.length
@@ -4196,6 +4200,22 @@ function renderTournDetail(id) {
         <span>₱${Number(x.amount).toLocaleString()}</span>
       </div>`).join('');
 
+    const installmentRows = myPays.length ? myPays.map((p,i)=>{
+      const sc = p.status==='verified'?'var(--gr)':p.status==='pending'?'var(--gold)':'var(--tx3)';
+      const sl = p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Pending';
+      const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)">
+        <div>
+          <div style="font-size:13px;font-weight:600">Installment ${i+1}${dateStr?' · <span style="font-weight:400;color:var(--tx3)">'+dateStr+'</span>':''}</div>
+          <div style="font-size:11px;color:${sc};font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${sl}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-weight:800;font-size:14px">₱${Number(p.amount).toLocaleString()}</div>
+          ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr)">View proof</a>`:''}
+        </div>
+      </div>`;
+    }).join('') : '';
+
     paySection = `
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">Team Payment</div></div>
       <div class="card" style="margin-bottom:14px">
@@ -4207,24 +4227,31 @@ function renderTournDetail(id) {
           <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
         </div>
         ${feeRows}
-        <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0;border-top:1px solid var(--b);margin-top:4px">
-          <span>Total Due</span><span>₱${teamFee.toLocaleString()}</span>
+        <div style="border-top:1px solid var(--b);margin-top:4px;padding-top:8px">
+          <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+            <span style="color:var(--tx2)">Total Due</span><span style="font-weight:700">₱${teamFee.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+            <span style="color:var(--tx2)">Total Paid</span><span style="font-weight:700;color:var(--gr)">₱${totalPaid.toLocaleString()}</span>
+          </div>
+          ${balance>0?`<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:6px 0;border-top:1px solid var(--b);margin-top:4px">
+            <span>Balance</span><span style="color:var(--danger,#e53e3e)">₱${balance.toLocaleString()}</span>
+          </div>`:''}
         </div>
-        ${paidAmt>0?`<div style="font-size:13px;color:var(--gr);margin-top:2px">Submitted: ₱${paidAmt.toLocaleString()}</div>`:''}
-        ${pStatus!=='verified' ? `
+        ${installmentRows?`<div style="margin-top:12px;padding-top:4px">${installmentRows}</div>`:''}
+        ${!fullyPaid ? `
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b)">
             <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Send Payment To</div>
             ${methodsList}
             <div style="margin-top:12px">
-              <label class="lbl">Amount Sent (₱)</label>
-              <input type="number" class="inp" id="tp-amount" placeholder="${teamFee}" value="${paidAmt||''}">
+              <label class="lbl">Amount Sending (₱)${balance>0?' · Balance: ₱'+balance.toLocaleString():''}</label>
+              <input type="number" class="inp" id="tp-amount" placeholder="${balance||teamFee}">
               <label class="lbl" style="margin-top:10px">Upload Proof of Payment</label>
               <input type="file" accept="image/*" style="margin-top:4px" onchange="_tournPayFile=this.files[0];document.getElementById('tp-file-name').textContent=this.files[0]?this.files[0].name:''">
               <div id="tp-file-name" style="font-size:12px;color:var(--tx3);margin-top:4px"></div>
-              ${myPay&&myPay.proof_url?`<div style="margin-top:6px"><a href="${myPay.proof_url}" target="_blank" style="font-size:12px;color:var(--gr)">View previous proof</a></div>`:''}
               <button type="button" class="btn" style="margin-top:12px" onclick="submitTournPayment('${t.id}','${myTeam.id}',${teamFee})"><i class="ti ti-send"></i>Submit Payment</button>
             </div>
-          </div>` : `<div style="margin-top:10px;padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Payment verified. You're all set!</div>`}
+          </div>` : `<div style="margin-top:10px;padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Fully paid. You're all set!</div>`}
       </div>`;
   }
 
@@ -4535,14 +4562,9 @@ async function submitTournPayment(tournId, teamId, totalFee) {
     });
     if (r.ok) proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
   }
-  const existing = _tournPayments.find(p=>p.team_id===teamId);
-  const payload = { tournament_id:tournId, team_id:teamId, player_id:ME.id, amount:amt, proof_url:proofUrl||existing?.proof_url||null, status:'pending' };
-  let ok;
-  if (existing) {
-    ok = await dbUpdate('tournament_payments','id=eq.'+existing.id, payload);
-  } else {
-    ok = await dbInsert('tournament_payments', payload);
-  }
+  // always INSERT a new row — each submission is one installment
+  const payload = { tournament_id:tournId, team_id:teamId, player_id:ME.id, amount:amt, proof_url:proofUrl||null, status:'pending' };
+  const ok = await dbInsert('tournament_payments', payload);
   if (!ok) return toast('Submit failed','er');
   toast('Payment submitted — pending review');
   _tournPayFile = null;
