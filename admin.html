@@ -5323,15 +5323,21 @@ async function approveTournReg(regId, tournId, teamName, captainId, players) {
   const t = LC.arr('tournaments').find(x=>x.id===tournId);
   if (!t) return;
   const teams = JSON.parse(JSON.stringify(t.teams||[]));
-  // check not already added
-  if (teams.find(tm=>tm.name===teamName)) return toast('A team with this name already exists','er');
-  const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players };
+  // idempotency: if team already added, just mark reg approved
+  const existing = teams.find(tm=>tm.name===teamName);
+  if (existing) {
+    const ok2 = await dbUpdate('tournament_registrations','id=eq.'+regId,{status:'approved'});
+    if (!ok2) return toast('Failed to mark approved','er');
+    toast(teamName+' already in tournament — marked approved');
+    openTournRegs(tournId); return;
+  }
+  const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players:Array.isArray(players)?players:[] };
   teams.push(newTeam);
-  const [ok1, ok2] = await Promise.all([
-    dbUpdate('tournaments','id=eq.'+tournId,{ teams }),
-    dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'approved' }),
-  ]);
-  if (!ok1 || !ok2) return toast('Approval failed','er');
+  const ok1 = await dbUpdate('tournaments','id=eq.'+tournId,{ teams });
+  if (!ok1) return toast('Failed to add team','er');
+  const ok2 = await dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'approved' });
+  if (!ok2) toast('Team added but registration status not updated — check manually','er');
+  else toast(teamName+' added to tournament');
   toast(teamName+' added to tournament');
   // refresh local cache
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
@@ -5494,7 +5500,8 @@ async function autoProgressBracket(tournId) {
   const setMatch = (round, teamA, teamB) => {
     const idx = matches.findIndex(m=>m.round===round);
     if (idx>=0) {
-      if (!matches[idx].winner && (!matches[idx].teamA || !matches[idx].teamB)) {
+      // only auto-fill if neither slot has been set yet and no result recorded
+      if (!matches[idx].winner && !matches[idx].teamA && !matches[idx].teamB) {
         matches[idx].teamA = teamA; matches[idx].teamB = teamB; changed=true;
       }
     } else {
@@ -5976,6 +5983,7 @@ function renderTournBracketForm(existing) {
 function updateBracketField(el) {
   const r = el.dataset.r, side = el.dataset.side;
   const bracketEl = document.getElementById('tf-bracket');
+  if (!bracketEl || !bracketEl._matches) return;
   const m = bracketEl._matches.find(x=>x.round===r);
   if (!m) return;
   if (side==='A') m.teamA = el.value||null;
@@ -6006,7 +6014,7 @@ async function saveTournament() {
     fee_breakdown: _tFees.filter(f=>f.label),
     captains:      _tCaptains,
     teams:         _tTeams,
-    matches:       bracketEl._matches || [],
+    matches:       (bracketEl && bracketEl._matches) ? bracketEl._matches : [],
   };
   try {
     const res = _tEditId
