@@ -3514,20 +3514,33 @@ function renderDirectory() {
   if(q) list=list.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(q));
   if(!list.length){el.innerHTML='<div class="empty" style="padding:24px;text-align:center">No players found</div>';return;}
 
-  // sport-specific sort + stat
+  // sport-specific: enrich list with computed stats then sort
   let statLabel='';
   if(dirSport==='basketball'){
     if(dirSort==='wins')      { list.sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0)); statLabel='Wins'; }
     else if(dirSort==='games'){ list.sort((a,b)=>(b.games||0)-(a.games||0)); statLabel='Games'; }
     else                      { list.sort((a,b)=>{ const ra=a.games>0?(a.wins||0)/a.games:0,rb=b.games>0?(b.wins||0)/b.games:0; return rb-ra||(b.games||0)-(a.games||0); }); statLabel='Win %'; }
   } else if(dirSport==='pickleball'){
-    list.sort((a,b)=>(b.pickleballMatches||0)-(a.pickleballMatches||0));
-    statLabel='Matches';
-  } else {
-    // running/badminton/dragonboat — no game count tracked per sport yet, sort by name
-    list.sort((a,b)=>(a.firstName+' '+a.lastName).localeCompare(b.firstName+' '+b.lastName));
-    statLabel='';
+    const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
+    list=list.map(p=>({...p,_rt:rt(p),_pm:p.pickleballMatches||0}))
+      .sort((a,b)=>{
+        if(a._rt!=null&&b._rt!=null) return b._rt-a._rt;
+        if(a._rt!=null) return -1; if(b._rt!=null) return 1;
+        return b._pm-a._pm;
+      });
+    statLabel='Rating';
+  } else if(dirSport==='running'){
+    list=list.map(p=>({...p,_runs:runningRuns(p.id)})).filter(p=>p._runs>0).sort((a,b)=>b._runs-a._runs);
+    statLabel='Runs';
+  } else if(dirSport==='dragonboat'){
+    list=list.map(p=>({...p,_runs:dragonboatRuns(p.id)})).filter(p=>p._runs>0).sort((a,b)=>b._runs-a._runs);
+    statLabel='Sessions';
+  } else if(dirSport==='badminton'){
+    list=list.map(p=>({...p,_games:badmintonGames(p.id)})).filter(p=>p._games>0).sort((a,b)=>b._games-a._games);
+    statLabel='Games';
   }
+
+  if(!list.length){el.innerHTML='<div class="empty" style="padding:24px;text-align:center">No activity recorded yet for this sport.</div>';return;}
 
   const meIdx = ME ? list.findIndex(p=>p.id===ME.id) : -1;
 
@@ -3541,19 +3554,26 @@ function renderDirectory() {
 
     let statVal='—';
     if(dirSport==='basketball'){
-      if(dirSort==='wins') statVal=p.wins||0;
-      else if(dirSort==='games') statVal=p.games||0;
-      else statVal=winRate(p.wins,p.games);
+      statVal=dirSort==='wins'?p.wins||0:dirSort==='games'?p.games||0:winRate(p.wins,p.games);
     } else if(dirSport==='pickleball'){
-      statVal=p.pickleballMatches||0;
+      statVal=p._rt!=null?Number(p._rt).toFixed(3):'—';
+    } else if(dirSport==='running'){
+      statVal=p._runs;
+    } else if(dirSport==='dragonboat'){
+      statVal=p._runs;
+    } else if(dirSport==='badminton'){
+      statVal=p._games;
     }
-    // running/badminton/dragonboat: no stat shown yet
 
     const sub=dirSport==='basketball'
       ? `${p.position||'Player'} · ${p.games||0} games`
       : dirSport==='pickleball'
-      ? (p.pickleballSkill||'Pickleball')
-      : p.position||'Player';
+      ? (()=>{ const wl=playerWL(p.id); return (p.pickleballSkill||'')+(wl.w+wl.l>0?' · '+wl.w+'W '+wl.l+'L':''); })()
+      : dirSport==='running'
+      ? `Runner · ${p._runs} run${p._runs===1?'':'s'}`
+      : dirSport==='dragonboat'
+      ? `Paddler · ${p._runs} session${p._runs===1?'':'s'}`
+      : `${p.position||'Player'} · ${p._games} game${p._games===1?'':'s'}`;
 
     return `<div onclick="viewPlayer('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
       <div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank<=3?['🥇','🥈','🥉'][rank-1]:rank}</div>
