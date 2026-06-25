@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>CCF Makati Sports — Admin</title>
 <link rel="icon" href="logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1068,6 +1068,7 @@ select.fi{
     <div class="nav-sec">Game Day</div>
     <div class="nav-item" data-p="gameday"><i class="ti ti-ball-basketball"></i>Game Day</div>
     <div class="nav-sec">Records</div>
+    <div class="nav-item" data-p="tournaments"><i class="ti ti-trophy"></i>Tournaments</div>
     <div class="nav-item" data-p="weekly"><i class="ti ti-list-check"></i>Weekly Roster</div>
     <div class="nav-item" data-p="leaderboard"><i class="ti ti-trophy"></i>Leaderboard</div>
     <div class="nav-item" data-p="history"><i class="ti ti-history"></i>Game History</div>
@@ -1606,6 +1607,66 @@ select.fi{
   </div>
 
     <!-- SETTINGS -->
+    <!-- TOURNAMENTS PANEL -->
+    <div class="panel" id="panel-tournaments">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div class="card-t" id="tourn-panel-title"><i class="ti ti-trophy"></i>Tournaments</div>
+        <button type="button" class="btn btn-sm" id="btn-new-tourn" onclick="openNewTournForm()" style="width:auto;padding:8px 16px"><i class="ti ti-plus"></i>New Tournament</button>
+      </div>
+
+      <!-- List view -->
+      <div id="admin-tourn-list"></div>
+
+      <!-- Create / Edit form (hidden by default) -->
+      <div id="admin-tourn-form" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-h" style="margin-bottom:14px"><div class="card-t" id="tourn-form-title">New Tournament</div></div>
+          <label class="lbl">Tournament Name</label>
+          <input type="text" class="inp" id="tf-name" placeholder="e.g. CCF Summer Basketball League">
+          <label class="lbl" style="margin-top:10px">Sport</label>
+          <select class="inp" id="tf-sport">
+            <option value="basketball">Basketball</option>
+            <option value="pickleball">Pickleball</option>
+            <option value="badminton">Badminton</option>
+            <option value="running">Running</option>
+            <option value="dragonboat">Dragonboat</option>
+          </select>
+          <label class="lbl" style="margin-top:10px">Format</label>
+          <select class="inp" id="tf-format">
+            <option value="single_elim_4">Single Elimination – 4 Teams</option>
+          </select>
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <div style="flex:1"><label class="lbl">Start Date</label><input type="date" class="inp" id="tf-start"></div>
+            <div style="flex:1"><label class="lbl">End Date</label><input type="date" class="inp" id="tf-end"></div>
+          </div>
+          <label class="lbl" style="margin-top:10px">Status</label>
+          <select class="inp" id="tf-status">
+            <option value="upcoming">Upcoming</option>
+            <option value="active">Active / Ongoing</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+
+        <!-- Teams builder -->
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-h" style="margin-bottom:12px"><div class="card-t">Teams</div></div>
+          <div id="tf-teams-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addTournTeam()" style="margin-top:8px;width:auto"><i class="ti ti-plus"></i>Add Team</button>
+        </div>
+
+        <!-- Bracket scores -->
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-h" style="margin-bottom:12px"><div class="card-t">Bracket & Scores</div></div>
+          <div id="tf-bracket"></div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button type="button" class="btn" onclick="saveTournament()" style="flex:1"><i class="ti ti-device-floppy"></i>Save Tournament</button>
+          <button type="button" class="btn btn-ghost" onclick="closeTournForm()" style="flex:1">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div class="panel" id="panel-settings">
       <div class="card">
         <div class="card-h">
@@ -2070,7 +2131,7 @@ async function doFullSync() {
   const playersPromise = USE_NEW_AUTH
     ? rpc('admin_list_players', { p_phone: AUTH.phone(), p_pin: AUTH.pin() })
     : dbGet('players', 'select=*');
-  const [games,regs,players,dev,anns,notifs,hist,pmethods] = await Promise.all([
+  const [games,regs,players,dev,anns,notifs,hist,pmethods,tournaments] = await Promise.all([
     dbGet('games',           'select=*&order=date.asc'),
     dbGet('registrations',   'select=*&status=neq.cancelled&order=created_at.desc'),
     playersPromise,
@@ -2079,9 +2140,11 @@ async function doFullSync() {
     dbGet('notifications',   'select=*&order=created_at.desc&limit=20'),
     dbGet('game_history',    'select=*&order=created_at.desc&limit=20'),
     dbGet('payment_methods', 'select=*&order=sport.asc,sort_order.asc,id.asc'),
+    dbGet('tournaments',     'select=*&order=created_at.desc').catch(()=>[]),
   ]);
-  if(Array.isArray(games))   LC.set('games',  games.map(mapGame));
-  if(Array.isArray(regs))    LC.set('regs',   regs.map(mapReg));
+  if(Array.isArray(games))       LC.set('games',       games.map(mapGame));
+  if(Array.isArray(regs))        LC.set('regs',        regs.map(mapReg));
+  if(Array.isArray(tournaments)) LC.set('tournaments', tournaments);
   if(Array.isArray(players)){
     // Supabase is the source of truth for admin — rebuild the full roster
     // so newly registered players always appear.
@@ -2103,7 +2166,7 @@ async function doFullSync() {
   if(Array.isArray(dev)&&dev[0]) LC.set('devotion',mapDev(dev[0]));
   if(Array.isArray(anns))        LC.set('announcements',anns);
   if(Array.isArray(notifs))      LC.set('notifications',notifs);
-  if(Array.isArray(hist))        LC.set('history',hist.map(h=>({id:h.id,date:h.game_date||'',playerCount:h.player_count||0,teams:h.teams||[],matches:h.matches||[]})));
+  if(Array.isArray(hist))        LC.set('history',hist.map(h=>({id:h.id,date:h.game_date||'',playerCount:h.player_count||0,teams:h.teams||[],matches:h.matches||[],sport:h.sport||'basketball'})));
   if(Array.isArray(pmethods))    LC.set('payment_methods', pmethods);
   updatePendingBadge();
   setSyncing(false);
@@ -2201,7 +2264,7 @@ function applyRoleVisibility(){
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const TITLES={dashboard:'Dashboard',schedule:'Game Schedule',regs:'Registrations',players:'Players',announcements:'Announcements',feed:'News Feed',devotion:'Devotion & Verse',gameday:'Game Day',weekly:'Weekly Roster',leaderboard:'Leaderboard',history:'Game History',finance:'Finance',summary:'Summary',attendance:'Run Attendance',settings:'Settings'};
+const TITLES={dashboard:'Dashboard',schedule:'Game Schedule',regs:'Registrations',players:'Players',announcements:'Announcements',feed:'News Feed',devotion:'Devotion & Verse',gameday:'Game Day',weekly:'Weekly Roster',leaderboard:'Leaderboard',history:'Game History',tournaments:'Tournaments',finance:'Finance',summary:'Summary',attendance:'Run Attendance',settings:'Settings'};
 
 function nav(pid){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
@@ -2227,6 +2290,7 @@ function renderPanel(pid){
   if(pid==='weekly')       renderWeekly();
   if(pid==='leaderboard')  renderLb();
   if(pid==='history')      renderHist();
+  if(pid==='tournaments')  renderAdminTournaments();
   if(pid==='finance')      renderFinance();
   if(pid==='summary')      renderSummary();
   if(pid==='settings')     loadSettings();
@@ -2814,7 +2878,7 @@ function openEditPlayer(id){
   document.getElementById('e-skill').value=p.pickleballSkill||'';
   document.getElementById('e-rating').value=(p.ratingPickleball!=null?p.ratingPickleball:'');
   { const note=document.getElementById('e-rating-note');
-    if(note) note.textContent = p.dupr!=null ? ('Self-entered DUPR seed: '+Number(p.dupr).toFixed(2)) : 'No DUPR seed set by player.'; }
+    if(note) note.textContent = p.dupr!=null ? ('Self-entered DUPR seed: '+Number(p.dupr).toFixed(3)) : 'No DUPR seed set by player.'; }
   document.getElementById('e-dgl').value=p.dgroupLeader||'';
   document.getElementById('e-wins').value=p.wins||0;
   document.getElementById('e-games').value=p.games||0;
@@ -2836,14 +2900,14 @@ function openEditPlayer(id){
 async function resetRatingToDupr(){
   const p=LC.arr('players').find(x=>x.id===editPlayerId); if(!p) return;
   if(p.dupr==null){ toast('No DUPR seed set for this player','er'); return; }
-  document.getElementById('e-rating').value=Number(p.dupr).toFixed(2);
+  document.getElementById('e-rating').value=Number(p.dupr).toFixed(3);
   p.ratingPickleball=p.dupr;
   const pl=LC.arr('players'); const pj=pl.findIndex(x=>x.id===p.id);
   if(pj>-1){ pl[pj].ratingPickleball=p.dupr; LC.set('players',pl); }
   const rs=LC.arr('roster'); const rj=rs.findIndex(x=>x.id===p.id);
   if(rj>-1){ rs[rj].ratingPickleball=p.dupr; LC.set('roster',rs); }
   const ok=await rpc('admin_reset_to_dupr',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_target_id:p.id});
-  if(ok===true){ toast('Reset to DUPR '+Number(p.dupr).toFixed(2)+' \u2713'); }
+  if(ok===true){ toast('Reset to DUPR '+Number(p.dupr).toFixed(3)+' \u2713'); }
   else { toast('Reset failed','er'); }
   if(typeof renderPlayers==='function') renderPlayers();
 }
@@ -3917,13 +3981,22 @@ function renderPballSession(){
   // Queue
   const q = document.getElementById('pball-queue');
   document.getElementById('pb-queue-count').textContent = pbSession.queue.length+' waiting';
-  q.innerHTML = pbSession.queue.length
-    ? pbSession.queue.map(item=>{
-        const sk=pbSkill(item.pid);
-        const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
-        return `<span class="${cls}">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>`;
-      }).join('')
-    : '<div class="empty" style="padding:14px">No one in the queue.</div>';
+  if(!pbSession.queue.length){
+    q.innerHTML='<div class="empty" style="padding:14px">No one in the queue.</div>';
+  } else {
+    const courtsCount = pbSession.courts.length;
+    const upNextCount = courtsCount * 2; // next 4 players fill the next round
+    q.innerHTML = pbSession.queue.map((item,i)=>{
+      const sk=pbSkill(item.pid);
+      const upNext = i < upNextCount;
+      const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
+        <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
+        <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
+        ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
+      </div>`;
+    }).join('');
+  }
   // Log
   const logEl = document.getElementById('pball-log');
   if (!pbSession.log.length){
@@ -4424,7 +4497,7 @@ async function endPickleballSession(){
     })),
     sport:'pickleball'
   };
-  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:JSON.stringify(entry.teams),p_matches:JSON.stringify(entry.matches),p_sport:'pickleball'});
+  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'pickleball'});
   if (ok){
     await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
     toast('Session saved · '+pbSession.log.length+' matches archived');
@@ -4855,7 +4928,7 @@ async function bbEndSession(){
       winner:(m.winner==='A'?m.teamA:m.teamB).map(bbFirst).join(' & ')
     }))
   };
-  const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:JSON.stringify(entry.teams),p_matches:JSON.stringify(entry.matches),p_sport:'basketball'});
+  const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'basketball'});
   if(ok){
     const hist=LC.arr('history');
     hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
@@ -5067,7 +5140,7 @@ async function endGameDay(){
       return{teamA:ta?ta.name:'?',teamB:tb?tb.name:'?',winner:wt?wt.name:'—'};
     })
   };
-  const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:JSON.stringify(entry.teams),p_matches:JSON.stringify(entry.matches),p_sport:'basketball'});
+  const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'basketball'});
   if(ok){
     const hist=LC.arr('history');
     hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
@@ -5080,6 +5153,206 @@ async function endGameDay(){
   document.getElementById('teams-grid').innerHTML='';
   document.getElementById('matches-section').style.display='none';
   renderGameDay();
+}
+
+// ── TOURNAMENTS ───────────────────────────────────────────────
+let _tEditId = null; // null = new tournament, string = editing existing
+let _tTeams = [];    // working copy of teams while form is open
+
+function renderAdminTournaments() {
+  const el = document.getElementById('admin-tourn-list');
+  const rows = LC.arr('tournaments');
+  if (!rows.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px;text-align:center">No tournaments yet. Create the first one.</div>';
+    return;
+  }
+  const sportIcon = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
+  el.innerHTML = rows.map(t => {
+    const icon = sportIcon[t.sport] || 'ti-trophy';
+    const statusColor = t.status==='completed' ? 'var(--tx3)' : t.status==='active' ? 'var(--gr)' : 'var(--gold)';
+    const statusLabel = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Ongoing' : 'Upcoming';
+    const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    const dateStr = ds && de ? ds+' – '+de : ds||de||'—';
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:26px;color:var(--gr)"><i class="ti ${icon}"></i></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700">${t.name}</div>
+          <div style="font-size:12px;color:var(--tx2);text-transform:capitalize">${t.sport} · ${dateStr}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
+        <button type="button" class="btn btn-sm" style="flex:1;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)" onclick="deleteTournament('${t.id}')"><i class="ti ti-trash"></i>Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openNewTournForm() {
+  _tEditId = null;
+  _tTeams = [{id:'tm1',name:'Team 1',players:[]},{id:'tm2',name:'Team 2',players:[]},{id:'tm3',name:'Team 3',players:[]},{id:'tm4',name:'Team 4',players:[]}];
+  document.getElementById('tourn-form-title').textContent = 'New Tournament';
+  document.getElementById('tf-name').value = '';
+  document.getElementById('tf-sport').value = 'basketball';
+  document.getElementById('tf-format').value = 'single_elim_4';
+  document.getElementById('tf-start').value = '';
+  document.getElementById('tf-end').value = '';
+  document.getElementById('tf-status').value = 'upcoming';
+  document.getElementById('admin-tourn-list').style.display = 'none';
+  document.getElementById('btn-new-tourn').style.display = 'none';
+  document.getElementById('admin-tourn-form').style.display = '';
+  renderTournTeamsForm();
+  renderTournBracketForm();
+}
+
+function editTournament(id) {
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  if (!t) return;
+  _tEditId = id;
+  _tTeams = JSON.parse(JSON.stringify(t.teams||[]));
+  document.getElementById('tourn-form-title').textContent = 'Edit Tournament';
+  document.getElementById('tf-name').value = t.name||'';
+  document.getElementById('tf-sport').value = t.sport||'basketball';
+  document.getElementById('tf-format').value = t.format||'single_elim_4';
+  document.getElementById('tf-start').value = t.start_date||'';
+  document.getElementById('tf-end').value = t.end_date||'';
+  document.getElementById('tf-status').value = t.status||'upcoming';
+  document.getElementById('admin-tourn-list').style.display = 'none';
+  document.getElementById('btn-new-tourn').style.display = 'none';
+  document.getElementById('admin-tourn-form').style.display = '';
+  renderTournTeamsForm();
+  renderTournBracketForm(t.matches||[]);
+}
+
+function closeTournForm() {
+  _tEditId = null; _tTeams = [];
+  document.getElementById('admin-tourn-form').style.display = 'none';
+  document.getElementById('admin-tourn-list').style.display = '';
+  document.getElementById('btn-new-tourn').style.display = '';
+}
+
+function addTournTeam() {
+  if (_tTeams.length >= 8) return toast('Max 8 teams','er');
+  const n = _tTeams.length + 1;
+  _tTeams.push({id:'tm'+Date.now(),name:'Team '+n,players:[]});
+  renderTournTeamsForm();
+}
+
+function renderTournTeamsForm() {
+  const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players')).filter(p=>p.isActive!==false);
+  const el = document.getElementById('tf-teams-list');
+  el.innerHTML = _tTeams.map((tm,i) => {
+    const opts = allPlayers.map(p => {
+      const selected = (tm.players||[]).includes(p.id) ? 'selected' : '';
+      const name = p.firstName+(p.lastName?' '+p.lastName:'');
+      return `<option value="${p.id}" ${selected}>${name}</option>`;
+    }).join('');
+    return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <input type="text" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name">
+        <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
+      </div>
+      <label class="lbl" style="font-size:11px">Players</label>
+      <select multiple class="inp" style="height:90px;font-size:13px" onchange="(function(sel,idx){_tTeams[idx].players=Array.from(sel.selectedOptions).map(o=>o.value)})(this,${i})">
+        ${opts}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+function renderTournBracketForm(existing) {
+  const rounds = [{id:'semi1',label:'Semi-Final 1'},{id:'semi2',label:'Semi-Final 2'},{id:'3rd',label:'3rd Place Match'},{id:'final',label:'Championship'}];
+  const ex = existing || [];
+  const el = document.getElementById('tf-bracket');
+  el.innerHTML = rounds.map(r => {
+    const m = ex.find(x=>x.round===r.id)||{round:r.id,teamA:null,teamB:null,scoreA:'',scoreB:'',winner:null};
+    const teamOpts = (which) => ['',  ..._tTeams.map(t=>t.id)].map(v =>
+      `<option value="${v}" ${m['team'+which]===v?'selected':''}>${v?(_tTeams.find(t=>t.id===v)||{name:v}).name:'— TBD —'}</option>`
+    ).join('');
+    return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px" id="bform-${r.id}">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${r.label}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="A" onchange="updateBracketField(this)">${teamOpts('A')}</select>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input type="number" class="inp" style="width:50px;padding:6px;text-align:center;font-size:15px;font-weight:700" placeholder="0" value="${m.scoreA??''}" data-r="${r.id}" data-side="scoreA" onchange="updateBracketField(this)">
+          <span style="color:var(--tx3)">–</span>
+          <input type="number" class="inp" style="width:50px;padding:6px;text-align:center;font-size:15px;font-weight:700" placeholder="0" value="${m.scoreB??''}" data-r="${r.id}" data-side="scoreB" onchange="updateBracketField(this)">
+        </div>
+        <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="B" onchange="updateBracketField(this)">${teamOpts('B')}</select>
+      </div>
+      <div style="margin-top:8px">
+        <label class="lbl" style="font-size:11px">Winner</label>
+        <select class="inp" style="padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="winner" onchange="updateBracketField(this)">
+          <option value="">— No result yet —</option>
+          <option value="A" ${m.winner==='A'?'selected':''}>Team A wins</option>
+          <option value="B" ${m.winner==='B'?'selected':''}>Team B wins</option>
+        </select>
+      </div>
+    </div>`;
+  }).join('');
+  // store working matches
+  el._matches = rounds.map(r => ex.find(x=>x.round===r.id)||{round:r.id,teamA:null,teamB:null,scoreA:null,scoreB:null,winner:null});
+}
+
+function updateBracketField(el) {
+  const r = el.dataset.r, side = el.dataset.side;
+  const bracketEl = document.getElementById('tf-bracket');
+  let m = bracketEl._matches.find(x=>x.round===r);
+  if (!m) return;
+  if (side==='A') m.teamA = el.value||null;
+  else if (side==='B') m.teamB = el.value||null;
+  else if (side==='scoreA') m.scoreA = el.value===''?null:Number(el.value);
+  else if (side==='scoreB') m.scoreB = el.value===''?null:Number(el.value);
+  else if (side==='winner') m.winner = el.value||null;
+}
+
+async function saveTournament() {
+  const name = document.getElementById('tf-name').value.trim();
+  if (!name) return toast('Enter a tournament name','er');
+  const bracketEl = document.getElementById('tf-bracket');
+  const matches = bracketEl._matches || [];
+  const payload = {
+    name,
+    sport:       document.getElementById('tf-sport').value,
+    format:      document.getElementById('tf-format').value,
+    status:      document.getElementById('tf-status').value,
+    start_date:  document.getElementById('tf-start').value||null,
+    end_date:    document.getElementById('tf-end').value||null,
+    teams:       _tTeams,
+    matches,
+  };
+  try {
+    let res;
+    if (_tEditId) {
+      res = await dbUpdate('tournaments', `id=eq.${_tEditId}`, payload);
+    } else {
+      res = await dbInsert('tournaments', payload);
+    }
+    if (!res) throw new Error('Save failed');
+    toast(_tEditId ? 'Tournament updated' : 'Tournament created');
+    const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+    if (Array.isArray(fresh)) LC.set('tournaments', fresh);
+    closeTournForm();
+    renderAdminTournaments();
+  } catch(e) {
+    toast('Save failed: '+(e.message||e),'er');
+  }
+}
+
+async function deleteTournament(id) {
+  if (!confirm('Delete this tournament? This cannot be undone.')) return;
+  try {
+    await dbDelete('tournaments','id=eq.'+id);
+    const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+    if (Array.isArray(fresh)) LC.set('tournaments', fresh);
+    toast('Deleted','in');
+    renderAdminTournaments();
+  } catch(e) {
+    toast('Delete failed','er');
+  }
 }
 
 // ── LEADERBOARD ───────────────────────────────────────────────
@@ -5110,30 +5383,59 @@ function renderLb(){
 }
 
 // ── HISTORY ───────────────────────────────────────────────────
+function histName(pid){
+  const r=LC.arr('players').find(x=>x.id===pid);
+  return r ? (r.firstName+' '+(r.lastName||'')).trim() : pid;
+}
 function renderHist(){
   const hist=LC.arr('history');
   const el=document.getElementById('hist-content');
   if(!hist.length){el.innerHTML='<div class="empty">No game days archived yet</div>';return}
-  el.innerHTML=hist.map(w=>`
+  el.innerHTML=hist.map(w=>{
+    const isPb=(w.sport||'basketball')==='pickleball';
+    let matchesHtml;
+    if(isPb){
+      // Pickleball: teamA/teamB are player-id arrays, winner is 'A'/'B', with scores.
+      matchesHtml=(w.matches||[]).map(m=>{
+        const winNames=(m.winner==='A'?m.teamA:m.teamB).map(histName).join(' & ')||'—';
+        const loseNames=(m.winner==='A'?m.teamB:m.teamA).map(histName).join(' & ')||'—';
+        const winScore=m.winner==='A'?m.scoreA:m.scoreB;
+        const loseScore=m.winner==='A'?m.scoreB:m.scoreA;
+        return `<div style="background:var(--bg2);border-radius:7px;padding:8px 11px;margin-bottom:5px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span style="font-size:13px;font-weight:700;color:var(--tx)">${winNames}</span>
+            <span style="font-family:'Bebas Neue';font-size:15px;letter-spacing:.5px;color:var(--gr);flex-shrink:0">${winScore}–${loseScore}</span>
+          </div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">def. ${loseNames}${m.court?' · '+m.court:''}</div>
+        </div>`;
+      }).join('') || '<div style="font-size:12px;color:var(--tx3)">No match detail recorded.</div>';
+    } else {
+      // Basketball/other: teamA/teamB are team labels/ids, winner is a team name.
+      matchesHtml='<div style="display:flex;flex-wrap:wrap;gap:6px">'+(w.matches||[]).map(m=>`<div style="background:var(--bg2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--tx2)">${m.teamA} vs ${m.teamB} · <strong style="color:var(--gr)"> ${m.winner}</strong></div>`).join('')+'</div>';
+    }
+    return `
     <div style="padding:14px;border-bottom:1px solid var(--b)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:1px">${w.date||'—'}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:1px">${w.date||'—'}</div>
+          ${isPb?'<span class="badge" style="background:rgba(34,197,94,.15);color:#22C55E">Pickleball</span>':''}
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
           <span class="badge b-nv">${w.playerCount||'?'} players</span>
+          <span class="badge b-nv">${(w.matches||[]).length} ${(w.matches||[]).length===1?'match':'matches'}</span>
           <button type="button" class="btn btn-rd btn-sm" onclick="delHistory('${w.id}')" title="Delete this record"><i class="ti ti-trash"></i></button>
         </div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${(w.matches||[]).map(m=>`<div style="background:var(--bg2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--tx2)">${m.teamA} vs ${m.teamB} · <strong style="color:var(--gr)"> ${m.winner}</strong></div>`).join('')}
-      </div>
-    </div>`).join('');
+      ${matchesHtml}
+    </div>`;
+  }).join('');
 }
 async function delHistory(id){
   if(!confirm('Delete this game history record? This cannot be undone.')) return;
   const hist=LC.arr('history');
   LC.set('history',hist.filter(x=>x.id!==id));
   renderHist();
-  await dbDelete('game_history','id=eq.'+encodeURIComponent(id));
+  await rpc('admin_delete_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:id});
   toast('History record deleted','in');
 }
 

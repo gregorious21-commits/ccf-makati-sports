@@ -1595,6 +1595,7 @@ footer a:hover{color:var(--text-1)}
 
           <div class="paytype-pills" role="tablist">
             <button type="button" class="paytype-pill on" id="pt-online" onclick="setPayType('online')">Pay Online</button>
+            <button type="button" class="paytype-pill" id="pt-reclub" onclick="setPayType('reclub')" style="display:none">Paid via Reclub</button>
             <button type="button" class="paytype-pill" id="pt-cash" onclick="setPayType('cash')">Request Cash</button>
             <button type="button" class="paytype-pill" id="pt-first" onclick="setPayType('first')">First Timer</button>
         </div>
@@ -1617,6 +1618,15 @@ footer a:hover{color:var(--text-1)}
           </div>
             <button type="button" class="btn btn-g" id="btn-submit-join" style="margin-top:20px"><i class="ti ti-player-play"></i>Submit & Reserve Slot</button>
         </div>
+
+          <!-- PAID VIA RECLUB PATH -->
+          <div id="pay-reclub" style="display:none">
+            <div class="cash-note">
+              <strong style="display:block;margin-bottom:6px;color:var(--tx)">Already paid on Reclub?</strong>
+              <span>Confirm below and a manager will verify your Reclub registration before approving your slot.</span>
+            </div>
+            <button type="button" class="btn btn-g" id="btn-submit-reclub" style="margin-top:20px"><i class="ti ti-check"></i>Confirm Reclub Payment</button>
+          </div>
 
           <!-- CASH REQUEST PATH -->
           <div id="pay-cash" style="display:none">
@@ -1664,7 +1674,6 @@ footer a:hover{color:var(--text-1)}
         <button type="button" class="sport-pill" data-lbsport="running" onclick="setLbSport('running')"><span class="spi spi-r"></span><span class="pl">Running</span></button>
         <button type="button" class="sport-pill" data-lbsport="badminton" onclick="setLbSport('badminton')"><span class="spi spi-bd"></span><span class="pl">Badminton</span></button>
         <button type="button" class="sport-pill" data-lbsport="dragonboat" onclick="setLbSport('dragonboat')"><span class="spi spi-db"></span><span class="pl">Dragonboat</span></button>
-        <button type="button" class="sport-pill" data-lbsport="skill" onclick="setLbSport('skill')"><i class="ti ti-star" style="font-size:13px"></i><span class="pl">Skill</span></button>
     </div>
       <div class="lb-toggle" id="lb-stat-tabs">
         <button type="button" class="lb-tab on" id="plb-wins" onclick="setPlayerLb('wins')">Wins</button>
@@ -1672,6 +1681,11 @@ footer a:hover{color:var(--text-1)}
         <button type="button" class="lb-tab" id="plb-rate" onclick="setPlayerLb('rate')">Win Rate</button>
     </div>
       <div class="card" style="padding:0;overflow:hidden"><div id="lb-list"><div class="empty">Loading rankings…</div></div></div>
+      <!-- Recent pickleball session results (collapsed; pickleball board only) -->
+      <div id="lb-sessions-wrap" style="margin-top:14px;display:none">
+        <button type="button" id="lb-sessions-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleSessionLog()"><i class="ti ti-history"></i>View Recent Match Results</button>
+        <div id="lb-sessions" style="display:none;margin-top:12px"></div>
+      </div>
   </div>
 
     <!-- ───── FEED TAB ───── -->
@@ -1738,10 +1752,19 @@ footer a:hover{color:var(--text-1)}
   </div>
 </div>
 
+    <!-- TOURNAMENTS TAB -->
+    <div id="tab-tournaments" class="tab-panel" style="display:none">
+      <div class="sec-h"><div class="sec-t">Tournaments & Leagues</div></div>
+      <div id="tourn-list"><div class="empty" style="padding:24px;text-align:center">No tournaments yet.</div></div>
+      <!-- Tournament detail view (hidden by default) -->
+      <div id="tourn-detail" style="display:none"></div>
+    </div>
+
   <!-- BOTTOM TAB BAR -->
   <nav class="tabbar">
     <button type="button" class="tabbar-btn on" id="tbtn-home" onclick="switchTab('home')"><i class="ti ti-home"></i><span>Home</span></button>
     <button type="button" class="tabbar-btn" id="tbtn-feed" onclick="switchTab('feed')"><i class="ti ti-news"></i><span>Feed</span></button>
+    <button type="button" class="tabbar-btn" id="tbtn-tournaments" onclick="switchTab('tournaments')"><i class="ti ti-trophy"></i><span>Tournaments</span></button>
     <button type="button" class="tabbar-btn" id="tbtn-players" onclick="switchTab('players')"><i class="ti ti-users"></i><span>Players</span></button>
     <button type="button" class="tabbar-btn" id="tbtn-profile" onclick="switchTab('profile')"><i class="ti ti-user-circle"></i><span>My Profile</span></button>
 </nav>
@@ -2113,7 +2136,7 @@ async function syncAll() {
   const playersQuery = USE_NEW_AUTH
     ? dbGet('players_public', 'select=*')
     : dbGet('players',        'select=*');
-  const [games,dev,anns,notifs,players,regs,pmethods] = await Promise.all([
+  const [games,dev,anns,notifs,players,regs,pmethods,history,tournaments] = await Promise.all([
     dbGet('games',           'select=*&order=date.asc'),
     dbGet('devotion',        'select=*&id=eq.1'),
     dbGet('announcements',   'select=*&active=eq.true&order=created_at.desc'),
@@ -2121,7 +2144,11 @@ async function syncAll() {
     playersQuery,
     dbGet('registrations',   'select=*&status=neq.cancelled&order=created_at.desc'),
     dbGet('payment_methods', 'select=*&active=eq.true&order=sport.asc,sort_order.asc,id.asc'),
+    dbGet('game_history',    'select=*&order=created_at.desc&limit=20'),
+    dbGet('tournaments',     'select=*&order=created_at.desc').catch(()=>[]),
   ]);
+  if (Array.isArray(history)) LC.set('history', history.map(h=>({id:h.id,date:h.game_date||'',playerCount:h.player_count||0,teams:h.teams||[],matches:h.matches||[],sport:h.sport||'basketball'})));
+  if (Array.isArray(tournaments)) LC.set('tournaments', tournaments);
   if (Array.isArray(games))            LC.set('games',        games.map(mapGame));
   if (Array.isArray(dev) && dev[0])    LC.set('devotion',     mapDev(dev[0]));
   if (Array.isArray(anns))             LC.set('announcements',anns);
@@ -2476,19 +2503,17 @@ async function doForgotPin() {
   const recipientEmail = r.out_email;
   const firstName = r.out_first_name;
 
-  // Email the code via EmailJS if configured. Otherwise show inline (fallback).
-  const svc = localStorage.getItem('ejs_svc');
-  const key = localStorage.getItem('ejs_key');
-  // Prefer the dedicated PIN reset template; fall back to the generic player template
-  // for backward compatibility with older installs that only had one field.
-  const tpl = localStorage.getItem('ejs_reset') || localStorage.getItem('ejs_player');
-  if (svc && key && tpl) {
+  // EmailJS credentials — hardcoded so they work on any device/browser.
+  const svc = 'service_v1zugu7';
+  const key = '1zN12u_bBNBeddHNb';
+  const tpl = 'template_7nkdh2w';
+  if (tpl) {
     try {
       emailjs.init(key);
       await emailjs.send(svc, tpl, {
         player_name: firstName,
-        reset_code:  code,           // new template variable
-        temp_pin:    code,           // legacy alias if you reused the old template
+        reset_code:  code,
+        temp_pin:    code,
         to_email:    recipientEmail
       });
       toast('Code sent to your email!');
@@ -2590,7 +2615,7 @@ function renderProfile() {
   ).join(' · ');
   const myRt = (ME.ratingPickleball!=null?ME.ratingPickleball:(ME.dupr!=null?ME.dupr:null));
   const myProvisional = ((ME.pickleballMatches||0) < 3) && sportsList.includes('pickleball');
-  const rtTag = myRt!=null ? ` · <span style="color:var(--gold)"><i class="ti ti-star" style="font-size:11px"></i> ${Number(myRt).toFixed(2)} skill${myProvisional?' <span style="font-size:9px;color:var(--tx3)">(provisional · '+(ME.pickleballMatches||0)+'/3)</span>':''}</span>` : '';
+  const rtTag = myRt!=null ? ` · <span style="color:var(--gold)"><i class="ti ti-star" style="font-size:11px"></i> ${Number(myRt).toFixed(3)} skill${myProvisional?' <span style="font-size:9px;color:var(--tx3)">(provisional · '+(ME.pickleballMatches||0)+'/3)</span>':''}</span>` : '';
   document.getElementById('d-sub').innerHTML     = sportTags + ' · ' + dg + rtTag;
   document.getElementById('d-wins').textContent  = ME.wins  || 0;
   document.getElementById('d-games').textContent = ME.games || 0;
@@ -2748,6 +2773,10 @@ async function saveProfile(){
     const dval = raw==='' ? null : parseFloat(raw);
     if (dval!==null && (isNaN(dval) || dval<2 || dval>8)){ toast('DUPR must be between 2.0 and 8.0','er'); }
     else {
+      // Warn if they already have a match-based rating
+      if(dval!=null && (ME.pickleballMatches||0)>0){
+        if(!confirm('Editing your DUPR will reset your skill rating earned from '+ME.pickleballMatches+' match'+(ME.pickleballMatches===1?'':'es')+'. Continue?')) return;
+      }
       // Editing DUPR re-seeds BOTH the dupr value AND the played skill rating
       // (server-side member_set_dupr does the same). dval==null = cleared = leave as is.
       if(dval!=null){ ME.dupr=dval; ME.ratingPickleball=dval; }
@@ -2882,12 +2911,14 @@ let payType = 'online'; // 'online' or 'cash'
 
 function setPayType(t){
   payType = t;
-  document.getElementById('pt-online').className = 'paytype-pill' + (t==='online' ? ' on' : '');
-  document.getElementById('pt-cash').className   = 'paytype-pill' + (t==='cash'   ? ' on' : '');
-  document.getElementById('pt-first').className  = 'paytype-pill' + (t==='first'  ? ' on' : '');
-  document.getElementById('pay-online').style.display = t==='online' ? '' : 'none';
-  document.getElementById('pay-cash').style.display   = t==='cash'   ? '' : 'none';
-  document.getElementById('pay-first').style.display  = t==='first'  ? '' : 'none';
+  document.getElementById('pt-online').className  = 'paytype-pill' + (t==='online'  ? ' on' : '');
+  document.getElementById('pt-reclub').className  = 'paytype-pill' + (t==='reclub'  ? ' on' : '');
+  document.getElementById('pt-cash').className    = 'paytype-pill' + (t==='cash'    ? ' on' : '');
+  document.getElementById('pt-first').className   = 'paytype-pill' + (t==='first'   ? ' on' : '');
+  document.getElementById('pay-online').style.display  = t==='online'  ? '' : 'none';
+  document.getElementById('pay-reclub').style.display  = t==='reclub'  ? '' : 'none';
+  document.getElementById('pay-cash').style.display    = t==='cash'    ? '' : 'none';
+  document.getElementById('pay-first').style.display   = t==='first'   ? '' : 'none';
 }
 
 function renderPaymentMethods(sport){
@@ -2936,10 +2967,15 @@ function proceedJoin() {
   document.getElementById('fee-disp').textContent = '₱' + (g.fee||200);
   document.getElementById('pay-sub').textContent = g.label + ' · ' + (g.sport==='pickleball'?'Pickleball':g.sport==='badminton'?'Badminton':g.sport==='dragonboat'?'Dragonboat':g.sport==='running'?'Running':'Basketball');
   renderPaymentMethods(g.sport||'basketball');
-  // If this looks like the player's first game ever, default to the First Timer tab
+  // Show Reclub pill only for pickleball; hide First Timer for pickleball
+  const reclubPill = document.getElementById('pt-reclub');
+  const firstPill  = document.getElementById('pt-first');
+  if(reclubPill) reclubPill.style.display = (g.sport==='pickleball') ? '' : 'none';
+  if(firstPill)  firstPill.style.display  = (g.sport==='pickleball') ? 'none' : '';
+  // Default tab: first-timer path only for non-pickleball new players
   const regs=LC.arr('regs');
   const hasPrior = regs.some(r=>r.playerId===ME.id && (r.status||'').toLowerCase()!=='cancelled') || ME.isFirstGame===false;
-  setPayType(hasPrior ? 'online' : 'first');
+  setPayType(hasPrior || g.sport==='pickleball' ? 'online' : 'first');
   // Reset cash request form
   const cn = document.getElementById('cash-note'); if (cn) cn.value = '';
   document.getElementById('pay-section').style.display = '';
@@ -3050,6 +3086,29 @@ document.getElementById('btn-submit-first').addEventListener('click', async () =
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast('First-game claim submitted! An organizer will confirm your free slot.');
+});
+
+document.getElementById('btn-submit-reclub').addEventListener('click', async () => {
+  const g=LC.arr('games').find(x=>x.id===joinGameId);
+  if(!g){ toast('Game not found','er'); return; }
+  const sport=g.sport||'basketball';
+  const reg={
+    id:'R'+Date.now(), playerId:ME.id, playerName:ME.firstName+' '+ME.lastName,
+    phone:ME.phone, email:ME.email||'',
+    gameId:g.id, gameLabel:g.label, gameTime:g.time||'',
+    fee:g.fee||200, payType:'reclub',
+    refNum:'Paid via Reclub', hasProof:false, proofUrl:'',
+    status:'pending', paid:false, isFirstTimer:false,
+    registered:new Date().toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    sport
+  };
+  const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:reg.fee,p_pay_type:'reclub',p_ref_num:'Paid via Reclub',p_has_proof:false,p_proof_url:'',p_status:'pending',p_paid:false,p_is_first_timer:false,p_registered:reg.registered,p_sport:sport});
+  if(!ok){ toast('Registration failed. Try again.','er'); return; }
+  dbNotif('Reclub Payment', reg.playerName+' submitted Reclub payment for '+reg.gameLabel, 'info');
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  document.getElementById('pay-section').style.display='none';
+  renderWeekGames(); renderMyHist();
+  toast('Submitted! A manager will verify your Reclub registration.');
 });
 
 async function submitReg(game, payTypeArg, hasProof, proofUrl, refNumOrNote) {
@@ -3342,19 +3401,19 @@ async function delMyPost(id){
 }
 // ── TAB NAVIGATION ────────────────────────────────────────────
 function switchTab(name) {
-  ['home','feed','players','profile'].forEach(t=>{
+  ['home','feed','players','profile','tournaments'].forEach(t=>{
     const panel=document.getElementById('tab-'+t);
     const btn=document.getElementById('tbtn-'+t);
     if (panel) panel.style.display = t===name ? '' : 'none';
     if (btn) btn.className = 'tabbar-btn'+(t===name?' on':'');
   });
-  // Profile band (name, stats, edit) belongs to the My Profile tab now
   const pb=document.getElementById('profile-band');
   if (pb) pb.style.display = name==='profile' ? '' : 'none';
   if (name==='home') renderFeedPreview();
   if (name==='feed') renderFeed();
   if (name==='players') renderDirectory();
   if (name==='profile') { renderProfile(); renderMyHist(); }
+  if (name==='tournaments') renderTournaments();
   window.scrollTo(0,0);
 }
 
@@ -3427,7 +3486,16 @@ function setLbSport(s){
     el.classList.toggle('on', el.dataset.lbsport === s);
   });
   // Hide the wins/games/rate tabs for pickleball — only one metric matters
-  document.getElementById('lb-stat-tabs').style.display = (s === 'pickleball' || s === 'running' || s === 'badminton' || s === 'dragonboat' || s === 'skill') ? 'none' : 'flex';
+  document.getElementById('lb-stat-tabs').style.display = (s === 'pickleball' || s === 'running' || s === 'badminton' || s === 'dragonboat') ? 'none' : 'flex';
+  // Show the "Recent Match Results" button only on the pickleball board
+  const sw=document.getElementById('lb-sessions-wrap');
+  if(sw){
+    sw.style.display = (s==='pickleball') ? '' : 'none';
+    // Always collapse when switching boards
+    const sl=document.getElementById('lb-sessions'); const sb=document.getElementById('lb-sessions-btn');
+    if(sl){ sl.style.display='none'; sl.innerHTML=''; }
+    if(sb){ sb.innerHTML='<i class="ti ti-history"></i>View Recent Match Results'; }
+  }
   renderLeaderboard();
 }
 
@@ -3502,48 +3570,34 @@ function runStreak(playerId){
 function renderLeaderboard(){
   const el=document.getElementById('lb-list'); if(!el) return;
   if (lbSport === 'pickleball'){
-    // Pickleball: rank by games attended, no win rates
-    let list = LC.arr('roster').map(p => ({...p, pballGames: pickleballGames(p.id)}))
-                               .filter(p => p.pballGames > 0)
-                               .sort((a,b) => b.pballGames - a.pballGames);
-    if (!list.length) { el.innerHTML='<div class="empty">No pickleball games played yet.</div>'; return; }
-    el.innerHTML = list.map((p,i)=>{
-      const rank=(i+1);
-      const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(i)}`;
-      const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
-      const mine=ME&&p.id===ME.id?' me':'';
-      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
-        <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
-        <div class="lb-av" style="${avStyle}">${avTxt}</div>
-        <div style="flex:1;min-width:0">
-          <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-          <div class="lb-meta">${p.position||'Player'} · Open play</div>
-      </div>
-        <div class="lb-stat"><div class="lb-stat-n">${p.pballGames}</div><div class="lb-stat-l">games</div></div>
-    </div>`;
-    }).join('');
-    return;
-  }
-  if (lbSport === 'skill'){
-    // DUPR-like pickleball skill rating (seeded from DUPR, updated by play)
+    // Pickleball: rank by SKILL RATING (DUPR-like). Matches played shown as sub-stat.
     const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
-    let list = LC.arr('roster').map(p=>({...p, rt:rt(p)}))
-                               .filter(p=>p.rt!=null)
-                               .sort((a,b)=>b.rt-a.rt);
-    if (!list.length){ el.innerHTML='<div class="empty">No skill ratings yet. Add your DUPR in your profile, or play a few pickleball games.</div>'; return; }
+    let list = LC.arr('roster').map(p=>({...p, rt:rt(p), pm:(p.pickleballMatches||0)}))
+                               .filter(p=>p.rt!=null || p.pm>0)
+                               .sort((a,b)=>{
+                                 // Rated players first (by rating desc); unrated-but-played after
+                                 if(a.rt!=null && b.rt!=null) return b.rt-a.rt;
+                                 if(a.rt!=null) return -1;
+                                 if(b.rt!=null) return 1;
+                                 return b.pm-a.pm;
+                               });
+    if (!list.length) { el.innerHTML='<div class="empty">No pickleball ratings yet. Add your DUPR in your profile, or play a few matches.</div>'; return; }
     el.innerHTML = list.map((p,i)=>{
       const rank=(i+1);
       const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(i)}`;
       const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
       const mine=ME&&p.id===ME.id?' me':'';
       const seeded=(p.ratingPickleball==null && p.dupr!=null);
-      const provisional=((p.pickleballMatches||0) < 3);
-      const metaLabel = provisional
-        ? 'Provisional · '+(p.pickleballMatches||0)+'/3 matches'
-        : (seeded?'DUPR (self-entered)':'Skill rating · Pickleball');
+      const wl=playerWL(p.id);
+      const provisional=(wl.w+wl.l < 3);
       const provTag = provisional
         ? ' <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
         : '';
+      const wlLabel = wl.w+wl.l>0 ? wl.w+'W · '+wl.l+'L' : 'No matches yet';
+      const metaLabel = provisional
+        ? 'Provisional · '+wlLabel
+        : (seeded?'DUPR (self-entered) · '+wlLabel:wlLabel);
+      const ratingDisplay = p.rt!=null ? Number(p.rt).toFixed(3) : '—';
       return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
@@ -3551,7 +3605,7 @@ function renderLeaderboard(){
           <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}${provTag}</div>
           <div class="lb-meta">${metaLabel}</div>
       </div>
-        <div class="lb-stat"><div class="lb-stat-n">${Number(p.rt).toFixed(2)}</div><div class="lb-stat-l">rating</div></div>
+        <div class="lb-stat"><div class="lb-stat-n">${ratingDisplay}</div><div class="lb-stat-l">rating</div></div>
     </div>`;
     }).join('');
     return;
@@ -3646,6 +3700,125 @@ function renderLeaderboard(){
   </div>`;
   }).join('');
 }
+// ── MATCH HISTORY HELPERS (read from last 20 archived sessions) ──────────────
+function rosterName(pid){
+  const r=LC.arr('roster').find(x=>x.id===pid);
+  return r ? (r.firstName+' '+(r.lastName||'')).trim() : 'Player';
+}
+// W-L record for a player from archived pickleball history.
+function playerWL(pid){
+  let w=0,l=0;
+  allPickleballMatches().forEach(m=>{
+    const inA=(m.teamA||[]).includes(pid);
+    const inB=(m.teamB||[]).includes(pid);
+    if(!inA&&!inB) return;
+    if((inA&&m.winner==='A')||(inB&&m.winner==='B')) w++;
+    else l++;
+  });
+  return {w,l};
+}
+// All pickleball matches across archived history, newest session first.
+function allPickleballMatches(){
+  const hist=LC.arr('history').filter(h=>(h.sport||'basketball')==='pickleball');
+  const out=[];
+  hist.forEach(h=>{
+    (h.matches||[]).forEach(m=>{
+      out.push({...m, sessionDate:h.date, sessionId:h.id});
+    });
+  });
+  return out;
+}
+// A single player's matches with win/loss computed.
+function playerMatches(pid){
+  return allPickleballMatches().filter(m=>
+    (m.teamA||[]).includes(pid) || (m.teamB||[]).includes(pid)
+  ).map(m=>{
+    const onA=(m.teamA||[]).includes(pid);
+    const won=(m.winner==='A'&&onA)||(m.winner==='B'&&!onA);
+    const myScore=onA?m.scoreA:m.scoreB;
+    const oppScore=onA?m.scoreB:m.scoreA;
+    const partner=(onA?m.teamA:m.teamB).filter(x=>x!==pid)[0];
+    const opps=(onA?m.teamB:m.teamA);
+    return {won, myScore, oppScore, partner, opps, court:m.court, date:m.sessionDate};
+  });
+}
+function playerMatchRecord(pid){
+  const ms=playerMatches(pid);
+  const w=ms.filter(m=>m.won).length;
+  return {wins:w, losses:ms.length-w, total:ms.length};
+}
+function matchHistoryHtml(pid){
+  const ms=playerMatches(pid);
+  if(!ms.length) return '<div class="empty" style="padding:14px">No match results yet.</div>';
+  return ms.map(m=>{
+    const partnerTxt=m.partner?('w/ '+rosterName(m.partner)):'';
+    const oppTxt=(m.opps||[]).map(rosterName).join(' & ')||'—';
+    const resultColor=m.won?'#22C55E':'var(--tx3)';
+    const resultBg=m.won?'rgba(34,197,94,.12)':'rgba(123,138,166,.1)';
+    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'} ${m.myScore}–${m.oppScore}</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${resultColor};background:${resultBg};padding:2px 8px;border-radius:20px">${m.court||''}</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt} ${partnerTxt?'· '+partnerTxt:''}</div>
+      ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function toggleMatchHistory(pid){
+  const box=document.getElementById('pv-match-history');
+  const btn=document.getElementById('pv-match-btn');
+  if(!box) return;
+  if(box.style.display==='none'){
+    box.innerHTML=matchHistoryHtml(pid);
+    box.style.display='';
+    if(btn) btn.innerHTML='<i class="ti ti-chevron-up"></i>Hide Match Results';
+  } else {
+    box.style.display='none';
+    if(btn) btn.innerHTML='<i class="ti ti-list-details"></i>View Match Results';
+  }
+}
+
+// Full session results log (collapsible, member-facing). Newest session first.
+function sessionLogHtml(){
+  const hist=LC.arr('history').filter(h=>(h.sport||'basketball')==='pickleball');
+  if(!hist.length) return '<div class="empty" style="padding:14px">No pickleball sessions recorded yet.</div>';
+  return hist.slice(0,10).map(h=>{
+    const ms=h.matches||[];
+    if(!ms.length) return '';
+    const rows=ms.map(m=>{
+      const winNames=(m.winner==='A'?m.teamA:m.teamB).map(rosterName).join(' & ')||'—';
+      const loseNames=(m.winner==='A'?m.teamB:m.teamA).map(rosterName).join(' & ')||'—';
+      const winScore=m.winner==='A'?m.scoreA:m.scoreB;
+      const loseScore=m.winner==='A'?m.scoreB:m.scoreA;
+      return `<div style="padding:7px 10px;border-radius:7px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span style="font-size:13px;font-weight:700;color:var(--tx);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${winNames}</span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;color:var(--gold);flex-shrink:0">${winScore}–${loseScore}</span>
+        </div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:2px">def. ${loseNames}${m.court?' · '+m.court:''}</div>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px">${h.date||'Session'} <span style="font-weight:400;color:var(--tx3)">· ${ms.length} ${ms.length===1?'match':'matches'}</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+function toggleSessionLog(){
+  const box=document.getElementById('lb-sessions');
+  const btn=document.getElementById('lb-sessions-btn');
+  if(!box) return;
+  if(box.style.display==='none'){
+    box.innerHTML=sessionLogHtml();
+    box.style.display='';
+    if(btn) btn.innerHTML='<i class="ti ti-chevron-up"></i>Hide Match Results';
+  } else {
+    box.style.display='none';
+    if(btn) btn.innerHTML='<i class="ti ti-history"></i>View Recent Match Results';
+  }
+}
+
 function viewPlayer(id){
   const p=LC.arr('roster').find(x=>x.id===id); if(!p) return;
   const list=LC.arr('roster').filter(x=>(x.games||0)>0).sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
@@ -3667,11 +3840,139 @@ function viewPlayer(id){
       <div class="pv-stat"><div class="pv-stat-n">${winRate(p.wins,p.games)}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Rate</div></div>
       <div class="pv-stat"><div class="pv-stat-n">${pickleballGames(p.id)}</div><div class="pv-stat-l"><span class="spi spi-p"></span>Games</div></div>
   </div>
-    ${p.bio?`<div class="pv-bio">${p.bio}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}`;
+    ${p.bio?`<div class="pv-bio">${p.bio}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
+    ${(()=>{ const rec=playerMatchRecord(id); return (p.sports&&p.sports.includes('pickleball'))||rec.total>0 ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-p"></span> Pickleball Record</div>
+          <div style="font-size:12px;color:var(--tx2)"><span style="color:#22C55E;font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
+        </div>
+        <button type="button" id="pv-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
+        <div id="pv-match-history" style="display:none;margin-top:10px"></div>
+      </div>` : ''; })()}`;
   document.getElementById('ovl-view').classList.add('open');
 }
 function closeViewPlayer(){ document.getElementById('ovl-view').classList.remove('open'); }
 
+// ── TOURNAMENTS ───────────────────────────────────────────────
+let _tournDetailId = null;
+
+function renderTournaments() {
+  const list = document.getElementById('tourn-list');
+  const detail = document.getElementById('tourn-detail');
+  if (_tournDetailId) { renderTournDetail(_tournDetailId); return; }
+  detail.style.display = 'none';
+  list.style.display = '';
+  const rows = LC.arr('tournaments');
+  if (!rows.length) {
+    list.innerHTML = '<div class="empty" style="padding:24px;text-align:center">No tournaments yet.</div>';
+    return;
+  }
+  const sportIcon = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
+  list.innerHTML = rows.map(t => {
+    const icon = sportIcon[t.sport] || 'ti-trophy';
+    const statusColor = t.status==='completed' ? 'var(--tx3)' : t.status==='active' ? 'var(--gr)' : 'var(--gold)';
+    const statusLabel = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Ongoing' : 'Upcoming';
+    const teams = Array.isArray(t.teams) ? t.teams : [];
+    const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    const dateStr = ds && de ? ds+' – '+de : ds||de||'';
+    return `<div class="card" style="margin-bottom:10px;cursor:pointer" onclick="openTournDetail('${t.id}')">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:28px;color:var(--gr)"><i class="ti ${icon}"></i></span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:2px;text-transform:capitalize">${t.sport}${dateStr?' · '+dateStr:''}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">${statusLabel}</span>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        ${teams.map(tm=>`<span style="background:var(--b2);border-radius:6px;padding:3px 9px;font-size:12px;font-weight:600">${tm.name}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openTournDetail(id) {
+  _tournDetailId = id;
+  renderTournDetail(id);
+}
+
+function closeTournDetail() {
+  _tournDetailId = null;
+  document.getElementById('tourn-detail').style.display = 'none';
+  document.getElementById('tourn-list').style.display = '';
+}
+
+function renderTournDetail(id) {
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  const el = document.getElementById('tourn-detail');
+  const list = document.getElementById('tourn-list');
+  if (!t) { closeTournDetail(); return; }
+  list.style.display = 'none';
+  el.style.display = '';
+  const teams = Array.isArray(t.teams) ? t.teams : [];
+  const matches = Array.isArray(t.matches) ? t.matches : [];
+  const teamName = id => (teams.find(x=>x.id===id)||{}).name || '—';
+  const teamFor = round => matches.find(m=>m.round===round);
+  const semi1 = teamFor('semi1');
+  const semi2 = teamFor('semi2');
+  const third = teamFor('3rd');
+  const final = teamFor('final');
+
+  const matchCard = (m, label) => {
+    if (!m) return '';
+    const aName = m.teamA ? teamName(m.teamA) : 'TBD';
+    const bName = m.teamB ? teamName(m.teamB) : 'TBD';
+    const aWon = m.winner==='A', bWon = m.winner==='B';
+    const done = !!m.winner;
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${label}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;text-align:right;font-weight:${aWon?'800':'500'};color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
+        <div style="display:flex;align-items:center;gap:6px;min-width:60px;justify-content:center">
+          ${done
+            ? `<span style="font-size:17px;font-weight:800;color:${aWon?'var(--gr)':'var(--tx3)'}">${m.scoreA??'—'}</span>
+               <span style="font-size:12px;color:var(--tx3)">–</span>
+               <span style="font-size:17px;font-weight:800;color:${bWon?'var(--gr)':'var(--tx3)'}">${m.scoreB??'—'}</span>`
+            : `<span style="font-size:12px;color:var(--tx3)">vs</span>`}
+        </div>
+        <div style="flex:1;font-weight:${bWon?'800':'500'};color:${bWon?'var(--tx)':'var(--tx2)'}">${bName}</div>
+      </div>
+      ${m.winner ? `<div style="text-align:center;font-size:11px;color:var(--gr);margin-top:6px;font-weight:700">${m.winner==='A'?aName:bName} wins</div>` : ''}
+    </div>`;
+  };
+
+  const rosterCards = teams.map(tm => {
+    const roster = LC.arr('roster');
+    const players = LC.arr('players');
+    const names = (tm.players||[]).map(pid => {
+      const p = roster.find(x=>x.id===pid) || players.find(x=>x.id===pid);
+      return p ? p.firstName+(p.lastName?' '+p.lastName.charAt(0)+'.':'') : 'Player';
+    });
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="font-weight:700;margin-bottom:6px">${tm.name}</div>
+      <div style="font-size:13px;color:var(--tx2);line-height:1.8">${names.join(' · ')||'No players assigned'}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournDetail()"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;flex:1">${t.name}</div>
+    </div>
+    <div class="sec-h"><div class="sec-t">Bracket</div></div>
+    <div class="card" style="margin-bottom:14px">
+      ${matchCard(semi1,'Semi-Final 1')}
+      ${matchCard(semi2,'Semi-Final 2')}
+      <div style="border-top:1px solid var(--b);margin:8px 0"></div>
+      ${matchCard(third,'3rd Place Match')}
+      ${matchCard(final,'Championship')}
+    </div>
+    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
+    <div class="card">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
+  `;
+}
 // ── BUTTONS ───────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click',doLogin);
 document.getElementById('l-pin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
@@ -3687,9 +3988,31 @@ document.getElementById('btn-register').addEventListener('click',doRegister);
 // admins write to, and shows members the current courts + queue during an
 // active pickleball open-play session. No writes — purely a live view.
 let _lqTimer=null, _lqInterval=8000;
+let _lqRosterRefreshPending=false;
 function lqName(pid){
-  const p=LC.arr('players').find(x=>x.id===pid);
-  if(!p) return 'Player';
+  let p=LC.arr('roster').find(x=>x.id===pid);
+  if(!p) p=LC.arr('players').find(x=>x.id===pid);
+  if(!p){
+    // Unknown player — new registration mid-session. Refresh roster once.
+    if(!_lqRosterRefreshPending){
+      _lqRosterRefreshPending=true;
+      dbGet('players_public','select=*').then(players=>{
+        if(!Array.isArray(players)||!players.length) return;
+        const roster=players.map(sp=>({
+          id:sp.id,firstName:sp.first_name,lastName:sp.last_name,
+          position:sp.position||'',avatarUrl:sp.avatar_url||'',bio:sp.bio||'',
+          sports:sp.sports||'basketball',wins:sp.wins||0,games:sp.games_played||0,
+          dupr:sp.dupr!=null?sp.dupr:null,
+          ratingPickleball:sp.rating_pickleball!=null?sp.rating_pickleball:null,
+          pickleballMatches:sp.pickleball_matches||0,
+          hasDgroup:sp.has_dgroup||false,dgroupLeader:sp.dgroup_leader||''
+        }));
+        LC.set('roster',roster);
+        _lqRosterRefreshPending=false;
+      }).catch(()=>{ _lqRosterRefreshPending=false; });
+    }
+    return 'Player';
+  }
   const ln=(p.lastName||'').trim();
   return p.firstName+(ln?(' '+ln.charAt(0)+'.'):'');
 }
