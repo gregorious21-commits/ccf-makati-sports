@@ -1676,6 +1676,8 @@ select.fi{
         </div>
       </div>
 
+      <!-- Team registrations -->
+      <div id="admin-tourn-regs" style="display:none"></div>
       <!-- Payment monitoring -->
       <div id="admin-tourn-payments" style="display:none"></div>
       <!-- Stats entry -->
@@ -5210,6 +5212,7 @@ function renderAdminTournaments() {
         <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openTournRegs('${t.id}')" style="flex:1"><i class="ti ti-users-plus"></i>Regs</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournStats('${t.id}')" style="flex:1"><i class="ti ti-chart-bar"></i>Stats</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
@@ -5221,12 +5224,99 @@ function renderAdminTournaments() {
 
 // ── panel visibility helper ───────────────────────────────────
 function _showTournPanel(which) {
-  ['admin-tourn-list','admin-tourn-form','admin-tourn-payments','admin-tourn-stats'].forEach(id=>{
+  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = id===which ? '' : 'none';
   });
   const btn = document.getElementById('btn-new-tourn');
   if(btn) btn.style.display = which==='admin-tourn-list' ? '' : 'none';
+}
+
+// ── team registrations ────────────────────────────────────────
+async function openTournRegs(id) {
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  if (!t) return;
+  _showTournPanel('admin-tourn-regs');
+  const el = document.getElementById('admin-tourn-regs');
+  el.innerHTML = '<div class="empty" style="padding:20px;text-align:center">Loading registrations…</div>';
+  const regs = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+id+'&order=created_at.asc').catch(()=>[]);
+  renderTournRegsPanel(t, regs||[]);
+}
+
+function renderTournRegsPanel(t, regs) {
+  const el = document.getElementById('admin-tourn-regs');
+  const pending  = regs.filter(r=>r.status==='pending');
+  const approved = regs.filter(r=>r.status==='approved');
+  const rejected = regs.filter(r=>r.status==='rejected');
+
+  const regCard = (r, showActions) => {
+    const captainName = _tPlayerName(r.captain_id);
+    const players = Array.isArray(r.players) ? r.players : [];
+    const playerNames = players.map(pid=>_tPlayerName(pid)).join(', ');
+    const statusColor = r.status==='approved'?'var(--gr)':r.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)';
+    const statusLabel = r.status==='approved'?'Approved':r.status==='rejected'?'Rejected':'Pending';
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-weight:700">${r.team_name}</div>
+          <div style="font-size:12px;color:var(--tx2)">Captain: ${captainName} · ${players.length} player${players.length!==1?'s':''}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:${showActions?'10':'0'}px">${playerNames||'No players listed'}</div>
+      ${showActions ? `<div style="display:flex;gap:6px">
+        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveTournReg('${r.id}','${t.id}','${r.team_name}','${r.captain_id}',${JSON.stringify(r.players||[]).replace(/"/g,'&quot;')})"><i class="ti ti-check"></i>Approve</button>
+        <button type="button" class="btn btn-sm btn-ghost" style="flex:1" onclick="rejectTournReg('${r.id}','${t.id}')"><i class="ti ti-x"></i>Reject</button>
+      </div>` : ''}
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="_showTournPanel('admin-tourn-list')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-weight:700;font-size:16px;flex:1">${t.name} — Registrations</div>
+    </div>
+
+    ${pending.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pending (${pending.length})</div>
+      ${pending.map(r=>regCard(r,true)).join('')}` : '<div class="empty" style="padding:20px;text-align:center">No pending registrations.</div>'}
+
+    ${approved.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--gr);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Approved (${approved.length})</div>
+      ${approved.map(r=>regCard(r,false)).join('')}` : ''}
+
+    ${rejected.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Rejected (${rejected.length})</div>
+      ${rejected.map(r=>regCard(r,false)).join('')}` : ''}
+  `;
+}
+
+async function approveTournReg(regId, tournId, teamName, captainId, players) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const teams = JSON.parse(JSON.stringify(t.teams||[]));
+  // check not already added
+  if (teams.find(tm=>tm.name===teamName)) return toast('A team with this name already exists','er');
+  const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players };
+  teams.push(newTeam);
+  const [ok1, ok2] = await Promise.all([
+    dbUpdate('tournaments','id=eq.'+tournId,{ teams }),
+    dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'approved' }),
+  ]);
+  if (!ok1 || !ok2) return toast('Approval failed','er');
+  toast(teamName+' added to tournament');
+  // refresh local cache
+  const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('tournaments', fresh);
+  openTournRegs(tournId);
+}
+
+async function rejectTournReg(regId, tournId) {
+  if (!confirm('Reject this registration?')) return;
+  const ok = await dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'rejected' });
+  if (!ok) return toast('Failed','er');
+  toast('Registration rejected','in');
+  openTournRegs(tournId);
 }
 
 // ── stats entry ───────────────────────────────────────────────

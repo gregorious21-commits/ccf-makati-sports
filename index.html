@@ -3856,8 +3856,10 @@ function closeViewPlayer(){ document.getElementById('ovl-view').classList.remove
 
 // ── TOURNAMENTS ───────────────────────────────────────────────
 let _tournDetailId = null;
-let _tournPayments = []; // cached payments for current detail view
+let _tournPayments = [];
 let _tournPayFile = null;
+let _tournRegs = [];       // pending registrations for current tournament
+let _tournRegPlayers = []; // working player list while reg form is open
 
 const TOURN_SPORT_ICON = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
 
@@ -3900,10 +3902,15 @@ function openTournDetail(id) {
   _tournDetailId = id;
   _tournPayments = [];
   _tournPayFile = null;
-  // fetch payments lazily
-  dbGet('tournament_payments','select=*&tournament_id=eq.'+id).then(rows=>{
-    if (Array.isArray(rows)) { _tournPayments = rows; renderTournDetail(id); }
-  }).catch(()=>{});
+  _tournRegs = [];
+  Promise.all([
+    dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
+    dbGet('tournament_registrations','select=*&tournament_id=eq.'+id).catch(()=>[]),
+  ]).then(([pays, regs])=>{
+    if (Array.isArray(pays)) _tournPayments = pays;
+    if (Array.isArray(regs)) _tournRegs = regs;
+    renderTournDetail(id);
+  });
   renderTournDetail(id);
 }
 
@@ -3911,6 +3918,8 @@ function closeTournDetail() {
   _tournDetailId = null;
   _tournPayments = [];
   _tournPayFile = null;
+  _tournRegs = [];
+  _tournRegPlayers = [];
   document.getElementById('tourn-detail').style.display = 'none';
   document.getElementById('tourn-list').style.display = '';
 }
@@ -4079,6 +4088,35 @@ function renderTournDetail(id) {
       </div>`;
   }
 
+  // ── team registration section ─────────────────────────────────
+  const myReg = ME ? _tournRegs.find(r=>r.captain_id===ME.id) : null;
+  const alreadyOnTeam = ME ? teams.some(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : false;
+  const canRegister = ME && (t.status==='upcoming'||t.status==='active') && !alreadyOnTeam && !myReg;
+  let regSection = '';
+
+  if (myReg) {
+    const regStatusColor = myReg.status==='approved'?'var(--gr)':myReg.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)';
+    const regStatusLabel = myReg.status==='approved'?'Approved':myReg.status==='rejected'?'Rejected — contact organizer':'Pending Approval';
+    const regPlayerNames = (Array.isArray(myReg.players)?myReg.players:[]).map(pid=>_tpName(pid)).join(', ');
+    regSection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Your Registration</div></div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-weight:700;font-size:15px">${myReg.team_name}</div>
+          <span style="font-size:11px;font-weight:700;color:${regStatusColor};text-transform:uppercase;letter-spacing:.5px">${regStatusLabel}</span>
+        </div>
+        <div style="font-size:13px;color:var(--tx2);line-height:1.7">${regPlayerNames||'No players listed'}</div>
+        ${myReg.status==='pending'?`<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The organizer will review and add your team to the bracket.</div>`:''}
+      </div>`;
+  } else if (canRegister) {
+    regSection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Join this Tournament</div></div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">Register your team. The organizer will review and confirm your spot.</div>
+        <button type="button" class="btn" onclick="openTournRegForm('${t.id}')"><i class="ti ti-users-plus"></i>Register a Team</button>
+      </div>`;
+  }
+
   // ── team roster cards ─────────────────────────────────────────
   const rosterCards = teams.map(tm => {
     const names = (tm.players||[]).map(pid => _tpName(pid));
@@ -4160,6 +4198,7 @@ function renderTournDetail(id) {
     ${matchCard(teamFor('3rd'),'3rd Place Match')}
 
     ${paySection}
+    ${regSection}
 
     <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
     <div class="card" style="margin-bottom:14px">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
@@ -4194,6 +4233,95 @@ async function submitTournPayment(tournId, teamId, totalFee) {
   if (Array.isArray(fresh)) _tournPayments = fresh;
   renderTournDetail(tournId);
 }
+
+// ── TOURNAMENT TEAM REGISTRATION ──────────────────────────────
+function openTournRegForm(tournId) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  // pre-select self
+  _tournRegPlayers = ME ? [ME.id] : [];
+  const el = document.getElementById('tourn-detail');
+  const list = document.getElementById('tourn-list');
+  list.style.display = 'none';
+  el.style.display = '';
+
+  const allPlayers = LC.arr('roster').length ? LC.arr('roster') : LC.arr('players');
+  const playerOpts = allPlayers.map(p => {
+    const sel = _tournRegPlayers.includes(p.id) ? 'selected' : '';
+    const pname = p.firstName + (p.lastName ? ' ' + p.lastName : '');
+    const isSelf = ME && p.id === ME.id;
+    return `<option value="${p.id}" ${sel} ${isSelf?'disabled':''}>${pname}${isSelf?' (You)':''}</option>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournRegForm('${tournId}')"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;flex:1">Register a Team</div>
+    </div>
+    <div style="font-size:13px;color:var(--tx2);margin-bottom:14px">You'll be registered as the team captain. The organizer reviews and confirms your spot before you appear in the bracket.</div>
+
+    <div class="card" style="margin-bottom:12px">
+      <label class="lbl">Team Name</label>
+      <input type="text" class="inp" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:4px">
+        <label class="lbl" style="margin:0">Select Players <span style="color:var(--tx3);font-weight:400">(hold to multi-select)</span></label>
+        <span id="treg-count" style="font-size:11px;font-weight:700;color:var(--tx3)">1 / 15</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">You are automatically included as captain.</div>
+      <select multiple class="inp" id="treg-players" style="height:180px;font-size:13px" onchange="onTregPlayerChange(this)">
+        ${playerOpts}
+      </select>
+    </div>
+
+    <button type="button" class="btn" onclick="submitTournReg('${tournId}')"><i class="ti ti-send"></i>Submit Registration</button>
+  `;
+}
+
+function onTregPlayerChange(sel) {
+  const picked = Array.from(sel.selectedOptions).map(o=>o.value);
+  // always keep self included
+  const withSelf = ME && !picked.includes(ME.id) ? [ME.id, ...picked] : picked;
+  if (withSelf.length > 15) {
+    toast('Max 15 players per team','er');
+    // revert extra selection
+    Array.from(sel.options).forEach(o => o.selected = _tournRegPlayers.includes(o.value));
+    return;
+  }
+  _tournRegPlayers = withSelf;
+  const countEl = document.getElementById('treg-count');
+  if (countEl) countEl.textContent = withSelf.length + ' / 15';
+  countEl.style.color = withSelf.length >= 15 ? 'var(--gr)' : 'var(--tx3)';
+}
+
+function closeTournRegForm(tournId) {
+  _tournRegPlayers = [];
+  renderTournDetail(tournId);
+}
+
+async function submitTournReg(tournId) {
+  const nameEl = document.getElementById('treg-name');
+  const name = nameEl ? nameEl.value.trim() : '';
+  if (!name) return toast('Enter a team name','er');
+  if (_tournRegPlayers.length < 1) return toast('Add at least one player','er');
+  if (!ME) return toast('You must be logged in','er');
+
+  const payload = {
+    tournament_id: tournId,
+    team_name:     name,
+    captain_id:    ME.id,
+    players:       _tournRegPlayers,
+    status:        'pending',
+  };
+  const ok = await dbInsert('tournament_registrations', payload);
+  if (!ok) return toast('Submission failed','er');
+  toast('Team registered — pending organizer approval');
+  _tournRegPlayers = [];
+  const fresh = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+  if (Array.isArray(fresh)) _tournRegs = fresh;
+  renderTournDetail(tournId);
+}
+
 // ── BUTTONS ───────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click',doLogin);
 document.getElementById('l-pin').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
