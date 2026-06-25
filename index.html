@@ -3956,6 +3956,35 @@ function renderTournDetail(id) {
     return { id:tm.id, name:tm.name, w, l, pf, pa, diff:pf-pa };
   }).sort((a,b)=> b.w-a.w || b.diff-a.diff);
 
+  const STAT_COLS = ['pts','reb','ast','stl','blk'];
+  const STAT_HDRS = ['PTS','REB','AST','STL','BLK'];
+
+  const statsTable = (m) => {
+    const stats = Array.isArray(m.stats) && m.stats.length ? m.stats : null;
+    if (!stats) return '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No stats entered yet.</div>';
+    const tA = teams.find(x=>x.id===m.teamA)||{name:'Team A',players:[]};
+    const tB = teams.find(x=>x.id===m.teamB)||{name:'Team B',players:[]};
+    const thead = `<tr style="background:var(--b2);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">
+      <th style="padding:5px 8px;text-align:left;font-weight:700">Player</th>
+      ${STAT_HDRS.map(h=>`<th style="padding:5px 4px;text-align:center;font-weight:700">${h}</th>`).join('')}
+    </tr>`;
+    const teamRows = (teamObj) => {
+      const rows = (teamObj.players||[]).map(pid=>{
+        const s = stats.find(x=>x.playerId===pid);
+        if (!s) return '';
+        const pname = _tpName(pid);
+        return `<tr style="border-top:1px solid var(--b)">
+          <td style="padding:6px 8px;font-size:12px">${pname}</td>
+          ${STAT_COLS.map(f=>`<td style="padding:6px 4px;text-align:center;font-size:13px;font-weight:${f==='pts'?'700':'400'}">${s[f]??0}</td>`).join('')}
+        </tr>`;
+      }).join('');
+      if (!rows) return '';
+      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">${teamObj.name}</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}${rows}</table></div>`;
+    };
+    return teamRows(tA) + teamRows(tB);
+  };
+
   // ── match card ────────────────────────────────────────────────
   const matchCard = (m, roundLabel, sublabel) => {
     if (!m) return `
@@ -3966,6 +3995,7 @@ function renderTournDetail(id) {
     const aName = m.teamA ? teamName(m.teamA) : 'TBD';
     const bName = m.teamB ? teamName(m.teamB) : 'TBD';
     const aWon = m.winner==='A', bWon = m.winner==='B', done = !!m.winner;
+    const statsId = 'tgstats-'+t.id+'-'+m.round;
     return `
       <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:8px">
         <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
@@ -3988,6 +4018,8 @@ function renderTournDetail(id) {
             ${bWon?'<div style="font-size:10px;color:var(--gr);font-weight:700;margin-top:2px">WINNER</div>':''}
           </div>
         </div>
+        ${done ? `<button type="button" onclick="document.getElementById('${statsId}').style.display=document.getElementById('${statsId}').style.display==='none'?'':'none'" style="margin-top:10px;background:none;border:1px solid var(--b);border-radius:6px;padding:5px 12px;font-size:12px;color:var(--tx2);cursor:pointer;width:100%">Box Score</button>
+        <div id="${statsId}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--b)">${statsTable(m)}</div>` : ''}
       </div>`;
   };
 
@@ -4060,6 +4092,29 @@ function renderTournDetail(id) {
     </div>`;
   }).join('');
 
+  // ── top performers ────────────────────────────────────────────
+  const allStats = {};
+  matches.forEach(m => {
+    if (!Array.isArray(m.stats)) return;
+    m.stats.forEach(s => {
+      if (!allStats[s.playerId]) allStats[s.playerId] = {playerId:s.playerId, pts:0, reb:0, ast:0, stl:0, blk:0, games:0};
+      STAT_COLS.forEach(f => { allStats[s.playerId][f] += Number(s[f])||0; });
+      allStats[s.playerId].games++;
+    });
+  });
+  const statPlayers = Object.values(allStats);
+  const topPerformersHtml = statPlayers.length ? (() => {
+    const leader = (field) => {
+      const top = [...statPlayers].sort((a,b)=>b[field]-a[field])[0];
+      return top ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b)">
+        <div style="font-size:13px"><span style="font-weight:700;color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">${field.toUpperCase()}</span>${_tpName(top.playerId)}</div>
+        <span style="font-weight:800;font-size:15px">${top[field]}</span>
+      </div>` : '';
+    };
+    return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Top Performers</div></div>
+      <div class="card" style="margin-bottom:14px">${STAT_COLS.map(leader).join('')}</div>`;
+  })() : '';
+
   // ── standings table HTML ──────────────────────────────────────
   const rrPlayed = RR_ROUNDS.some(r=>matches.find(m=>m.round===r&&m.winner));
   const standingsHtml = rrPlayed ? `
@@ -4098,6 +4153,7 @@ function renderTournDetail(id) {
     ${RR_ROUNDS.map((r,i)=>matchCard(teamFor(r),'Game '+(i+1))).join('')}
 
     ${standingsHtml}
+    ${topPerformersHtml}
 
     <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
     ${matchCard(teamFor('final'),'Championship','🏆')}

@@ -1676,8 +1676,10 @@ select.fi{
         </div>
       </div>
 
-      <!-- Payment monitoring (shown per tournament, not inside form) -->
+      <!-- Payment monitoring -->
       <div id="admin-tourn-payments" style="display:none"></div>
+      <!-- Stats entry -->
+      <div id="admin-tourn-stats" style="display:none"></div>
     </div>
 
     <div class="panel" id="panel-settings">
@@ -5207,7 +5209,8 @@ function renderAdminTournaments() {
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
       </div>
-      <div style="display:flex;gap:6px;margin-top:10px">
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openTournStats('${t.id}')" style="flex:1"><i class="ti ti-chart-bar"></i>Stats</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
         <button type="button" class="btn btn-sm" style="flex:1;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)" onclick="deleteTournament('${t.id}')"><i class="ti ti-trash"></i>Delete</button>
@@ -5216,16 +5219,138 @@ function renderAdminTournaments() {
   }).join('');
 }
 
+// ── panel visibility helper ───────────────────────────────────
+function _showTournPanel(which) {
+  ['admin-tourn-list','admin-tourn-form','admin-tourn-payments','admin-tourn-stats'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = id===which ? '' : 'none';
+  });
+  const btn = document.getElementById('btn-new-tourn');
+  if(btn) btn.style.display = which==='admin-tourn-list' ? '' : 'none';
+}
+
+// ── stats entry ───────────────────────────────────────────────
+const STAT_FIELDS = ['pts','reb','ast','stl','blk'];
+const STAT_LABELS = ['PTS','REB','AST','STL','BLK'];
+const RR_IDS = ['rr1','rr2','rr3','rr4','rr5','rr6'];
+
+function openTournStats(id) {
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  if (!t) return;
+  _showTournPanel('admin-tourn-stats');
+  renderTournStatsPanel(t);
+}
+
+function closeTournStats() { _showTournPanel('admin-tourn-list'); }
+
+function renderTournStatsPanel(t) {
+  const el = document.getElementById('admin-tourn-stats');
+  const teams   = Array.isArray(t.teams)   ? t.teams   : [];
+  const matches = Array.isArray(t.matches) ? t.matches : [];
+  const allRounds = [...RR_IDS,'3rd','final'];
+  const roundLabel = { rr1:'Game 1',rr2:'Game 2',rr3:'Game 3',rr4:'Game 4',rr5:'Game 5',rr6:'Game 6','3rd':'3rd Place Match',final:'Championship' };
+
+  const gameCards = allRounds.map(rid => {
+    const m = matches.find(x=>x.round===rid);
+    if (!m || !m.winner) return ''; // only show completed games
+    const tA = teams.find(x=>x.id===m.teamA)||{name:'Team A',players:[]};
+    const tB = teams.find(x=>x.id===m.teamB)||{name:'Team B',players:[]};
+    const existingStats = Array.isArray(m.stats) ? m.stats : [];
+    const winnerName = m.winner==='A' ? tA.name : tB.name;
+
+    const playerRows = (teamObj, teamSide) => (teamObj.players||[]).map(pid => {
+      const pname = _tPlayerName(pid);
+      const s = existingStats.find(x=>x.playerId===pid) || {};
+      const inputs = STAT_FIELDS.map((f,i)=>
+        `<input type="number" min="0" value="${s[f]??0}" data-pid="${pid}" data-team="${teamObj.id}" data-field="${f}"
+          style="width:40px;padding:4px;text-align:center;font-size:13px;border:1px solid var(--b);border-radius:4px;background:var(--bg);color:var(--tx)">`
+      ).join('');
+      return `<tr style="border-top:1px solid var(--b)">
+        <td style="padding:6px 8px;font-size:13px;white-space:nowrap">${pname}</td>
+        ${inputs.split('><').map(x=>`<td style="padding:4px 3px;text-align:center">${x.includes('input')?'<'+x+'>':x}</td>`).join('')}
+      </tr>`;
+    }).join('');
+
+    // rebuild as proper table rows
+    const teamRows = (teamObj) => (teamObj.players||[]).map(pid => {
+      const pname = _tPlayerName(pid);
+      const s = existingStats.find(x=>x.playerId===pid) || {};
+      return `<tr style="border-top:1px solid var(--b)">
+        <td style="padding:6px 8px;font-size:13px">${pname}</td>
+        ${STAT_FIELDS.map((f,i)=>`<td style="padding:4px 3px;text-align:center">
+          <input type="number" min="0" value="${s[f]??0}" data-round="${rid}" data-pid="${pid}" data-teamid="${teamObj.id}" data-field="${f}"
+            class="ts-inp" style="width:40px;padding:4px;text-align:center;font-size:13px;border:1px solid var(--b);border-radius:4px;background:var(--bg);color:var(--tx)">
+        </td>`).join('')}
+      </tr>`;
+    }).join('');
+
+    const tableHead = `<tr style="background:var(--b2);font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">
+      <th style="padding:6px 8px;text-align:left;font-weight:700">Player</th>
+      ${STAT_LABELS.map(l=>`<th style="padding:6px 3px;text-align:center;font-weight:700">${l}</th>`).join('')}
+    </tr>`;
+
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:14px">${roundLabel[rid]}</div>
+          <div style="font-size:12px;color:var(--tx2);margin-top:2px">${tA.name} vs ${tB.name} · <span style="color:var(--gr);font-weight:600">${winnerName} won</span></div>
+        </div>
+        <button type="button" class="btn btn-sm" style="width:auto;padding:7px 14px" onclick="saveTournMatchStats('${t.id}','${rid}')"><i class="ti ti-device-floppy"></i>Save</button>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${tA.name}</div>
+      <div style="overflow-x:auto;margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse">${tableHead}${teamRows(tA)}</table>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${tB.name}</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">${tableHead}${teamRows(tB)}</table>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="closeTournStats()"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-weight:700;font-size:16px;flex:1">${t.name} — Player Stats</div>
+    </div>
+    ${gameCards || '<div class="empty" style="padding:24px;text-align:center">No completed games yet. Enter scores first.</div>'}
+  `;
+}
+
+async function saveTournMatchStats(tournId, round) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const matches = JSON.parse(JSON.stringify(Array.isArray(t.matches) ? t.matches : []));
+  const m = matches.find(x=>x.round===round);
+  if (!m) return;
+
+  // collect all inputs for this round
+  const inputs = document.querySelectorAll(`.ts-inp[data-round="${round}"]`);
+  const statsMap = {};
+  inputs.forEach(inp => {
+    const pid = inp.dataset.pid, field = inp.dataset.field, teamid = inp.dataset.teamid;
+    if (!statsMap[pid]) statsMap[pid] = { playerId:pid, teamId:teamid };
+    statsMap[pid][field] = Number(inp.value)||0;
+  });
+  m.stats = Object.values(statsMap);
+
+  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{ matches });
+  if (!ok) return toast('Save failed','er');
+  toast('Stats saved');
+  // refresh local cache
+  const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('tournaments', fresh);
+  // re-render with updated data
+  const updated = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (updated) renderTournStatsPanel(updated);
+}
+
 // ── payment monitoring ────────────────────────────────────────
 async function openTournPayments(id) {
   const t = LC.arr('tournaments').find(x=>x.id===id);
   if (!t) return;
+  _showTournPanel('admin-tourn-payments');
   const el = document.getElementById('admin-tourn-payments');
-  const list = document.getElementById('admin-tourn-list');
-  const form = document.getElementById('admin-tourn-form');
-  const btn  = document.getElementById('btn-new-tourn');
-  list.style.display = 'none'; form.style.display = 'none'; btn.style.display = 'none';
-  el.style.display = '';
   el.innerHTML = '<div class="empty" style="padding:20px;text-align:center">Loading payments…</div>';
   const teams = Array.isArray(t.teams) ? t.teams : [];
   const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
@@ -5276,11 +5401,7 @@ async function openTournPayments(id) {
   `;
 }
 
-function closeTournPayments() {
-  document.getElementById('admin-tourn-payments').style.display = 'none';
-  document.getElementById('admin-tourn-list').style.display = '';
-  document.getElementById('btn-new-tourn').style.display = '';
-}
+function closeTournPayments() { _showTournPanel('admin-tourn-list'); }
 
 async function verifyTournPayment(payId, tournId) {
   const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'verified',verified_at:new Date().toISOString()});
@@ -5296,12 +5417,7 @@ async function rejectTournPayment(payId, tournId) {
 }
 
 // ── create / edit form ────────────────────────────────────────
-function _showTournForm() {
-  document.getElementById('admin-tourn-list').style.display = 'none';
-  document.getElementById('btn-new-tourn').style.display = 'none';
-  document.getElementById('admin-tourn-payments').style.display = 'none';
-  document.getElementById('admin-tourn-form').style.display = '';
-}
+function _showTournForm() { _showTournPanel('admin-tourn-form'); }
 
 function openNewTournForm() {
   _tEditId = null;
@@ -5341,9 +5457,7 @@ function editTournament(id) {
 
 function closeTournForm() {
   _tEditId = null; _tTeams = []; _tFees = [];
-  document.getElementById('admin-tourn-form').style.display = 'none';
-  document.getElementById('admin-tourn-list').style.display = '';
-  document.getElementById('btn-new-tourn').style.display = '';
+  _showTournPanel('admin-tourn-list');
 }
 
 // ── fee breakdown ─────────────────────────────────────────────
