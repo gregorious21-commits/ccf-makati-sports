@@ -1661,8 +1661,13 @@ select.fi{
           <div class="card-h" style="margin-bottom:12px"><div class="card-t">Fee Breakdown</div></div>
           <div id="tf-fees-list"></div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="addTournFee()" style="margin-top:8px;width:auto"><i class="ti ti-plus"></i>Add Fee Item</button>
-          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:10px 0 0;margin-top:8px;border-top:1px solid var(--b)">
-            <span>Total per Team</span><span id="tf-fee-total">₱0</span>
+          <div style="border-top:1px solid var(--b);padding-top:8px;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:3px">
+              <span>Total Pool</span><span id="tf-fee-pool">₱0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800">
+              <span id="tf-fee-label">Per Team (÷4)</span><span id="tf-fee-total">₱0</span>
+            </div>
           </div>
         </div>
 
@@ -5454,7 +5459,9 @@ async function openTournPayments(id) {
   el.innerHTML = '<div class="empty" style="padding:20px;text-align:center">Loading payments…</div>';
   const teams = Array.isArray(t.teams) ? t.teams : [];
   const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
-  const teamFee = breakdown.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const totalPool = breakdown.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const teamCount = teams.length || 1;
+  const teamFee = Math.round(totalPool / teamCount);
   const payments = await dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]);
 
   const rows = teams.map(tm => {
@@ -5493,9 +5500,14 @@ async function openTournPayments(id) {
       <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="closeTournPayments()"><i class="ti ti-arrow-left"></i> Back</button>
       <div style="font-weight:700;font-size:16px;flex:1">${t.name} — Payments</div>
     </div>
-    ${teamFee ? `<div class="card" style="margin-bottom:12px">${feeRows}
-      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;border-top:1px solid var(--b);padding-top:8px;margin-top:6px">
-        <span>Total per Team</span><span>₱${teamFee.toLocaleString()}</span>
+    ${totalPool ? `<div class="card" style="margin-bottom:12px">${feeRows}
+      <div style="border-top:1px solid var(--b);padding-top:8px;margin-top:6px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--tx2);margin-bottom:4px">
+          <span>Total Pool</span><span>₱${totalPool.toLocaleString()}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px">
+          <span>Per Team (÷${teamCount})</span><span>₱${teamFee.toLocaleString()}</span>
+        </div>
       </div></div>` : ''}
     ${rows || '<div class="empty">No teams in this tournament.</div>'}
   `;
@@ -5610,9 +5622,15 @@ function renderTournFeesForm() {
 }
 
 function updateFeeTotals() {
-  const total = _tFees.reduce((s,x)=>s+(Number(x.amount)||0),0);
-  const el = document.getElementById('tf-fee-total');
-  if (el) el.textContent = '₱'+total.toLocaleString();
+  const pool = _tFees.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const n = _tTeams.length || 4;
+  const perTeam = Math.round(pool / n);
+  const poolEl = document.getElementById('tf-fee-pool');
+  const lblEl  = document.getElementById('tf-fee-label');
+  const totEl  = document.getElementById('tf-fee-total');
+  if (poolEl) poolEl.textContent = '₱'+pool.toLocaleString();
+  if (lblEl)  lblEl.textContent  = `Per Team (÷${n})`;
+  if (totEl)  totEl.textContent  = '₱'+perTeam.toLocaleString();
 }
 
 // ── teams builder ─────────────────────────────────────────────

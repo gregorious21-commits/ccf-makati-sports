@@ -3994,7 +3994,8 @@ function renderTournDetail(id) {
   const teams   = Array.isArray(t.teams)   ? t.teams   : [];
   const matches = Array.isArray(t.matches) ? t.matches : [];
   const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
-  const teamFee = breakdown.reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const _feePool = breakdown.reduce((s,x)=>s+(Number(x.amount)||0), 0);
+  const teamFee = teams.length > 1 ? Math.round(_feePool / teams.length) : _feePool;
 
   const teamName = tid => (teams.find(x=>x.id===tid)||{}).name || 'TBD';
   const teamFor  = round => matches.find(m=>m.round===round) || null;
