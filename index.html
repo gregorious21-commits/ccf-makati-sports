@@ -3856,6 +3856,10 @@ function closeViewPlayer(){ document.getElementById('ovl-view').classList.remove
 
 // ── TOURNAMENTS ───────────────────────────────────────────────
 let _tournDetailId = null;
+let _tournPayments = []; // cached payments for current detail view
+let _tournPayFile = null;
+
+const TOURN_SPORT_ICON = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
 
 function renderTournaments() {
   const list = document.getElementById('tourn-list');
@@ -3868,9 +3872,8 @@ function renderTournaments() {
     list.innerHTML = '<div class="empty" style="padding:24px;text-align:center">No tournaments yet.</div>';
     return;
   }
-  const sportIcon = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
   list.innerHTML = rows.map(t => {
-    const icon = sportIcon[t.sport] || 'ti-trophy';
+    const icon = TOURN_SPORT_ICON[t.sport] || 'ti-trophy';
     const statusColor = t.status==='completed' ? 'var(--tx3)' : t.status==='active' ? 'var(--gr)' : 'var(--gold)';
     const statusLabel = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Ongoing' : 'Upcoming';
     const teams = Array.isArray(t.teams) ? t.teams : [];
@@ -3895,13 +3898,27 @@ function renderTournaments() {
 
 function openTournDetail(id) {
   _tournDetailId = id;
+  _tournPayments = [];
+  _tournPayFile = null;
+  // fetch payments lazily
+  dbGet('tournament_payments','select=*&tournament_id=eq.'+id).then(rows=>{
+    if (Array.isArray(rows)) { _tournPayments = rows; renderTournDetail(id); }
+  }).catch(()=>{});
   renderTournDetail(id);
 }
 
 function closeTournDetail() {
   _tournDetailId = null;
+  _tournPayments = [];
+  _tournPayFile = null;
   document.getElementById('tourn-detail').style.display = 'none';
   document.getElementById('tourn-list').style.display = '';
+}
+
+function _tpName(pid) {
+  const roster = LC.arr('roster'), players = LC.arr('players');
+  const p = roster.find(x=>x.id===pid) || players.find(x=>x.id===pid);
+  return p ? p.firstName+(p.lastName?' '+p.lastName.charAt(0)+'.':'') : 'Player';
 }
 
 function renderTournDetail(id) {
@@ -3911,47 +3928,115 @@ function renderTournDetail(id) {
   if (!t) { closeTournDetail(); return; }
   list.style.display = 'none';
   el.style.display = '';
-  const teams = Array.isArray(t.teams) ? t.teams : [];
-  const matches = Array.isArray(t.matches) ? t.matches : [];
-  const teamName = id => (teams.find(x=>x.id===id)||{}).name || '—';
-  const teamFor = round => matches.find(m=>m.round===round);
-  const semi1 = teamFor('semi1');
-  const semi2 = teamFor('semi2');
-  const third = teamFor('3rd');
-  const final = teamFor('final');
 
-  const matchCard = (m, label) => {
-    if (!m) return '';
+  const teams   = Array.isArray(t.teams)   ? t.teams   : [];
+  const matches = Array.isArray(t.matches) ? t.matches : [];
+  const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
+  const teamFee = breakdown.reduce((s,x)=>s+(Number(x.amount)||0), 0);
+
+  const teamName = tid => (teams.find(x=>x.id===tid)||{}).name || 'TBD';
+  const teamFor  = round => matches.find(m=>m.round===round) || null;
+
+  // ── bracket match card ────────────────────────────────────────
+  const matchCard = (m, roundLabel, sublabel) => {
+    if (!m) return `
+      <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:10px;opacity:.5">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="text-align:center;font-size:13px;color:var(--tx3)">Not set yet</div>
+      </div>`;
     const aName = m.teamA ? teamName(m.teamA) : 'TBD';
     const bName = m.teamB ? teamName(m.teamB) : 'TBD';
-    const aWon = m.winner==='A', bWon = m.winner==='B';
-    const done = !!m.winner;
-    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${label}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="flex:1;text-align:right;font-weight:${aWon?'800':'500'};color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
-        <div style="display:flex;align-items:center;gap:6px;min-width:60px;justify-content:center">
-          ${done
-            ? `<span style="font-size:17px;font-weight:800;color:${aWon?'var(--gr)':'var(--tx3)'}">${m.scoreA??'—'}</span>
-               <span style="font-size:12px;color:var(--tx3)">–</span>
-               <span style="font-size:17px;font-weight:800;color:${bWon?'var(--gr)':'var(--tx3)'}">${m.scoreB??'—'}</span>`
-            : `<span style="font-size:12px;color:var(--tx3)">vs</span>`}
+    const aWon = m.winner==='A', bWon = m.winner==='B', done = !!m.winner;
+    return `
+      <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px">
+          <div style="text-align:right">
+            <div style="font-weight:${aWon?'800':'600'};font-size:15px;color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
+            ${aWon?'<div style="font-size:10px;color:var(--gr);font-weight:700;margin-top:2px">WINNER</div>':''}
+          </div>
+          <div style="text-align:center;min-width:56px">
+            ${done
+              ? `<div style="display:flex;align-items:center;justify-content:center;gap:6px">
+                   <span style="font-size:22px;font-weight:800;color:${aWon?'var(--gr)':'var(--tx3)'}">${m.scoreA??'—'}</span>
+                   <span style="font-size:12px;color:var(--tx3)">–</span>
+                   <span style="font-size:22px;font-weight:800;color:${bWon?'var(--gr)':'var(--tx3)'}">${m.scoreB??'—'}</span>
+                 </div>`
+              : `<div style="font-size:12px;color:var(--tx3);font-weight:600">VS</div>`}
+          </div>
+          <div>
+            <div style="font-weight:${bWon?'800':'600'};font-size:15px;color:${bWon?'var(--tx)':'var(--tx2)'}">${bName}</div>
+            ${bWon?'<div style="font-size:10px;color:var(--gr);font-weight:700;margin-top:2px">WINNER</div>':''}
+          </div>
         </div>
-        <div style="flex:1;font-weight:${bWon?'800':'500'};color:${bWon?'var(--tx)':'var(--tx2)'}">${bName}</div>
-      </div>
-      ${m.winner ? `<div style="text-align:center;font-size:11px;color:var(--gr);margin-top:6px;font-weight:700">${m.winner==='A'?aName:bName} wins</div>` : ''}
-    </div>`;
+      </div>`;
   };
 
+  // ── payment section (only for team owner) ────────────────────
+  const myTeam = ME ? teams.find(tm=>tm.owner===ME.id) : null;
+  let paySection = '';
+  if (myTeam && teamFee > 0) {
+    const myPay = _tournPayments.find(p=>p.team_id===myTeam.id);
+    const paidAmt = myPay ? Number(myPay.amount) : 0;
+    const pStatus = myPay ? myPay.status : 'unpaid';
+    const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
+    const statusLabel = pStatus==='verified'?'Paid & Verified':pStatus==='pending'?'Payment Pending Review':'Unpaid';
+    const payMethods = LC.arr('payment_methods').filter(m=>m.sport===t.sport||m.sport==='all');
+
+    const methodsList = payMethods.length
+      ? payMethods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:13px">${m.label}</div>
+          <div style="font-size:13px;color:var(--tx2)">${m.account_number} · ${m.account_name}</div>
+        </div>`).join('')
+      : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
+
+    const feeRows = breakdown.map(x=>`
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
+        <span style="color:var(--tx2)">${x.label}</span>
+        <span>₱${Number(x.amount).toLocaleString()}</span>
+      </div>`).join('');
+
+    paySection = `
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Team Payment</div></div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <div style="font-weight:700;font-size:15px">${myTeam.name}</div>
+            <div style="font-size:12px;color:var(--tx2);margin-top:2px">You are the team owner</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+        </div>
+        ${feeRows}
+        <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:800;padding:8px 0;border-top:1px solid var(--b);margin-top:4px">
+          <span>Total Due</span><span>₱${teamFee.toLocaleString()}</span>
+        </div>
+        ${paidAmt>0?`<div style="font-size:13px;color:var(--gr);margin-top:2px">Submitted: ₱${paidAmt.toLocaleString()}</div>`:''}
+        ${pStatus!=='verified' ? `
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b)">
+            <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Send Payment To</div>
+            ${methodsList}
+            <div style="margin-top:12px">
+              <label class="lbl">Amount Sent (₱)</label>
+              <input type="number" class="inp" id="tp-amount" placeholder="${teamFee}" value="${paidAmt||''}">
+              <label class="lbl" style="margin-top:10px">Upload Proof of Payment</label>
+              <input type="file" accept="image/*" style="margin-top:4px" onchange="_tournPayFile=this.files[0];document.getElementById('tp-file-name').textContent=this.files[0]?this.files[0].name:''">
+              <div id="tp-file-name" style="font-size:12px;color:var(--tx3);margin-top:4px"></div>
+              ${myPay&&myPay.proof_url?`<div style="margin-top:6px"><a href="${myPay.proof_url}" target="_blank" style="font-size:12px;color:var(--gr)">View previous proof</a></div>`:''}
+              <button type="button" class="btn" style="margin-top:12px" onclick="submitTournPayment('${t.id}','${myTeam.id}',${teamFee})"><i class="ti ti-send"></i>Submit Payment</button>
+            </div>
+          </div>` : `<div style="margin-top:10px;padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Payment verified. You're all set!</div>`}
+      </div>`;
+  }
+
+  // ── team roster cards ─────────────────────────────────────────
   const rosterCards = teams.map(tm => {
-    const roster = LC.arr('roster');
-    const players = LC.arr('players');
-    const names = (tm.players||[]).map(pid => {
-      const p = roster.find(x=>x.id===pid) || players.find(x=>x.id===pid);
-      return p ? p.firstName+(p.lastName?' '+p.lastName.charAt(0)+'.':'') : 'Player';
-    });
+    const names = (tm.players||[]).map(pid => _tpName(pid));
+    const ownerName = tm.owner ? _tpName(tm.owner) : null;
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="font-weight:700;margin-bottom:6px">${tm.name}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-weight:700">${tm.name}</div>
+        ${ownerName?`<span style="font-size:11px;color:var(--tx3)">Captain: ${ownerName}</span>`:''}
+      </div>
       <div style="font-size:13px;color:var(--tx2);line-height:1.8">${names.join(' · ')||'No players assigned'}</div>
     </div>`;
   }).join('');
@@ -3961,17 +4046,49 @@ function renderTournDetail(id) {
       <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournDetail()"><i class="ti ti-arrow-left"></i> Back</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;flex:1">${t.name}</div>
     </div>
-    <div class="sec-h"><div class="sec-t">Bracket</div></div>
-    <div class="card" style="margin-bottom:14px">
-      ${matchCard(semi1,'Semi-Final 1')}
-      ${matchCard(semi2,'Semi-Final 2')}
-      <div style="border-top:1px solid var(--b);margin:8px 0"></div>
-      ${matchCard(third,'3rd Place Match')}
-      ${matchCard(final,'Championship')}
-    </div>
+
+    <div class="sec-h"><div class="sec-t">Semi-Finals</div></div>
+    ${matchCard(teamFor('semi1'),'Semi-Final 1')}
+    ${matchCard(teamFor('semi2'),'Semi-Final 2')}
+
+    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
+    ${matchCard(teamFor('final'),'Championship','🏆')}
+    ${matchCard(teamFor('3rd'),'3rd Place Match')}
+
+    ${paySection}
+
     <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
-    <div class="card">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
+    <div class="card" style="margin-bottom:14px">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
   `;
+}
+
+async function submitTournPayment(tournId, teamId, totalFee) {
+  const amtEl = document.getElementById('tp-amount');
+  const amt = Number(amtEl ? amtEl.value : 0);
+  if (!amt || amt <= 0) return toast('Enter the amount sent','er');
+  let proofUrl = null;
+  if (_tournPayFile) {
+    const path = 'tourn-'+tournId+'-'+teamId+'-'+Date.now()+'.jpg';
+    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, {
+      method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':_tournPayFile.type,'x-upsert':'true'},
+      body: _tournPayFile
+    });
+    if (r.ok) proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+  }
+  const existing = _tournPayments.find(p=>p.team_id===teamId);
+  const payload = { tournament_id:tournId, team_id:teamId, player_id:ME.id, amount:amt, proof_url:proofUrl||existing?.proof_url||null, status:'pending' };
+  let ok;
+  if (existing) {
+    ok = await dbUpdate('tournament_payments','id=eq.'+existing.id, payload);
+  } else {
+    ok = await dbInsert('tournament_payments', payload);
+  }
+  if (!ok) return toast('Submit failed','er');
+  toast('Payment submitted — pending review');
+  _tournPayFile = null;
+  const fresh = await dbGet('tournament_payments','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+  if (Array.isArray(fresh)) _tournPayments = fresh;
+  renderTournDetail(tournId);
 }
 // ── BUTTONS ───────────────────────────────────────────────────
 document.getElementById('btn-login').addEventListener('click',doLogin);

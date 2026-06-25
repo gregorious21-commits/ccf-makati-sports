@@ -1647,6 +1647,16 @@ select.fi{
           </select>
         </div>
 
+        <!-- Fee breakdown -->
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-h" style="margin-bottom:12px"><div class="card-t">Fee Breakdown</div></div>
+          <div id="tf-fees-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="addTournFee()" style="margin-top:8px;width:auto"><i class="ti ti-plus"></i>Add Fee Item</button>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:800;padding:10px 0 0;margin-top:8px;border-top:1px solid var(--b)">
+            <span>Total per Team</span><span id="tf-fee-total">₱0</span>
+          </div>
+        </div>
+
         <!-- Teams builder -->
         <div class="card" style="margin-bottom:12px">
           <div class="card-h" style="margin-bottom:12px"><div class="card-t">Teams</div></div>
@@ -1665,6 +1675,9 @@ select.fi{
           <button type="button" class="btn btn-ghost" onclick="closeTournForm()" style="flex:1">Cancel</button>
         </div>
       </div>
+
+      <!-- Payment monitoring (shown per tournament, not inside form) -->
+      <div id="admin-tourn-payments" style="display:none"></div>
     </div>
 
     <div class="panel" id="panel-settings">
@@ -5156,9 +5169,19 @@ async function endGameDay(){
 }
 
 // ── TOURNAMENTS ───────────────────────────────────────────────
-let _tEditId = null; // null = new tournament, string = editing existing
-let _tTeams = [];    // working copy of teams while form is open
+let _tEditId = null;
+let _tTeams  = [];
+let _tFees   = [];
 
+const MAX_TOURN_PLAYERS = 15;
+
+function _tPlayerName(pid) {
+  const all = LC.arr('players');
+  const p = all.find(x=>x.id===pid);
+  return p ? p.firstName+(p.lastName?' '+p.lastName:'') : pid;
+}
+
+// ── list view ─────────────────────────────────────────────────
 function renderAdminTournaments() {
   const el = document.getElementById('admin-tourn-list');
   const rows = LC.arr('tournaments');
@@ -5174,16 +5197,18 @@ function renderAdminTournaments() {
     const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
     const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
     const dateStr = ds && de ? ds+' – '+de : ds||de||'—';
+    const teamFee = (t.fee_breakdown||[]).reduce((s,x)=>s+(Number(x.amount)||0),0);
     return `<div class="card" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:26px;color:var(--gr)"><i class="ti ${icon}"></i></span>
         <div style="flex:1;min-width:0">
           <div style="font-weight:700">${t.name}</div>
-          <div style="font-size:12px;color:var(--tx2);text-transform:capitalize">${t.sport} · ${dateStr}</div>
+          <div style="font-size:12px;color:var(--tx2);text-transform:capitalize">${t.sport} · ${dateStr}${teamFee?' · ₱'+teamFee.toLocaleString()+'/team':''}</div>
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
       </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
         <button type="button" class="btn btn-sm" style="flex:1;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)" onclick="deleteTournament('${t.id}')"><i class="ti ti-trash"></i>Delete</button>
       </div>
@@ -5191,9 +5216,97 @@ function renderAdminTournaments() {
   }).join('');
 }
 
+// ── payment monitoring ────────────────────────────────────────
+async function openTournPayments(id) {
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  if (!t) return;
+  const el = document.getElementById('admin-tourn-payments');
+  const list = document.getElementById('admin-tourn-list');
+  const form = document.getElementById('admin-tourn-form');
+  const btn  = document.getElementById('btn-new-tourn');
+  list.style.display = 'none'; form.style.display = 'none'; btn.style.display = 'none';
+  el.style.display = '';
+  el.innerHTML = '<div class="empty" style="padding:20px;text-align:center">Loading payments…</div>';
+  const teams = Array.isArray(t.teams) ? t.teams : [];
+  const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
+  const teamFee = breakdown.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const payments = await dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]);
+
+  const rows = teams.map(tm => {
+    const pay = (payments||[]).find(p=>p.team_id===tm.id);
+    const paidAmt = pay ? Number(pay.amount) : 0;
+    const status = pay ? pay.status : 'unpaid';
+    const statusColor = status==='verified'?'var(--gr)':status==='pending'?'var(--gold)':'var(--tx3)';
+    const statusLabel = status==='verified'?'Verified':status==='pending'?'Pending':'Unpaid';
+    const ownerName = tm.owner ? _tPlayerName(tm.owner) : '—';
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-weight:700">${tm.name}</div>
+          <div style="font-size:12px;color:var(--tx2)">Captain: ${ownerName}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:13px;margin-bottom:8px">
+        <span style="color:var(--tx2)">Paid: <strong style="color:var(--tx)">₱${paidAmt.toLocaleString()}</strong> / ₱${teamFee.toLocaleString()}</span>
+        ${pay&&pay.proof_url?`<a href="${pay.proof_url}" target="_blank" style="font-size:12px;color:var(--gr)">View proof</a>`:'<span style="font-size:12px;color:var(--tx3)">No proof yet</span>'}
+      </div>
+      ${pay && status==='pending' ? `<div style="display:flex;gap:6px">
+        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="verifyTournPayment('${pay.id}','${id}')"><i class="ti ti-check"></i>Verify</button>
+        <button type="button" class="btn btn-sm btn-ghost" style="flex:1" onclick="rejectTournPayment('${pay.id}','${id}')"><i class="ti ti-x"></i>Reject</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+
+  const feeRows = breakdown.map(x=>`
+    <div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0">
+      <span style="color:var(--tx2)">${x.label}</span><span>₱${Number(x.amount).toLocaleString()}</span>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="closeTournPayments()"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-weight:700;font-size:16px;flex:1">${t.name} — Payments</div>
+    </div>
+    ${teamFee ? `<div class="card" style="margin-bottom:12px">${feeRows}
+      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;border-top:1px solid var(--b);padding-top:8px;margin-top:6px">
+        <span>Total per Team</span><span>₱${teamFee.toLocaleString()}</span>
+      </div></div>` : ''}
+    ${rows || '<div class="empty">No teams in this tournament.</div>'}
+  `;
+}
+
+function closeTournPayments() {
+  document.getElementById('admin-tourn-payments').style.display = 'none';
+  document.getElementById('admin-tourn-list').style.display = '';
+  document.getElementById('btn-new-tourn').style.display = '';
+}
+
+async function verifyTournPayment(payId, tournId) {
+  const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'verified',verified_at:new Date().toISOString()});
+  if (ok) { toast('Payment verified'); openTournPayments(tournId); }
+  else toast('Failed to verify','er');
+}
+
+async function rejectTournPayment(payId, tournId) {
+  if (!confirm('Reject this payment? The team will need to resubmit.')) return;
+  const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'rejected'});
+  if (ok) { toast('Payment rejected','in'); openTournPayments(tournId); }
+  else toast('Failed','er');
+}
+
+// ── create / edit form ────────────────────────────────────────
+function _showTournForm() {
+  document.getElementById('admin-tourn-list').style.display = 'none';
+  document.getElementById('btn-new-tourn').style.display = 'none';
+  document.getElementById('admin-tourn-payments').style.display = 'none';
+  document.getElementById('admin-tourn-form').style.display = '';
+}
+
 function openNewTournForm() {
   _tEditId = null;
-  _tTeams = [{id:'tm1',name:'Team 1',players:[]},{id:'tm2',name:'Team 2',players:[]},{id:'tm3',name:'Team 3',players:[]},{id:'tm4',name:'Team 4',players:[]}];
+  _tFees   = [];
+  _tTeams  = [{id:'tm1',name:'Team 1',players:[],owner:null},{id:'tm2',name:'Team 2',players:[],owner:null},{id:'tm3',name:'Team 3',players:[],owner:null},{id:'tm4',name:'Team 4',players:[],owner:null}];
   document.getElementById('tourn-form-title').textContent = 'New Tournament';
   document.getElementById('tf-name').value = '';
   document.getElementById('tf-sport').value = 'basketball';
@@ -5201,9 +5314,8 @@ function openNewTournForm() {
   document.getElementById('tf-start').value = '';
   document.getElementById('tf-end').value = '';
   document.getElementById('tf-status').value = 'upcoming';
-  document.getElementById('admin-tourn-list').style.display = 'none';
-  document.getElementById('btn-new-tourn').style.display = 'none';
-  document.getElementById('admin-tourn-form').style.display = '';
+  _showTournForm();
+  renderTournFeesForm();
   renderTournTeamsForm();
   renderTournBracketForm();
 }
@@ -5212,7 +5324,8 @@ function editTournament(id) {
   const t = LC.arr('tournaments').find(x=>x.id===id);
   if (!t) return;
   _tEditId = id;
-  _tTeams = JSON.parse(JSON.stringify(t.teams||[]));
+  _tFees   = JSON.parse(JSON.stringify(t.fee_breakdown||[]));
+  _tTeams  = JSON.parse(JSON.stringify(t.teams||[]));
   document.getElementById('tourn-form-title').textContent = 'Edit Tournament';
   document.getElementById('tf-name').value = t.name||'';
   document.getElementById('tf-sport').value = t.sport||'basketball';
@@ -5220,67 +5333,92 @@ function editTournament(id) {
   document.getElementById('tf-start').value = t.start_date||'';
   document.getElementById('tf-end').value = t.end_date||'';
   document.getElementById('tf-status').value = t.status||'upcoming';
-  document.getElementById('admin-tourn-list').style.display = 'none';
-  document.getElementById('btn-new-tourn').style.display = 'none';
-  document.getElementById('admin-tourn-form').style.display = '';
+  _showTournForm();
+  renderTournFeesForm();
   renderTournTeamsForm();
   renderTournBracketForm(t.matches||[]);
 }
 
 function closeTournForm() {
-  _tEditId = null; _tTeams = [];
+  _tEditId = null; _tTeams = []; _tFees = [];
   document.getElementById('admin-tourn-form').style.display = 'none';
   document.getElementById('admin-tourn-list').style.display = '';
   document.getElementById('btn-new-tourn').style.display = '';
 }
 
+// ── fee breakdown ─────────────────────────────────────────────
+function addTournFee() {
+  _tFees.push({label:'',amount:0});
+  renderTournFeesForm();
+}
+
+function renderTournFeesForm() {
+  const el = document.getElementById('tf-fees-list');
+  el.innerHTML = _tFees.map((f,i)=>`
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <input type="text" class="inp" style="flex:2;padding:6px 10px;font-size:13px" value="${f.label}" placeholder="e.g. Jersey, Referee" oninput="_tFees[${i}].label=this.value">
+      <input type="number" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${f.amount||''}" placeholder="0" oninput="_tFees[${i}].amount=Number(this.value)||0;updateFeeTotals()">
+      <button type="button" onclick="_tFees.splice(${i},1);renderTournFeesForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+  updateFeeTotals();
+}
+
+function updateFeeTotals() {
+  const total = _tFees.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const el = document.getElementById('tf-fee-total');
+  if (el) el.textContent = '₱'+total.toLocaleString();
+}
+
+// ── teams builder ─────────────────────────────────────────────
 function addTournTeam() {
   if (_tTeams.length >= 8) return toast('Max 8 teams','er');
-  const n = _tTeams.length + 1;
-  _tTeams.push({id:'tm'+Date.now(),name:'Team '+n,players:[]});
+  _tTeams.push({id:'tm'+Date.now(),name:'Team '+(_tTeams.length+1),players:[],owner:null});
   renderTournTeamsForm();
 }
 
-const MAX_TOURN_PLAYERS = 15;
-
 function renderTournTeamsForm() {
-  const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players')).filter(p=>p.isActive!==false);
+  const allPlayers = LC.arr('players').filter(p=>p.isActive!==false);
   const el = document.getElementById('tf-teams-list');
   el.innerHTML = _tTeams.map((tm,i) => {
     const selected = tm.players||[];
     const count = selected.length;
-    const opts = allPlayers.map(p => {
-      const sel = selected.includes(p.id) ? 'selected' : '';
+    const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count===MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
+    const playerOpts = allPlayers.map(p => {
       const pname = p.firstName+(p.lastName?' '+p.lastName:'');
-      return `<option value="${p.id}" ${sel}>${pname}</option>`;
+      return `<option value="${p.id}" ${selected.includes(p.id)?'selected':''}>${pname}</option>`;
     }).join('');
-    const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count === MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
+    // owner dropdown: only players in this team (or all if none selected yet)
+    const ownerPool = selected.length ? allPlayers.filter(p=>selected.includes(p.id)) : allPlayers;
+    const ownerOpts = `<option value="">— Select captain —</option>`+ownerPool.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
     return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <input type="text" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
         <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
       </div>
+      <label class="lbl" style="font-size:11px">Team Captain <span style="color:var(--tx3);font-weight:400">(pays on behalf of team)</span></label>
+      <select class="inp" style="margin-bottom:8px;font-size:13px;padding:6px 10px" onchange="_tTeams[${i}].owner=this.value||null;renderTournTeamsForm()">${ownerOpts}</select>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <label class="lbl" style="font-size:11px;margin:0">Players</label>
         <span style="font-size:11px;font-weight:700;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
       </div>
-      <select multiple class="inp" style="height:110px;font-size:13px" onchange="(function(sel,idx){const picked=Array.from(sel.selectedOptions).map(o=>o.value);if(picked.length>MAX_TOURN_PLAYERS){toast('Max '+MAX_TOURN_PLAYERS+' players per team','er');Array.from(sel.options).forEach(o=>o.selected=_tTeams[idx].players.includes(o.value));return;}_tTeams[idx].players=picked;renderTournTeamsForm()})(this,${i})">
-        ${opts}
+      <select multiple class="inp" style="height:110px;font-size:13px" onchange="(function(sel,idx){const picked=Array.from(sel.selectedOptions).map(o=>o.value);if(picked.length>MAX_TOURN_PLAYERS){toast('Max '+MAX_TOURN_PLAYERS+' players per team','er');Array.from(sel.options).forEach(o=>o.selected=_tTeams[idx].players.includes(o.value));return;}_tTeams[idx].players=picked;if(_tTeams[idx].owner&&!picked.includes(_tTeams[idx].owner))_tTeams[idx].owner=null;renderTournTeamsForm()})(this,${i})">
+        ${playerOpts}
       </select>
     </div>`;
   }).join('');
 }
 
+// ── bracket form ──────────────────────────────────────────────
 function renderTournBracketForm(existing) {
   const rounds = [{id:'semi1',label:'Semi-Final 1'},{id:'semi2',label:'Semi-Final 2'},{id:'3rd',label:'3rd Place Match'},{id:'final',label:'Championship'}];
   const ex = existing || [];
   const el = document.getElementById('tf-bracket');
   el.innerHTML = rounds.map(r => {
     const m = ex.find(x=>x.round===r.id)||{round:r.id,teamA:null,teamB:null,scoreA:'',scoreB:'',winner:null};
-    const teamOpts = (which) => ['',  ..._tTeams.map(t=>t.id)].map(v =>
+    const teamOpts = which => ['', ..._tTeams.map(t=>t.id)].map(v=>
       `<option value="${v}" ${m['team'+which]===v?'selected':''}>${v?(_tTeams.find(t=>t.id===v)||{name:v}).name:'— TBD —'}</option>`
     ).join('');
-    return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px" id="bform-${r.id}">
+    return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${r.label}</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="A" onchange="updateBracketField(this)">${teamOpts('A')}</select>
@@ -5301,14 +5439,13 @@ function renderTournBracketForm(existing) {
       </div>
     </div>`;
   }).join('');
-  // store working matches
-  el._matches = rounds.map(r => ex.find(x=>x.round===r.id)||{round:r.id,teamA:null,teamB:null,scoreA:null,scoreB:null,winner:null});
+  el._matches = rounds.map(r=>ex.find(x=>x.round===r.id)||{round:r.id,teamA:null,teamB:null,scoreA:null,scoreB:null,winner:null});
 }
 
 function updateBracketField(el) {
   const r = el.dataset.r, side = el.dataset.side;
   const bracketEl = document.getElementById('tf-bracket');
-  let m = bracketEl._matches.find(x=>x.round===r);
+  const m = bracketEl._matches.find(x=>x.round===r);
   if (!m) return;
   if (side==='A') m.teamA = el.value||null;
   else if (side==='B') m.teamB = el.value||null;
@@ -5317,6 +5454,7 @@ function updateBracketField(el) {
   else if (side==='winner') m.winner = el.value||null;
 }
 
+// ── save / delete ─────────────────────────────────────────────
 async function saveTournament() {
   const name = document.getElementById('tf-name').value.trim();
   if (!name) return toast('Enter a tournament name','er');
@@ -5325,33 +5463,28 @@ async function saveTournament() {
   const overLimit = _tTeams.find(t=>(t.players||[]).length > MAX_TOURN_PLAYERS);
   if (overLimit) return toast(`"${overLimit.name}" exceeds ${MAX_TOURN_PLAYERS} players`,'er');
   const bracketEl = document.getElementById('tf-bracket');
-  const matches = bracketEl._matches || [];
   const payload = {
     name,
-    sport:       document.getElementById('tf-sport').value,
-    format:      document.getElementById('tf-format').value,
-    status:      document.getElementById('tf-status').value,
-    start_date:  document.getElementById('tf-start').value||null,
-    end_date:    document.getElementById('tf-end').value||null,
-    teams:       _tTeams,
-    matches,
+    sport:         document.getElementById('tf-sport').value,
+    format:        document.getElementById('tf-format').value,
+    status:        document.getElementById('tf-status').value,
+    start_date:    document.getElementById('tf-start').value||null,
+    end_date:      document.getElementById('tf-end').value||null,
+    fee_breakdown: _tFees.filter(f=>f.label),
+    teams:         _tTeams,
+    matches:       bracketEl._matches || [],
   };
   try {
-    let res;
-    if (_tEditId) {
-      res = await dbUpdate('tournaments', `id=eq.${_tEditId}`, payload);
-    } else {
-      res = await dbInsert('tournaments', payload);
-    }
+    const res = _tEditId
+      ? await dbUpdate('tournaments','id=eq.'+_tEditId, payload)
+      : await dbInsert('tournaments', payload);
     if (!res) throw new Error('Save failed');
     toast(_tEditId ? 'Tournament updated' : 'Tournament created');
     const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
     if (Array.isArray(fresh)) LC.set('tournaments', fresh);
     closeTournForm();
     renderAdminTournaments();
-  } catch(e) {
-    toast('Save failed: '+(e.message||e),'er');
-  }
+  } catch(e) { toast('Save failed: '+(e.message||e),'er'); }
 }
 
 async function deleteTournament(id) {
@@ -5362,9 +5495,7 @@ async function deleteTournament(id) {
     if (Array.isArray(fresh)) LC.set('tournaments', fresh);
     toast('Deleted','in');
     renderAdminTournaments();
-  } catch(e) {
-    toast('Delete failed','er');
-  }
+  } catch(e) { toast('Delete failed','er'); }
 }
 
 // ── LEADERBOARD ───────────────────────────────────────────────
