@@ -4306,61 +4306,80 @@ async function submitTournPayment(tournId, teamId, totalFee) {
 function openTournRegForm(tournId) {
   const t = LC.arr('tournaments').find(x=>x.id===tournId);
   if (!t) return;
-  // pre-select self
   _tournRegPlayers = ME ? [ME.id] : [];
   const el = document.getElementById('tourn-detail');
   const list = document.getElementById('tourn-list');
   list.style.display = 'none';
   el.style.display = '';
 
-  const allPlayers = LC.arr('roster').length ? LC.arr('roster') : LC.arr('players');
-  const playerOpts = allPlayers.map(p => {
-    const sel = _tournRegPlayers.includes(p.id) ? 'selected' : '';
-    const pname = p.firstName + (p.lastName ? ' ' + p.lastName : '');
-    const isSelf = ME && p.id === ME.id;
-    return `<option value="${p.id}" ${sel} ${isSelf?'disabled':''}>${pname}${isSelf?' (You)':''}</option>`;
-  }).join('');
-
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournRegForm('${tournId}')"><i class="ti ti-arrow-left"></i> Back</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;flex:1">Register a Team</div>
     </div>
-    <div style="font-size:13px;color:var(--tx2);margin-bottom:14px">You'll be registered as the team captain. The organizer reviews and confirms your spot before you appear in the bracket.</div>
 
     <div class="card" style="margin-bottom:12px">
-      <label class="lbl">Team Name</label>
-      <input type="text" class="inp" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:6px">Team Name</div>
+      <input type="text" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40" style="width:100%;background:var(--b2);border:1.5px solid var(--b3,rgba(255,255,255,.1));border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--tx);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--b3,rgba(255,255,255,.1))'">
+    </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:4px">
-        <label class="lbl" style="margin:0">Select Players <span style="color:var(--tx3);font-weight:400">(hold to multi-select)</span></label>
-        <span id="treg-count" style="font-size:11px;font-weight:700;color:var(--tx3)">1 / 15</span>
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:2px">You're auto-included as captain</div>
+        </div>
+        <span id="treg-count" style="font-size:12px;font-weight:700;background:var(--b2);border-radius:20px;padding:4px 10px;color:var(--tx2)">1 / 15</span>
       </div>
-      <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">You are automatically included as captain.</div>
-      <select multiple class="inp" id="treg-players" style="height:180px;font-size:13px" onchange="onTregPlayerChange(this)">
-        ${playerOpts}
-      </select>
+      <div id="treg-pills" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
 
     <button type="button" class="btn" onclick="submitTournReg('${tournId}')"><i class="ti ti-send"></i>Submit Registration</button>
   `;
+  _renderTregPills();
 }
 
-function onTregPlayerChange(sel) {
-  const picked = Array.from(sel.selectedOptions).map(o=>o.value);
-  // always keep self included
-  const withSelf = ME && !picked.includes(ME.id) ? [ME.id, ...picked] : picked;
-  if (withSelf.length > 15) {
-    toast('Max 15 players per team','er');
-    // revert extra selection
-    Array.from(sel.options).forEach(o => o.selected = _tournRegPlayers.includes(o.value));
-    return;
-  }
-  _tournRegPlayers = withSelf;
+function _renderTregPills() {
+  const container = document.getElementById('treg-pills');
+  if (!container) return;
+  const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players'))
+    .slice().sort((a,b)=>{
+      const an=(a.firstName+' '+(a.lastName||'')).toLowerCase();
+      const bn=(b.firstName+' '+(b.lastName||'')).toLowerCase();
+      return an<bn?-1:an>bn?1:0;
+    });
+  const count = _tournRegPlayers.length;
   const countEl = document.getElementById('treg-count');
-  if (countEl) countEl.textContent = withSelf.length + ' / 15';
-  countEl.style.color = withSelf.length >= 15 ? 'var(--gr)' : 'var(--tx3)';
+  if (countEl) { countEl.textContent = count+' / 15'; countEl.style.color = count>=15?'var(--gr)':'var(--tx2)'; }
+
+  container.innerHTML = allPlayers.map(p => {
+    const isSelf = ME && p.id === ME.id;
+    const on = _tournRegPlayers.includes(p.id);
+    const name = (p.firstName+' '+(p.lastName||'')).trim() + (isSelf ? ' (You)' : '');
+    return `<button type="button" ${isSelf?'disabled':''} onclick="_toggleTregPlayer('${p.id}')" style="
+      padding:6px 13px;border-radius:20px;
+      border:1.5px solid ${on?'var(--gr)':'var(--b3,rgba(255,255,255,.12))'};
+      background:${isSelf?'rgba(72,199,142,.12)':on?'rgba(72,199,142,.1)':'var(--b2)'};
+      color:${isSelf?'var(--gr)':on?'var(--gr)':'var(--tx2)'};
+      font-size:12px;font-weight:${on||isSelf?'700':'500'};cursor:${isSelf?'default':'pointer'};
+      transition:all .15s;white-space:nowrap;opacity:${isSelf?'1':'1'}
+    ">${on||isSelf?'<i class="ti ti-check" style="margin-right:4px;font-size:11px"></i>':''}${name}</button>`;
+  }).join('');
 }
+
+function _toggleTregPlayer(pid) {
+  if (ME && pid === ME.id) return;
+  const idx = _tournRegPlayers.indexOf(pid);
+  if (idx >= 0) {
+    _tournRegPlayers.splice(idx, 1);
+  } else {
+    if (_tournRegPlayers.length >= 15) { toast('Max 15 players per team','er'); return; }
+    _tournRegPlayers.push(pid);
+  }
+  _renderTregPills();
+}
+
+function onTregPlayerChange(sel) {} // legacy stub
 
 function closeTournRegForm(tournId) {
   _tournRegPlayers = [];
