@@ -5241,22 +5241,30 @@ function addTournTeam() {
   renderTournTeamsForm();
 }
 
+const MAX_TOURN_PLAYERS = 15;
+
 function renderTournTeamsForm() {
   const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players')).filter(p=>p.isActive!==false);
   const el = document.getElementById('tf-teams-list');
   el.innerHTML = _tTeams.map((tm,i) => {
+    const selected = tm.players||[];
+    const count = selected.length;
     const opts = allPlayers.map(p => {
-      const selected = (tm.players||[]).includes(p.id) ? 'selected' : '';
-      const name = p.firstName+(p.lastName?' '+p.lastName:'');
-      return `<option value="${p.id}" ${selected}>${name}</option>`;
+      const sel = selected.includes(p.id) ? 'selected' : '';
+      const pname = p.firstName+(p.lastName?' '+p.lastName:'');
+      return `<option value="${p.id}" ${sel}>${pname}</option>`;
     }).join('');
+    const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count === MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
     return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <input type="text" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name">
+        <input type="text" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
         <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
       </div>
-      <label class="lbl" style="font-size:11px">Players</label>
-      <select multiple class="inp" style="height:90px;font-size:13px" onchange="(function(sel,idx){_tTeams[idx].players=Array.from(sel.selectedOptions).map(o=>o.value)})(this,${i})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label class="lbl" style="font-size:11px;margin:0">Players</label>
+        <span style="font-size:11px;font-weight:700;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
+      </div>
+      <select multiple class="inp" style="height:110px;font-size:13px" onchange="(function(sel,idx){const picked=Array.from(sel.selectedOptions).map(o=>o.value);if(picked.length>MAX_TOURN_PLAYERS){toast('Max '+MAX_TOURN_PLAYERS+' players per team','er');Array.from(sel.options).forEach(o=>o.selected=_tTeams[idx].players.includes(o.value));return;}_tTeams[idx].players=picked;renderTournTeamsForm()})(this,${i})">
         ${opts}
       </select>
     </div>`;
@@ -5312,6 +5320,10 @@ function updateBracketField(el) {
 async function saveTournament() {
   const name = document.getElementById('tf-name').value.trim();
   if (!name) return toast('Enter a tournament name','er');
+  const unnamedTeam = _tTeams.find(t=>!t.name||!t.name.trim());
+  if (unnamedTeam) return toast('All teams must have a name','er');
+  const overLimit = _tTeams.find(t=>(t.players||[]).length > MAX_TOURN_PLAYERS);
+  if (overLimit) return toast(`"${overLimit.name}" exceeds ${MAX_TOURN_PLAYERS} players`,'er');
   const bracketEl = document.getElementById('tf-bracket');
   const matches = bracketEl._matches || [];
   const payload = {
