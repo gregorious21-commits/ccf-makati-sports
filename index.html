@@ -2339,7 +2339,7 @@ function loginSuccess(p) {
   window.scrollTo(0,0);
   renderProfile(); updatePayDisplay(); fetchVOTD();
   syncAll(); startRefresh(); startLiveQueuePoll();
-  switchTab('home');
+  _handleHash();
   toast('Welcome back, '+p.firstName+'!');
 }
 
@@ -3400,7 +3400,7 @@ async function delMyPost(id){
   else toast('Could not delete','er');
 }
 // ── TAB NAVIGATION ────────────────────────────────────────────
-function switchTab(name) {
+function switchTab(name, { pushState=true }={}) {
   ['home','feed','players','profile','tournaments'].forEach(t=>{
     const panel=document.getElementById('tab-'+t);
     const btn=document.getElementById('tbtn-'+t);
@@ -3413,9 +3413,66 @@ function switchTab(name) {
   if (name==='feed') renderFeed();
   if (name==='players') renderDirectory();
   if (name==='profile') { renderProfile(); renderMyHist(); }
-  if (name==='tournaments') renderTournaments();
+  if (name==='tournaments') { _tournDetailId=null; renderTournaments(); }
   window.scrollTo(0,0);
+  if (pushState) {
+    const hash = name==='home' ? '' : name;
+    history.pushState({tab:name}, '', hash ? '#'+hash : location.pathname);
+  }
 }
+
+function _slugify(str) {
+  return (str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+function openTournDetail(id) {
+  _tournDetailId = id;
+  _tournPayments = [];
+  _tournPayFile = null;
+  _tournRegs = [];
+  const t = LC.arr('tournaments').find(x=>x.id===id);
+  if (t) {
+    const slug = _slugify(t.name) || id;
+    history.pushState({tab:'tournaments', tournId:id}, '', '#tournaments/'+slug+'/'+id);
+  }
+  Promise.all([
+    dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
+    dbGet('tournament_registrations','select=*&tournament_id=eq.'+id).catch(()=>[]),
+  ]).then(([pays, regs])=>{
+    if (Array.isArray(pays)) _tournPayments = pays;
+    if (Array.isArray(regs)) _tournRegs = regs;
+    renderTournDetail(id);
+  });
+  renderTournDetail(id);
+}
+
+function _handleHash() {
+  const hash = location.hash.replace('#','');
+  if (!hash || hash==='home') { switchTab('home',{pushState:false}); return; }
+  if (hash.startsWith('tournaments/')) {
+    const parts = hash.split('/');
+    const id = parts[2] || null;
+    switchTab('tournaments',{pushState:false});
+    if (id) {
+      _tournDetailId = id;
+      _tournPayments = []; _tournPayFile = null; _tournRegs = [];
+      Promise.all([
+        dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
+        dbGet('tournament_registrations','select=*&tournament_id=eq.'+id).catch(()=>[]),
+      ]).then(([pays,regs])=>{
+        if(Array.isArray(pays)) _tournPayments=pays;
+        if(Array.isArray(regs)) _tournRegs=regs;
+        renderTournDetail(id);
+      });
+    }
+    return;
+  }
+  const tabs = ['feed','players','profile','tournaments'];
+  if (tabs.includes(hash)) switchTab(hash,{pushState:false});
+  else switchTab('home',{pushState:false});
+}
+
+window.addEventListener('popstate', _handleHash);
 
 // ── PLAYERS DIRECTORY ─────────────────────────────────────────
 let dirSport='all';
@@ -3909,21 +3966,6 @@ function renderTournaments() {
   }).join('');
 }
 
-function openTournDetail(id) {
-  _tournDetailId = id;
-  _tournPayments = [];
-  _tournPayFile = null;
-  _tournRegs = [];
-  Promise.all([
-    dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
-    dbGet('tournament_registrations','select=*&tournament_id=eq.'+id).catch(()=>[]),
-  ]).then(([pays, regs])=>{
-    if (Array.isArray(pays)) _tournPayments = pays;
-    if (Array.isArray(regs)) _tournRegs = regs;
-    renderTournDetail(id);
-  });
-  renderTournDetail(id);
-}
 
 function closeTournDetail() {
   _tournDetailId = null;
