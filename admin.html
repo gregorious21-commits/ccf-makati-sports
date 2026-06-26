@@ -1171,6 +1171,7 @@ select.fi{
         <select class="fi" id="p-ccf" onchange="renderPlayers()" style="width:150px"><option value="">Any CCF Status</option><option value="yes">Attends CCF</option><option value="no">Never attended</option></select>
         <select class="fi" id="p-join" onchange="renderPlayers()" style="width:150px"><option value="">All Players</option><option value="joined">Joined a Game</option><option value="never">Never Joined</option></select>
         <select class="fi" id="p-dgf" onchange="renderPlayers()" style="width:140px"><option value="">Any Dgroup</option><option value="yes">Has Dgroup</option><option value="no">No Dgroup</option></select>
+        <select class="fi" id="p-status" onchange="renderPlayers()" style="width:140px"><option value="">All Accounts</option><option value="active">Active only</option><option value="disabled">Disabled only</option></select>
     </div>
       <div id="p-count" style="font-size:11px;color:var(--tx3);margin-bottom:10px;letter-spacing:.3px"></div>
       <div class="card tbl-wrap" style="padding:0">
@@ -2807,6 +2808,7 @@ function renderPlayers(){
   const jf=(document.getElementById('p-join')||{value:''}).value;
   const sf=(document.getElementById('p-sport')||{value:''}).value;
   const cf=(document.getElementById('p-ccf')||{value:''}).value;
+  const af=(document.getElementById('p-status')||{value:''}).value;
   const regs=LC.arr('regs');
   // A player has "joined a game" if they have any registration OR have played
   const hasJoined=p=>regs.some(r=>r.playerId===p.id)||(p.games||0)>0;
@@ -2815,11 +2817,13 @@ function renderPlayers(){
   const list=all.filter(p=>{
     const name=(p.firstName+' '+p.lastName).toLowerCase();
     const joined=hasJoined(p);
+    const isActive=p.isActive!==false;
     return(!q||name.includes(q)||(p.phone||'').includes(q))
       &&(!dg||(dg==='yes'?p.hasDgroup:!p.hasDgroup))
       &&(!jf||(jf==='joined'?joined:!joined))
       &&(!sf||playsSport(p,sf))
-      &&(!cf||(cf==='yes'?p.attendedCCF:!p.attendedCCF));
+      &&(!cf||(cf==='yes'?p.attendedCCF:!p.attendedCCF))
+      &&(!af||(af==='active'?isActive:!isActive));
   });
   // Count summary
   const neverCount=all.filter(p=>!hasJoined(p)).length;
