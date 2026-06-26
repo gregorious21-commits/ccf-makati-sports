@@ -4616,7 +4616,7 @@ function _renderRosterEditor(t, tm) {
   ).sort((a,b)=>(a.firstName+' '+a.lastName).localeCompare(b.firstName+' '+b.lastName));
 
   const { players, jerseyNumbers } = _rosterEditorState;
-  const MAX = 10;
+  const MAX = 15;
 
   // players already claimed by OTHER teams in this tournament
   const claimedByOther = new Set(
@@ -4684,7 +4684,7 @@ function _toggleRosterPlayer(pid, tournId, teamId) {
     if (pid===tm?.owner) return; // can't remove owner
     players.splice(idx,1);
   } else {
-    if (players.length >= 10) return toast('Max 10 players per team','er');
+    if (players.length >= 15) return toast('Max 15 players per team','er');
     players.push(pid);
   }
   const t2 = LC.arr('tournaments').find(x=>x.id===tournId);
