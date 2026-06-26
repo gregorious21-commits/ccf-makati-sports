@@ -4618,14 +4618,23 @@ function _renderRosterEditor(t, tm) {
   const { players, jerseyNumbers } = _rosterEditorState;
   const MAX = 10;
 
+  // players already claimed by OTHER teams in this tournament
+  const claimedByOther = new Set(
+    (t.teams||[]).filter(x=>x.id!==tm.id).flatMap(x=>[...(x.players||[]), x.owner].filter(Boolean))
+  );
+
   const pills = allPlayers.map(p=>{
     const on = players.includes(p.id);
     const isOwner = p.id === tm.owner;
+    const taken = !on && claimedByOther.has(p.id);
+    const otherTeam = taken ? (t.teams||[]).find(x=>x.id!==tm.id&&((x.players||[]).includes(p.id)||x.owner===p.id)) : null;
     const name = p.firstName+(p.lastName?' '+p.lastName:'');
-    return `<button type="button" onclick="_toggleRosterPlayer('${p.id}','${t.id}','${tm.id}')"
-      ${isOwner?'disabled title="Team owner"':''}
-      style="padding:6px 12px;border-radius:20px;border:1.5px solid ${on?'var(--gr)':'var(--b)'};background:${on?'rgba(72,199,142,.12)':'var(--b2)'};color:${on?'var(--gr)':isOwner?'var(--tx3)':'var(--tx2)'};font-size:13px;font-weight:${on?'700':'500'};cursor:${isOwner?'default':'pointer'};white-space:nowrap;display:inline-flex;align-items:center;gap:5px">
-      ${on?'<i class="ti ti-check" style="font-size:11px"></i>':''}${name}${isOwner?' <span style="font-size:10px;opacity:.6">(you)</span>':''}
+    const disabled = isOwner || taken;
+    return `<button type="button" onclick="${disabled?'':'_toggleRosterPlayer(\''+p.id+'\',\''+t.id+'\',\''+tm.id+'\')'}"
+      ${disabled?'disabled':''}
+      title="${taken?'Already on '+(otherTeam?.name||'another team'):isOwner?'Team owner':''}"
+      style="padding:6px 12px;border-radius:20px;border:1.5px solid ${on?'var(--gr)':taken?'var(--b)':'var(--b)'};background:${on?'rgba(72,199,142,.12)':taken?'var(--b2)':'var(--b2)'};color:${on?'var(--gr)':taken?'var(--tx3)':'var(--tx2)'};font-size:13px;font-weight:${on?'700':'500'};cursor:${disabled?'not-allowed':'pointer'};opacity:${taken?'.4':'1'};white-space:nowrap;display:inline-flex;align-items:center;gap:5px">
+      ${on?'<i class="ti ti-check" style="font-size:11px"></i>':taken?'<i class="ti ti-lock" style="font-size:10px"></i>':''}${name}${isOwner?' <span style="font-size:10px;opacity:.6">(you)</span>':taken?' <span style="font-size:10px;opacity:.7">'+( otherTeam?.name||'taken')+'</span>':''}
     </button>`;
   }).join('');
 
