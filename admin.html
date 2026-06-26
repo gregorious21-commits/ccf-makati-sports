@@ -1453,7 +1453,10 @@ select.fi{
 
         <div id="pball-active" style="display:none">
           <div id="pball-courts-grid"></div>
-          <button type="button" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-bottom:14px" onclick="pbAddCourt()"><i class="ti ti-plus"></i>Add a Court</button>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button type="button" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="pbAddCourt()"><i class="ti ti-plus"></i>Add a Court</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-partners" style="flex:1;justify-content:center;display:none" onclick="pbOpenPairPickerMidSession()"><i class="ti ti-arrows-exchange"></i>Edit Partners</button>
+          </div>
           <div class="card">
             <div class="card-h"><div class="card-t"><i class="ti ti-clock-pause"></i>Waiting Queue</div><div id="pb-queue-count" style="font-size:11px;color:var(--tx3);letter-spacing:.3px"></div></div>
             <div id="pball-queue"></div>
@@ -3774,6 +3777,7 @@ function pbOpenPairPicker(){
 }
 
 function pbCancelPairing(){
+  if (_pbMidSession) { pbCancelPairingMidSession(); return; }
   pbPairs = {};
   document.getElementById('pb-pair-picker').style.display='none';
   document.getElementById('pball-setup').style.display='';
@@ -3860,7 +3864,19 @@ function pbUnpair(a, b){
 }
 
 function pbConfirmPairs(){
-  // Everyone must be paired (or at least an even number paired, odd player gets a warning)
+  if (_pbMidSession) {
+    // Apply updated pairs to live session without restart
+    if (!pbSession) return;
+    pbSession.fixedPairs = Object.assign({}, pbPairs);
+    pbSession.partnerMode = 'fixed';
+    _pbMidSession = false;
+    document.getElementById('pb-pair-picker').style.display='none';
+    document.getElementById('pball-active').style.display='';
+    touchSharedSession();
+    renderPballSession();
+    toast('Partners updated');
+    return;
+  }
   const paired = new Set(Object.keys(pbPairs));
   const unpaired = presentIds.filter(pid => !paired.has(pid));
   if (unpaired.length > 0){
@@ -3869,6 +3885,54 @@ function pbConfirmPairs(){
   }
   document.getElementById('pb-pair-picker').style.display='none';
   startPickleballSession();
+}
+
+// ── MID-SESSION PARTNER EDITING ───────────────────────────────
+let _pbMidSession = false;
+
+function pbOpenPairPickerMidSession(){
+  if (!pbSession) return;
+  _pbMidSession = true;
+  // Rebuild presentIds from current session participants
+  const allInSession = new Set();
+  pbSession.courts.forEach(c=>{ c.teamA.forEach(p=>p&&allInSession.add(p)); c.teamB.forEach(p=>p&&allInSession.add(p)); });
+  pbSession.queue.forEach(q=>allInSession.add(q.pid));
+  presentIds = [...allInSession];
+  // Pre-load current pairs so admin sees what's already set
+  pbPairs = Object.assign({}, pbSession.fixedPairs || {});
+  document.getElementById('pball-active').style.display='none';
+  document.getElementById('pb-pair-picker').style.display='';
+  pbRenderPairPicker();
+}
+
+function pbCancelPairingMidSession(){
+  _pbMidSession = false;
+  document.getElementById('pb-pair-picker').style.display='none';
+  document.getElementById('pball-active').style.display='';
+}
+
+function pbRemoveFromSession(pid){
+  if (!pbSession) return;
+  const name = pbName(pid);
+  if (!confirm('Remove '+name+' from the session? They won\'t rotate back in.')) return;
+  // Remove from queue
+  pbSession.queue = pbSession.queue.filter(q=>q.pid!==pid);
+  // Remove from any court — replaced with empty slot
+  pbSession.courts.forEach(c=>{
+    const ia=c.teamA.indexOf(pid); if(ia>-1) c.teamA.splice(ia,1);
+    const ib=c.teamB.indexOf(pid); if(ib>-1) c.teamB.splice(ib,1);
+  });
+  // Remove their pair mapping
+  const partner = pbSession.fixedPairs && pbSession.fixedPairs[pid];
+  if (partner && pbSession.fixedPairs) {
+    delete pbSession.fixedPairs[pid];
+    delete pbSession.fixedPairs[partner];
+    delete pbPairs[pid];
+    delete pbPairs[partner];
+  }
+  touchSharedSession();
+  renderPballSession();
+  toast(name+' removed from session');
 }
 
 function startPickleballSession(){
@@ -3969,6 +4033,9 @@ function startPickleballSession(){
 
 function renderPballSession(){
   if (!pbSession) return;
+  // Show/hide Edit Partners button based on mode
+  const epBtn = document.getElementById('btn-edit-partners');
+  if (epBtn) epBtn.style.display = pbSession.partnerMode==='fixed' ? '' : 'none';
   const grid = document.getElementById('pball-courts-grid');
   const fmtLabel = pbSession.format==='points'
     ? 'First to '+pbSession.formatValue+' pts'
@@ -4041,6 +4108,7 @@ function renderPballSession(){
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
         <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
+        <button type="button" title="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
       </div>`;
     }).join('');
   }
@@ -5681,18 +5749,18 @@ function renderTournGameDay(t) {
           ${bWon?'<div style="font-size:10px;color:var(--gr);font-weight:700">WINNER</div>':''}
         </div>
       </div>
-      ${!done?`
-      <div style="display:flex;gap:8px;align-items:center;padding-top:10px;border-top:1px solid var(--b)">
-        <input type="number" min="0" placeholder="0" id="gd-scoreA-${rid}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
+      <div id="gd-entry-${rid}" style="${done?'display:none':''}border-top:1px solid var(--b);padding-top:10px;display:${done?'none':'flex'};gap:8px;align-items:center">
+        <input type="number" min="0" placeholder="0" id="gd-scoreA-${rid}" value="${done?m.scoreA??'':''}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
         <span style="color:var(--tx3)">–</span>
-        <input type="number" min="0" placeholder="0" id="gd-scoreB-${rid}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
+        <input type="number" min="0" placeholder="0" id="gd-scoreB-${rid}" value="${done?m.scoreB??'':''}" style="width:60px;padding:6px;text-align:center;font-size:16px;font-weight:700;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx)">
         <select id="gd-winner-${rid}" style="flex:1;padding:6px 8px;border:1px solid var(--b);border-radius:6px;background:var(--bg);color:var(--tx);font-size:13px">
           <option value="">— Select winner —</option>
-          <option value="A">${aName} wins</option>
-          <option value="B">${bName} wins</option>
+          <option value="A" ${m.winner==='A'?'selected':''}>${aName} wins</option>
+          <option value="B" ${m.winner==='B'?'selected':''}>${bName} wins</option>
         </select>
         <button type="button" onclick="saveGameDayResult('${t.id}','${rid}')" class="btn btn-sm" style="width:auto;padding:7px 14px"><i class="ti ti-check"></i>Save</button>
-      </div>` : ''}
+      </div>
+      ${done?`<div style="padding-top:8px;text-align:right"><button type="button" class="btn btn-ghost btn-sm" style="font-size:12px" onclick="document.getElementById('gd-entry-${rid}').style.display='flex';this.style.display='none'"><i class="ti ti-edit"></i>Edit Result</button></div>`:''}
     </div>`;
   }).filter(Boolean).join('');
 
