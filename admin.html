@@ -1612,7 +1612,10 @@ select.fi{
     <div class="panel" id="panel-tournaments">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div class="card-t" id="tourn-panel-title"><i class="ti ti-trophy"></i>Tournaments</div>
-        <button type="button" class="btn btn-sm" id="btn-new-tourn" onclick="openNewTournForm()" style="width:auto;padding:8px 16px"><i class="ti ti-plus"></i>New Tournament</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-proposals" onclick="openTournProposals()" style="width:auto;position:relative"><i class="ti ti-inbox"></i>Proposals<span id="proposals-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger,#e53e3e);color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center"></span></button>
+          <button type="button" class="btn btn-sm" id="btn-new-tourn" onclick="openNewTournForm()" style="width:auto;padding:8px 16px"><i class="ti ti-plus"></i>New Tournament</button>
+        </div>
       </div>
 
       <!-- List view -->
@@ -1708,6 +1711,7 @@ select.fi{
       <!-- Stats entry -->
       <div id="admin-tourn-stats" style="display:none"></div>
       <div id="admin-tourn-gameday" style="display:none"></div>
+      <div id="admin-tourn-proposals" style="display:none"></div>
     </div>
 
     <div class="panel" id="panel-settings">
@@ -5214,6 +5218,7 @@ function _tPlayerName(pid) {
 
 // ── list view ─────────────────────────────────────────────────
 function renderAdminTournaments() {
+  loadProposalsBadge();
   const el = document.getElementById('admin-tourn-list');
   const rows = LC.arr('tournaments');
   if (!rows.length) {
@@ -5252,7 +5257,7 @@ function renderAdminTournaments() {
 
 // ── panel visibility helper ───────────────────────────────────
 function _showTournPanel(which) {
-  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats','admin-tourn-gameday'].forEach(id=>{
+  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats','admin-tourn-gameday','admin-tourn-proposals'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = id===which ? '' : 'none';
   });
@@ -5519,6 +5524,113 @@ async function autoProgressBracket(tournId) {
 }
 
 // ── tournament game day view ──────────────────────────────────
+// ── TOURNAMENT PROPOSALS ──────────────────────────────────────
+let _proposals = [];
+
+async function openTournProposals() {
+  _showTournPanel('admin-tourn-proposals');
+  const el = document.getElementById('admin-tourn-proposals');
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--tx3)">Loading...</div>';
+  const rows = await dbGet('tournament_registrations',
+    'select=*&status=eq.proposal&order=created_at.desc'
+  ).catch(()=>[]);
+  _proposals = Array.isArray(rows) ? rows : [];
+  renderTournProposals();
+}
+
+function renderTournProposals() {
+  const el = document.getElementById('admin-tourn-proposals');
+  if (!el) return;
+  const pending = _proposals.filter(p=>p.status==='proposal');
+  const reviewed = _proposals.filter(p=>p.status==='proposal_approved'||p.status==='proposal_rejected');
+
+  const badge = document.getElementById('proposals-badge');
+  if (badge) {
+    if (pending.length) { badge.textContent=pending.length; badge.style.display='flex'; }
+    else badge.style.display='none';
+  }
+
+  const card = (p, isReviewed) => {
+    const meta = Array.isArray(p.players)&&p.players[0] ? p.players[0] : {};
+    const sportLabel = (meta.sport||'').replace(/\b\w/g,c=>c.toUpperCase());
+    const fmtLabel = (meta.format||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    const roster = LC.arr('roster'), players = LC.arr('players');
+    const proposer = roster.find(x=>x.id===p.captain_id)||players.find(x=>x.id===p.captain_id);
+    const pName = proposer ? (proposer.firstName||'')+(proposer.lastName?' '+proposer.lastName:'') : 'Unknown';
+    const dt = new Date(p.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
+    const sc = isReviewed ? (p.status==='proposal_approved'?'var(--gr)':'var(--danger,#e53e3e)') : 'var(--gold)';
+    const sl = isReviewed ? (p.status==='proposal_approved'?'Approved':'Rejected') : 'Pending';
+    return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${sc}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.team_name}</div>
+          <div style="font-size:12px;color:var(--tx3);margin-bottom:2px"><i class="ti ti-user" style="margin-right:4px"></i>${pName}</div>
+          <div style="font-size:12px;color:var(--tx3);margin-bottom:2px">${sportLabel}${fmtLabel?' · '+fmtLabel:''}</div>
+          ${p.notes?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;background:var(--b2);padding:8px 10px;border-radius:8px">${p.notes}</div>`:''}
+          <div style="font-size:11px;color:var(--tx3);margin-top:6px">${dt}</div>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;white-space:nowrap">${sl}</span>
+      </div>
+      ${!isReviewed ? `<div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveProposal('${p.id}','${(p.team_name||'').replace(/'/g,"\\'")}','${meta.sport||''}','${meta.format||''}')"><i class="ti ti-check"></i>Approve</button>
+        <button type="button" class="btn btn-ghost btn-sm" style="flex:1;color:var(--danger,#e53e3e)" onclick="rejectProposal('${p.id}')"><i class="ti ti-x"></i>Reject</button>
+      </div>` : ''}
+    </div>`;
+  };
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_showTournPanel('admin-tourn-list')" style="width:auto"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="font-weight:700;font-size:16px">Tournament Proposals</div>
+    </div>
+    ${!_proposals.length ? '<div style="text-align:center;padding:32px;color:var(--tx3)">No proposals yet.</div>' : ''}
+    ${pending.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Pending (${pending.length})</div>${pending.map(p=>card(p,false)).join('')}` : ''}
+    ${reviewed.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px">Reviewed</div>${reviewed.map(p=>card(p,true)).join('')}` : ''}
+  `;
+}
+
+function approveProposal(id, name, sport, format) {
+  // Mark approved then pre-fill new tournament form
+  dbUpdate('tournament_registrations','id=eq.'+id,{status:'proposal_approved'}).then(ok=>{
+    if (!ok) return toast('Failed to update','er');
+    const idx = _proposals.findIndex(p=>p.id===id);
+    if (idx>-1) _proposals[idx].status='proposal_approved';
+    renderTournProposals();
+    toast('Proposal approved — opening new tournament form');
+    setTimeout(()=>{
+      openNewTournForm();
+      const nameEl = document.getElementById('tf-name');
+      const sportEl = document.getElementById('tf-sport');
+      const fmtEl = document.getElementById('tf-format');
+      if (nameEl) nameEl.value = name;
+      if (sportEl) { sportEl.value = sport; sportEl.dispatchEvent(new Event('change')); }
+      if (fmtEl && format && format!=='open') fmtEl.value = format;
+    }, 300);
+  });
+}
+
+function rejectProposal(id) {
+  const reason = prompt('Reason for rejection (optional — will be shown to member):');
+  if (reason === null) return; // cancelled
+  dbUpdate('tournament_registrations','id=eq.'+id,{status:'proposal_rejected', notes: reason||null}).then(ok=>{
+    if (!ok) return toast('Failed to update','er');
+    const idx = _proposals.findIndex(p=>p.id===id);
+    if (idx>-1) { _proposals[idx].status='proposal_rejected'; if(reason) _proposals[idx].notes=reason; }
+    renderTournProposals();
+    toast('Proposal rejected');
+  });
+}
+
+async function loadProposalsBadge() {
+  const rows = await dbGet('tournament_registrations','select=id&status=eq.proposal').catch(()=>[]);
+  const count = Array.isArray(rows) ? rows.length : 0;
+  const badge = document.getElementById('proposals-badge');
+  if (!badge) return;
+  if (count) { badge.textContent=count; badge.style.display='flex'; }
+  else badge.style.display='none';
+}
+
+// ─────────────────────────────────────────────────────────────
 async function openTournGameDay(tournId) {
   const t = LC.arr('tournaments').find(x=>x.id===tournId);
   if (!t) return;

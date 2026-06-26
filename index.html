@@ -1751,7 +1751,11 @@ footer a:hover{color:var(--text-1)}
 
     <!-- TOURNAMENTS TAB -->
     <div id="tab-tournaments" class="tab-panel" style="display:none">
-      <div class="sec-h"><div class="sec-t">Tournaments & Leagues</div></div>
+      <div class="sec-h">
+        <div class="sec-t">Tournaments & Leagues</div>
+        <button type="button" onclick="openTournProposalForm()" style="background:none;border:1px solid var(--b);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:5px"><i class="ti ti-plus"></i>Propose</button>
+      </div>
+      <div id="my-proposals-banner"></div>
       <div id="tourn-list"><div class="empty" style="padding:24px;text-align:center">No tournaments yet.</div></div>
       <!-- Tournament detail view (hidden by default) -->
       <div id="tourn-detail" style="display:none"></div>
@@ -3410,7 +3414,7 @@ function switchTab(name, { pushState=true }={}) {
   if (name==='feed') renderFeed();
   if (name==='players') renderDirectory();
   if (name==='profile') { renderProfile(); renderMyHist(); }
-  if (name==='tournaments') { _tournDetailId=null; renderTournaments(); }
+  if (name==='tournaments') { _tournDetailId=null; renderTournaments(); loadMyProposals(); }
   window.scrollTo(0,0);
   if (pushState) {
     const hash = name==='home' ? ' ' : name;
@@ -4590,6 +4594,101 @@ async function lockTournRoster(tournId, teamId) {
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
   if (Array.isArray(fresh)) LC.set('tournaments',fresh);
   renderTournDetail(tournId);
+}
+
+// ── TOURNAMENT PROPOSALS ─────────────────────────────────────
+let _myProposals = [];
+
+async function loadMyProposals() {
+  if (!ME) return;
+  const rows = await dbGet('tournament_registrations',
+    'select=*&status=in.(proposal,proposal_approved,proposal_rejected)&captain_id=eq.'+ME.id+'&order=created_at.desc'
+  ).catch(()=>[]);
+  _myProposals = Array.isArray(rows) ? rows : [];
+  renderMyProposalsBanner();
+}
+
+function renderMyProposalsBanner() {
+  const el = document.getElementById('my-proposals-banner');
+  if (!el || !_myProposals.length) { if(el) el.innerHTML=''; return; }
+  el.innerHTML = _myProposals.map(p => {
+    const meta = Array.isArray(p.players) && p.players[0] ? p.players[0] : {};
+    const sc = p.status==='proposal_approved'?'var(--gr)':p.status==='proposal_rejected'?'var(--danger,#e53e3e)':'var(--gold)';
+    const sl = p.status==='proposal_approved'?'Approved — watch for it!':p.status==='proposal_rejected'?'Not approved'+(p.notes?' · '+p.notes:''):'Pending review';
+    const sportLabel = (meta.sport||'').replace(/\b\w/g,c=>c.toUpperCase());
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid ${sc}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-weight:700;font-size:13px">${p.team_name}</div>
+        <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;letter-spacing:.4px">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx3)">${sportLabel}${meta.format?' · '+meta.format.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):''}</div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sl}</div>
+    </div>`;
+  }).join('');
+}
+
+function openTournProposalForm() {
+  const sheet = document.createElement('div');
+  sheet.id = 'proposal-sheet';
+  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
+  sheet.innerHTML = `
+    <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-weight:800;font-size:17px">Propose a Tournament</div>
+        <button type="button" onclick="document.getElementById('proposal-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:18px">Admin will review and reach out if approved.</div>
+
+      <label class="lbl">Tournament Name <span style="color:var(--danger,#e53e3e)">*</span></label>
+      <input class="inp" id="prop-name" placeholder="e.g. 3x3 Summer Cup" style="margin-bottom:12px">
+
+      <label class="lbl">Sport <span style="color:var(--danger,#e53e3e)">*</span></label>
+      <select class="inp" id="prop-sport" style="margin-bottom:12px">
+        <option value="">— Select sport —</option>
+        <option value="basketball">Basketball</option>
+        <option value="pickleball">Pickleball</option>
+        <option value="badminton">Badminton</option>
+        <option value="running">Running</option>
+        <option value="dragonboat">Dragonboat</option>
+      </select>
+
+      <label class="lbl">Preferred Format</label>
+      <select class="inp" id="prop-format" style="margin-bottom:12px">
+        <option value="round_robin">Round Robin</option>
+        <option value="single_elimination">Single Elimination</option>
+        <option value="double_elimination">Double Elimination</option>
+        <option value="open">Open / Not sure yet</option>
+      </select>
+
+      <label class="lbl">Notes <span style="font-weight:400;font-size:11px;color:var(--tx3)">(optional — preferred dates, team size, anything else)</span></label>
+      <textarea class="inp" id="prop-notes" rows="3" placeholder="e.g. Sundays in August, 4 teams, 5v5..." style="margin-bottom:18px;resize:none"></textarea>
+
+      <button type="button" class="btn" style="width:100%" onclick="submitTournProposal()"><i class="ti ti-send"></i>Submit Proposal</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', e=>{ if(e.target===sheet) sheet.remove(); });
+}
+
+async function submitTournProposal() {
+  const name   = document.getElementById('prop-name')?.value.trim();
+  const sport  = document.getElementById('prop-sport')?.value;
+  const format = document.getElementById('prop-format')?.value;
+  const notes  = document.getElementById('prop-notes')?.value.trim();
+  if (!name)  return toast('Enter a tournament name','er');
+  if (!sport) return toast('Select a sport','er');
+  if (!ME) return toast('You must be logged in','er');
+  const ok = await dbInsert('tournament_registrations', {
+    tournament_id: null,
+    captain_id: ME.id,
+    team_name: name,
+    players: [{sport, format}],
+    notes: notes||null,
+    status: 'proposal'
+  });
+  if (!ok) return toast('Submit failed','er');
+  toast('Proposal submitted — admin will review it');
+  document.getElementById('proposal-sheet')?.remove();
+  await loadMyProposals();
 }
 
 // ── TEAM OWNER ROSTER EDITOR ─────────────────────────────────
