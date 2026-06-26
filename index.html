@@ -4190,7 +4190,7 @@ function renderTournDetail(id) {
     const methodsList = payMethods.length
       ? payMethods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px">
           <div style="font-weight:700;font-size:13px">${m.label}</div>
-          <div style="font-size:13px;color:var(--tx2)">${m.account_number} · ${m.account_name}</div>
+          <div style="font-size:13px;color:var(--tx2)">${m.account_num||m.account_number||''} · ${m.account_name||''}</div>
         </div>`).join('')
       : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
 

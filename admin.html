@@ -6832,10 +6832,48 @@ function renderPaymentMethods(){
         <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;color:var(--gold2)">${m.account_num}</div>
         <div style="font-size:11px;color:var(--tx3)">${m.account_name||''}</div>
     </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="editPaymentMethod(${m.id},'${(m.label||'').replace(/'/g,'\\\'')}','${(m.account_num||'').replace(/'/g,'\\\'')}','${(m.account_name||'').replace(/'/g,'\\\'')}')" title="Edit"><i class="ti ti-edit"></i></button>
       <button type="button" class="btn btn-ghost btn-sm" onclick="togglePmActive(${m.id}, ${!active})" title="${active?'Hide from players':'Show to players'}"><i class="ti ${active?'ti-eye':'ti-eye-off'}"></i>${active?'Active':'Hidden'}</button>
       <button type="button" class="btn btn-rd btn-sm" onclick="deletePm(${m.id})"><i class="ti ti-trash"></i></button>
   </div>`;
   }).join('');
+}
+
+function editPaymentMethod(id, label, num, acname) {
+  const sheet = document.createElement('div');
+  sheet.id = 'pm-edit-sheet';
+  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
+  sheet.innerHTML = `
+    <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%">
+      <div style="font-weight:700;font-size:16px;margin-bottom:16px">Edit Payment Method</div>
+      <label class="fl">Label <span style="font-weight:400;text-transform:none">(e.g. GCash, Paymaya)</span></label>
+      <input class="fi" id="pm-edit-label" value="${label}" style="margin-bottom:10px">
+      <label class="fl">Account Number</label>
+      <input class="fi" id="pm-edit-num" value="${num}" style="margin-bottom:10px">
+      <label class="fl">Account Name</label>
+      <input class="fi" id="pm-edit-acname" value="${acname}" style="margin-bottom:16px">
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn" style="flex:1" onclick="saveEditPaymentMethod(${id})"><i class="ti ti-device-floppy"></i>Save</button>
+        <button type="button" class="btn btn-ghost" style="flex:1" onclick="document.getElementById('pm-edit-sheet').remove()">Cancel</button>
+      </div>
+    </div>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
+}
+
+async function saveEditPaymentMethod(id) {
+  const label  = document.getElementById('pm-edit-label')?.value.trim();
+  const num    = document.getElementById('pm-edit-num')?.value.trim();
+  const acname = document.getElementById('pm-edit-acname')?.value.trim();
+  if (!label) return toast('Enter a label','er');
+  if (!num)   return toast('Enter the account number','er');
+  const ok = await dbUpdate('payment_methods', 'id=eq.'+id, { label, account_num: num, account_name: acname });
+  if (!ok) return toast('Save failed','er');
+  toast('Payment method updated');
+  document.getElementById('pm-edit-sheet')?.remove();
+  const fresh = await dbGet('payment_methods','select=*&order=sport.asc,sort_order.asc,id.asc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('payment_methods', fresh);
+  renderPaymentMethods();
 }
 
 async function addPaymentMethod(){
