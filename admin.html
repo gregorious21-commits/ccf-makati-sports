@@ -6108,8 +6108,9 @@ function renderTournTeamsForm() {
     const selected = tm.players||[];
     const count = selected.length;
     const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count===MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
-    const ownerPool = selected.length ? allPlayers.filter(p=>selected.includes(p.id)) : allPlayers;
-    const ownerOpts = `<option value="">— Select captain —</option>`+ownerPool.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
+    // Owner pool = designated team owners (captains picker); fall back to all players if none designated yet
+    const ownerPool = _tCaptains.length ? allPlayers.filter(p=>_tCaptains.includes(p.id)) : allPlayers;
+    const ownerOpts = `<option value="">— Select owner —</option>`+ownerPool.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
     const pills = allPlayers.map(p => {
       const on = selected.includes(p.id);
       const name = p.firstName+(p.lastName?' '+p.lastName:'');
