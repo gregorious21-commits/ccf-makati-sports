@@ -4632,38 +4632,51 @@ function openTournProposalForm() {
   sheet.id = 'proposal-sheet';
   sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
   sheet.innerHTML = `
-    <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="font-weight:800;font-size:17px">Propose a Tournament</div>
-        <button type="button" onclick="document.getElementById('proposal-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
+    <div style="background:var(--bg);border-radius:16px 16px 0 0;width:100%;max-height:88vh;overflow-y:auto">
+      <!-- handle -->
+      <div style="display:flex;justify-content:center;padding:10px 0 0"><div style="width:36px;height:4px;border-radius:2px;background:var(--b3,rgba(255,255,255,.15))"></div></div>
+      <!-- header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0">
+        <div>
+          <div style="font-weight:800;font-size:18px">Propose a Tournament</div>
+          <div style="font-size:13px;color:var(--tx3);margin-top:2px">Admin will review and reach out if approved.</div>
+        </div>
+        <button type="button" onclick="document.getElementById('proposal-sheet').remove()" style="background:var(--b2);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;color:var(--tx2);cursor:pointer;flex-shrink:0"><i class="ti ti-x" style="font-size:15px"></i></button>
       </div>
-      <div style="font-size:13px;color:var(--tx3);margin-bottom:18px">Admin will review and reach out if approved.</div>
-
-      <label class="lbl">Tournament Name <span style="color:var(--danger,#e53e3e)">*</span></label>
-      <input class="inp" id="prop-name" placeholder="e.g. 3x3 Summer Cup" style="margin-bottom:12px">
-
-      <label class="lbl">Sport <span style="color:var(--danger,#e53e3e)">*</span></label>
-      <select class="inp" id="prop-sport" style="margin-bottom:12px">
-        <option value="">— Select sport —</option>
-        <option value="basketball">Basketball</option>
-        <option value="pickleball">Pickleball</option>
-        <option value="badminton">Badminton</option>
-        <option value="running">Running</option>
-        <option value="dragonboat">Dragonboat</option>
-      </select>
-
-      <label class="lbl">Preferred Format</label>
-      <select class="inp" id="prop-format" style="margin-bottom:12px">
-        <option value="round_robin">Round Robin</option>
-        <option value="single_elimination">Single Elimination</option>
-        <option value="double_elimination">Double Elimination</option>
-        <option value="open">Open / Not sure yet</option>
-      </select>
-
-      <label class="lbl">Notes <span style="font-weight:400;font-size:11px;color:var(--tx3)">(optional — preferred dates, team size, anything else)</span></label>
-      <textarea class="inp" id="prop-notes" rows="3" placeholder="e.g. Sundays in August, 4 teams, 5v5..." style="margin-bottom:18px;resize:none"></textarea>
-
-      <button type="button" class="btn" style="width:100%" onclick="submitTournProposal()"><i class="ti ti-send"></i>Submit Proposal</button>
+      <!-- body -->
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Tournament Name <span style="color:var(--danger,#e53e3e)">*</span></div>
+          <input class="inp" id="prop-name" placeholder="e.g. 3x3 Summer Cup" style="width:100%;box-sizing:border-box">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Sport <span style="color:var(--danger,#e53e3e)">*</span></div>
+            <select class="inp" id="prop-sport" style="width:100%;box-sizing:border-box">
+              <option value="">— Select —</option>
+              <option value="basketball">Basketball</option>
+              <option value="pickleball">Pickleball</option>
+              <option value="badminton">Badminton</option>
+              <option value="running">Running</option>
+              <option value="dragonboat">Dragonboat</option>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Format</div>
+            <select class="inp" id="prop-format" style="width:100%;box-sizing:border-box">
+              <option value="round_robin">Round Robin</option>
+              <option value="single_elimination">Single Elimination</option>
+              <option value="double_elimination">Double Elimination</option>
+              <option value="open">Not sure yet</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(optional)</span></div>
+          <textarea class="inp" id="prop-notes" rows="3" placeholder="Preferred dates, number of teams, team size, anything else..." style="width:100%;box-sizing:border-box;resize:none;line-height:1.5"></textarea>
+        </div>
+        <button type="button" class="btn" style="width:100%;padding:14px;font-size:15px" onclick="submitTournProposal()"><i class="ti ti-send"></i>Submit Proposal</button>
+      </div>
     </div>`;
   document.body.appendChild(sheet);
   sheet.addEventListener('click', e=>{ if(e.target===sheet) sheet.remove(); });
