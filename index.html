@@ -4859,7 +4859,10 @@ async function saveTournRoster() {
   // clean up jerseyNumbers — remove blanks
   const cleanJerseys = {};
   Object.entries(jerseyNumbers).forEach(([pid,v])=>{ if(v) cleanJerseys[pid]=Number(v); });
-  tm.players = players;
+  // Ensure non-playing owner is always in the saved players list
+  const finalPlayers = [...players];
+  if (tm.owner && !finalPlayers.includes(tm.owner)) finalPlayers.unshift(tm.owner);
+  tm.players = finalPlayers;
   tm.jerseyNumbers = cleanJerseys;
   const ok = await dbUpdate('tournaments','id=eq.'+tournId,{teams});
   if (!ok) return toast('Save failed','er');

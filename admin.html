@@ -5374,7 +5374,7 @@ function renderTournRegsPanel(t, regs) {
       </div>
       <div style="font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:${showActions?'10':'0'}px">${playerNames||'No players listed'}</div>
       ${showActions ? `<div style="display:flex;gap:6px">
-        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveTournReg('${r.id}','${t.id}','${r.team_name}','${r.captain_id}',${JSON.stringify(r.players||[]).replace(/"/g,'&quot;')})"><i class="ti ti-check"></i>Approve</button>
+        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveTournReg('${r.id}','${t.id}')"><i class="ti ti-check"></i>Approve</button>
         <button type="button" class="btn btn-sm btn-ghost" style="flex:1" onclick="rejectTournReg('${r.id}','${t.id}')"><i class="ti ti-x"></i>Reject</button>
       </div>` : ''}
     </div>`;
@@ -5400,7 +5400,15 @@ function renderTournRegsPanel(t, regs) {
   `;
 }
 
-async function approveTournReg(regId, tournId, teamName, captainId, players) {
+async function approveTournReg(regId, tournId) {
+  // Look up reg data from cache instead of passing via onclick (prevents quote-injection)
+  const regsAll = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+  const reg = (regsAll||[]).find(r=>r.id===regId);
+  if (!reg) return toast('Registration not found','er');
+  const teamName  = reg.team_name  || '';
+  const captainId = reg.captain_id || null;
+  const players   = Array.isArray(reg.players) ? reg.players : [];
+
   const t = LC.arr('tournaments').find(x=>x.id===tournId);
   if (!t) return;
   const teams = JSON.parse(JSON.stringify(t.teams||[]));
@@ -5412,15 +5420,13 @@ async function approveTournReg(regId, tournId, teamName, captainId, players) {
     toast(teamName+' already in tournament — marked approved');
     openTournRegs(tournId); return;
   }
-  const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players:Array.isArray(players)?players:[] };
+  const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players };
   teams.push(newTeam);
   const ok1 = await dbUpdate('tournaments','id=eq.'+tournId,{ teams });
   if (!ok1) return toast('Failed to add team','er');
   const ok2 = await dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'approved' });
   if (!ok2) toast('Team added but registration status not updated — check manually','er');
   else toast(teamName+' added to tournament');
-  toast(teamName+' added to tournament');
-  // refresh local cache
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
   if (Array.isArray(fresh)) LC.set('tournaments', fresh);
   openTournRegs(tournId);
@@ -7092,9 +7098,13 @@ async function addPaymentMethod(){
   if (Array.isArray(fresh)) LC.set('payment_methods', fresh);
   // Find newly added record and save payment_type
   const newRec = (fresh||[]).find(m=>m.sport===pmSport&&m.label===label&&m.account_num===num);
-  if (newRec && pmType!=='both') dbUpdate('payment_methods','id=eq.'+newRec.id,{payment_type:pmType}).catch(()=>{});
+  if (newRec && pmType!=='both') {
+    const typeOk = await dbUpdate('payment_methods','id=eq.'+newRec.id,{payment_type:pmType});
+    if (!typeOk) toast('Method added but "Used For" type failed to save — edit to fix','er');
+    else { newRec.payment_type = pmType; LC.set('payment_methods', fresh); }
+  }
   renderPaymentMethods();
-  toast(label + ' added to ' + (pmSport==='pickleball'?'pickleball':'basketball'));
+  toast(label + ' added to ' + (pmSport==='pickleball'?'pickleball':pmSport));
 }
 
 async function togglePmActive(id, makeActive){
