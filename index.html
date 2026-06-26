@@ -4291,8 +4291,8 @@ function renderTournDetail(id) {
         <div style="display:flex;align-items:flex-start;gap:10px">
           <i class="ti ti-clock-hour-4" style="font-size:20px;color:var(--gold);margin-top:1px;flex-shrink:0"></i>
           <div>
-            <div style="font-weight:700;font-size:14px;margin-bottom:4px">Captain is drafting picks soon</div>
-            <div style="font-size:13px;color:var(--tx2);line-height:1.6">Team rosters will be announced once captains finalize their selections. Stay tuned.</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px">Team owner is building the roster</div>
+            <div style="font-size:13px;color:var(--tx2);line-height:1.6">Team rosters will be announced once team owners finalize their selections. Stay tuned.</div>
           </div>
         </div>
       </div>`;
@@ -4305,7 +4305,7 @@ function renderTournDetail(id) {
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="font-weight:700">${tm.name}</div>
-        ${ownerName?`<span style="font-size:11px;color:var(--tx3)">Captain: ${ownerName}</span>`:''}
+        ${ownerName?`<span style="font-size:11px;color:var(--tx3)">Owner: ${ownerName}</span>`:''}
       </div>
       <div style="font-size:13px;color:var(--tx2);line-height:1.8">${names.join(' · ')||'No players assigned'}</div>
     </div>`;
@@ -4377,7 +4377,7 @@ function renderTournDetail(id) {
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
         ${jNum?`<div style="width:28px;height:28px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--tx3);flex-shrink:0">#${jNum}</div>`:'<div style="width:28px;flex-shrink:0"></div>'}
         <div style="flex:1;font-size:13px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--tx)':'var(--tx2)'}">${_tpName(pid)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px">CAPTAIN</span>':''}
+        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px">OWNER</span>':''}
       </div>`;
     }).join('');
     // payment status for this team member
@@ -4385,9 +4385,11 @@ function renderTournDetail(id) {
     const payStatus2 = myPay2?.status||'unpaid';
     const payColor2 = payStatus2==='verified'?'var(--gr)':payStatus2==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
     const payLabel2 = payStatus2==='verified'?'Paid & Verified':payStatus2==='pending'?'Payment Pending':'Unpaid';
-    const lockBtn = iAmCaptain && !isLocked
-      ? `<button type="button" onclick="lockTournRoster('${t.id}','${myTeamObj.id}')" style="margin-top:12px;background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-lock"></i>Lock Roster</button>`
-      : '';
+    const lockBtn = iAmCaptain && !isLocked ? `
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" onclick="openTournRosterEditor('${t.id}','${myTeamObj.id}')" style="flex:1;background:var(--b2);border:1px solid var(--b);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-users-plus"></i>Manage Roster</button>
+        <button type="button" onclick="lockTournRoster('${t.id}','${myTeamObj.id}')" style="flex:1;background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-lock"></i>Lock Roster</button>
+      </div>` : '';
     myTeamSection = `
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">My Team</div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -4397,7 +4399,7 @@ function renderTournDetail(id) {
       </div>
       <div class="card" style="margin-bottom:14px">
         <div style="font-weight:800;font-size:16px;margin-bottom:2px">${myTeamObj.name}</div>
-        <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">Captain: ${captainName}</div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">Team Owner: ${captainName}</div>
         ${memberRows}
         ${lockBtn}
       </div>`;
@@ -4590,6 +4592,118 @@ async function lockTournRoster(tournId, teamId) {
   renderTournDetail(tournId);
 }
 
+// ── TEAM OWNER ROSTER EDITOR ─────────────────────────────────
+let _rosterEditorState = { tournId:null, teamId:null, players:[], jerseyNumbers:{} };
+
+function openTournRosterEditor(tournId, teamId) {
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const tm = (t.teams||[]).find(x=>x.id===teamId);
+  if (!tm) return;
+  _rosterEditorState = {
+    tournId, teamId,
+    players: [...(tm.players||[])],
+    jerseyNumbers: Object.assign({}, tm.jerseyNumbers||{})
+  };
+  _renderRosterEditor(t, tm);
+}
+
+function _renderRosterEditor(t, tm) {
+  const existing = document.getElementById('roster-editor-sheet');
+  if (existing) existing.remove();
+  const allPlayers = LC.arr('roster').filter(p=>
+    (p.sports||'basketball').split(',').map(s=>s.trim()).includes(t.sport||'basketball')
+  ).sort((a,b)=>(a.firstName+' '+a.lastName).localeCompare(b.firstName+' '+b.lastName));
+
+  const { players, jerseyNumbers } = _rosterEditorState;
+  const MAX = 10;
+
+  const pills = allPlayers.map(p=>{
+    const on = players.includes(p.id);
+    const isOwner = p.id === tm.owner;
+    const name = p.firstName+(p.lastName?' '+p.lastName:'');
+    return `<button type="button" onclick="_toggleRosterPlayer('${p.id}','${t.id}','${tm.id}')"
+      ${isOwner?'disabled title="Team owner"':''}
+      style="padding:6px 12px;border-radius:20px;border:1.5px solid ${on?'var(--gr)':'var(--b)'};background:${on?'rgba(72,199,142,.12)':'var(--b2)'};color:${on?'var(--gr)':isOwner?'var(--tx3)':'var(--tx2)'};font-size:13px;font-weight:${on?'700':'500'};cursor:${isOwner?'default':'pointer'};white-space:nowrap;display:inline-flex;align-items:center;gap:5px">
+      ${on?'<i class="ti ti-check" style="font-size:11px"></i>':''}${name}${isOwner?' <span style="font-size:10px;opacity:.6">(you)</span>':''}
+    </button>`;
+  }).join('');
+
+  const jerseyRows = players.map(pid=>{
+    const p = LC.arr('roster').find(x=>x.id===pid);
+    const name = p ? p.firstName+(p.lastName?' '+p.lastName:'') : pid;
+    const jn = jerseyNumbers[pid]||'';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)">
+      <span style="flex:1;font-size:13px">${name}${pid===tm.owner?' <span style="font-size:10px;color:var(--gold);font-weight:700">OWNER</span>':''}</span>
+      <input type="number" min="0" max="99" placeholder="#" value="${jn}"
+        oninput="_rosterEditorState.jerseyNumbers['${pid}']=this.value?Number(this.value):undefined"
+        style="width:58px;padding:6px;text-align:center;font-size:14px;font-weight:700;border:1px solid var(--b);border-radius:8px;background:var(--b2);color:var(--tx)">
+    </div>`;
+  }).join('');
+
+  const sheet = document.createElement('div');
+  sheet.id = 'roster-editor-sheet';
+  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
+  sheet.innerHTML = `
+    <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-weight:800;font-size:16px">${tm.name} — Manage Roster</div>
+        <button type="button" onclick="document.getElementById('roster-editor-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+        Select Players <span style="font-weight:400;text-transform:none;letter-spacing:0">${players.length} / ${MAX} selected</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">${pills}</div>
+
+      ${players.length ? `
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div style="margin-bottom:20px">${jerseyRows}</div>` : ''}
+
+      <button type="button" onclick="saveTournRoster()" class="btn" style="width:100%"><i class="ti ti-device-floppy"></i>Save Roster</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', e=>{ if(e.target===sheet) sheet.remove(); });
+}
+
+function _toggleRosterPlayer(pid, tournId, teamId) {
+  const { players } = _rosterEditorState;
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  const tm = (t?.teams||[]).find(x=>x.id===teamId);
+  const idx = players.indexOf(pid);
+  if (idx>=0) {
+    if (pid===tm?.owner) return; // can't remove owner
+    players.splice(idx,1);
+  } else {
+    if (players.length >= 10) return toast('Max 10 players per team','er');
+    players.push(pid);
+  }
+  const t2 = LC.arr('tournaments').find(x=>x.id===tournId);
+  const tm2 = (t2?.teams||[]).find(x=>x.id===teamId);
+  if (t2 && tm2) _renderRosterEditor(t2, tm2);
+}
+
+async function saveTournRoster() {
+  const { tournId, teamId, players, jerseyNumbers } = _rosterEditorState;
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const teams = JSON.parse(JSON.stringify(t.teams||[]));
+  const tm = teams.find(x=>x.id===teamId);
+  if (!tm) return;
+  // clean up jerseyNumbers — remove blanks
+  const cleanJerseys = {};
+  Object.entries(jerseyNumbers).forEach(([pid,v])=>{ if(v) cleanJerseys[pid]=Number(v); });
+  tm.players = players;
+  tm.jerseyNumbers = cleanJerseys;
+  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{teams});
+  if (!ok) return toast('Save failed','er');
+  toast('Roster saved');
+  document.getElementById('roster-editor-sheet')?.remove();
+  const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
+  if (Array.isArray(fresh)) LC.set('tournaments',fresh);
+  renderTournDetail(tournId);
+}
+
 // ── TOURNAMENT WAITLIST ───────────────────────────────────────
 async function joinTournWaitlist(tournId) {
   if (!ME) return;
@@ -4655,7 +4769,7 @@ function openTournRegForm(tournId) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
-          <div style="font-size:12px;color:var(--tx3);margin-top:2px">You're auto-included as captain</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:2px">You're auto-included as team owner</div>
         </div>
         <span id="treg-count" style="font-size:12px;font-weight:700;background:var(--b2);border-radius:20px;padding:4px 10px;color:var(--tx2)">1 / 15</span>
       </div>
