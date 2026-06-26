@@ -3122,7 +3122,7 @@ async function saveWalkin(){
       id:newId,first_name:fn,last_name:ln,phone:newPhone,email:'',
       position:pos,sports:sport,pickleball_skill:skill,
       has_dgroup:false,dgroup_leader:'',attended_ccf:false,
-      waiver_signed:true,pin:'',wins:0,games_played:0,is_first_game:true,
+      waiver_signed:true,is_active:true,pin:'',wins:0,games_played:0,is_first_game:true,
       joined:new Date().toLocaleDateString('en-PH')
     });
   }
@@ -3193,7 +3193,7 @@ async function saveRunWalkin(fn,ln,ph){
       if(!pid){ toast('Walk-in failed to save','er'); return; }
     } else {
       pid='PL'+Date.now();
-      const ok=await dbInsert('players',{id:pid,first_name:fn,last_name:ln,phone:phone,email:'',position:'',sports:wsport,pickleball_skill:'',has_dgroup:false,dgroup_leader:'',attended_ccf:false,waiver_signed:true,pin:'',wins:0,games_played:0,is_first_game:true,joined:new Date().toLocaleDateString('en-PH')});
+      const ok=await dbInsert('players',{id:pid,first_name:fn,last_name:ln,phone:phone,email:'',position:'',sports:wsport,pickleball_skill:'',has_dgroup:false,dgroup_leader:'',attended_ccf:false,waiver_signed:true,is_active:true,pin:'',wins:0,games_played:0,is_first_game:true,joined:new Date().toLocaleDateString('en-PH')});
       if(!ok){ toast('Walk-in failed to save','er'); return; }
     }
     players.push({id:pid,firstName:fn,lastName:ln,phone:phone,email:'',sports:wsport,pickleballSkill:'',position:''}); LC.set('players',players);
@@ -6957,7 +6957,7 @@ async function addToWeek(){
       if(!newId){ toast('Could not create player (phone may already be registered)','er'); return; }
     } else {
       newId = 'PL'+Date.now();
-      await dbInsert('players',{id:newId,first_name:fn,last_name:ln,phone:newPhone,email:'',position:'',has_dgroup:false,dgroup_leader:'',attended_ccf:false,waiver_signed:true,pin:'',wins:0,games_played:0,is_first_game:true,joined:new Date().toLocaleDateString('en-PH')});
+      await dbInsert('players',{id:newId,first_name:fn,last_name:ln,phone:newPhone,email:'',position:'',has_dgroup:false,dgroup_leader:'',attended_ccf:false,waiver_signed:true,is_active:true,pin:'',wins:0,games_played:0,is_first_game:true,joined:new Date().toLocaleDateString('en-PH')});
     }
     player={id:newId,firstName:fn,lastName:ln,phone:newPhone,email:'',position:'',hasDgroup:false,dgroupLeader:'',attendedCCF:false,pin:'',wins:0,games:0,isFirstGame:true,joined:new Date().toLocaleDateString('en-PH'),avatarUrl:'',bio:''};
     players.push(player);LC.set('players',players);
