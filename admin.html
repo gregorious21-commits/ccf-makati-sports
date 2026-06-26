@@ -1737,6 +1737,14 @@ select.fi{
             <div><label class="fl" style="margin-top:0">Account Number</label><input class="fi" id="pm-num" placeholder="09XXXXXXXXX or 0123456789"></div>
             <div><label class="fl" style="margin-top:0">Account Name</label><input class="fi" id="pm-acname" placeholder="CCF Makati Sports"></div>
         </div>
+          <div style="margin-top:10px">
+            <label class="fl" style="margin-top:0">Used For</label>
+            <select class="fi" id="pm-type">
+              <option value="both">Both (Game Day &amp; Tournaments)</option>
+              <option value="game_day">Game Day only</option>
+              <option value="tournament">Tournaments only</option>
+            </select>
+          </div>
           <button type="button" class="btn btn-w" style="width:auto;margin-top:12px" onclick="addPaymentMethod()"><i class="ti ti-plus"></i>Add Method</button>
       </div>
     </div>
@@ -7020,6 +7028,8 @@ function renderPaymentMethods(){
 }
 
 function editPaymentMethod(id, label, num, acname) {
+  const current = LC.arr('payment_methods').find(m=>String(m.id)===String(id));
+  const curType = current?.payment_type || 'both';
   const sheet = document.createElement('div');
   sheet.id = 'pm-edit-sheet';
   sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
@@ -7031,7 +7041,13 @@ function editPaymentMethod(id, label, num, acname) {
       <label class="fl">Account Number</label>
       <input class="fi" id="pm-edit-num" value="${num}" style="margin-bottom:10px">
       <label class="fl">Account Name</label>
-      <input class="fi" id="pm-edit-acname" value="${acname}" style="margin-bottom:16px">
+      <input class="fi" id="pm-edit-acname" value="${acname}" style="margin-bottom:10px">
+      <label class="fl">Used For</label>
+      <select class="fi" id="pm-edit-type" style="margin-bottom:16px">
+        <option value="both" ${curType==='both'?'selected':''}>Both (Game Day &amp; Tournaments)</option>
+        <option value="game_day" ${curType==='game_day'?'selected':''}>Game Day only</option>
+        <option value="tournament" ${curType==='tournament'?'selected':''}>Tournaments only</option>
+      </select>
       <div style="display:flex;gap:8px">
         <button type="button" class="btn" style="flex:1" onclick="saveEditPaymentMethod(${id})"><i class="ti ti-device-floppy"></i>Save</button>
         <button type="button" class="btn btn-ghost" style="flex:1" onclick="document.getElementById('pm-edit-sheet').remove()">Cancel</button>
@@ -7047,7 +7063,8 @@ async function saveEditPaymentMethod(id) {
   const acname = document.getElementById('pm-edit-acname')?.value.trim();
   if (!label) return toast('Enter a label','er');
   if (!num)   return toast('Enter the account number','er');
-  const ok = await dbUpdate('payment_methods', 'id=eq.'+id, { label, account_num: num, account_name: acname });
+  const pmType = document.getElementById('pm-edit-type')?.value || 'both';
+  const ok = await dbUpdate('payment_methods', 'id=eq.'+id, { label, account_num: num, account_name: acname, payment_type: pmType });
   if (!ok) return toast('Save failed','er');
   toast('Payment method updated');
   document.getElementById('pm-edit-sheet')?.remove();
@@ -7062,16 +7079,20 @@ async function addPaymentMethod(){
   const acn   = (document.getElementById('pm-acname').value || '').trim();
   if (!label){ toast('Enter a label (e.g. GCash)','er'); return; }
   if (!num)  { toast('Enter the account number','er');  return; }
+  const pmType = document.getElementById('pm-type')?.value || 'both';
   const list = LC.arr('payment_methods').filter(m => m.sport === pmSport);
   const sort_order = list.length + 1;
-  const row = { sport: pmSport, label, account_num: num, account_name: acn, active: true, sort_order };
   const ok = await rpc('admin_save_payment_method',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_sport:pmSport,p_label:label,p_account_num:num,p_account_name:acn,p_active:true,p_sort_order:sort_order});
   if (!ok){ toast('Save failed','er'); return; }
   // Clear inputs
   ['pm-label','pm-num','pm-acname'].forEach(id => document.getElementById(id).value = '');
-  // Refetch so we get the assigned id
+  if (document.getElementById('pm-type')) document.getElementById('pm-type').value='both';
+  // Refetch so we get the assigned id, then set payment_type
   const fresh = await dbGet('payment_methods','select=*&order=sport.asc,sort_order.asc,id.asc');
   if (Array.isArray(fresh)) LC.set('payment_methods', fresh);
+  // Find newly added record and save payment_type
+  const newRec = (fresh||[]).find(m=>m.sport===pmSport&&m.label===label&&m.account_num===num);
+  if (newRec && pmType!=='both') dbUpdate('payment_methods','id=eq.'+newRec.id,{payment_type:pmType}).catch(()=>{});
   renderPaymentMethods();
   toast(label + ' added to ' + (pmSport==='pickleball'?'pickleball':'basketball'));
 }

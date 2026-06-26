@@ -2924,7 +2924,7 @@ function setPayType(t){
 
 function renderPaymentMethods(sport){
   const all = LC.arr('payment_methods');
-  const methods = all.filter(m => m.sport === sport && m.active !== false);
+  const methods = all.filter(m => m.sport === sport && m.active !== false && m.payment_type !== 'tournament');
   const el = document.getElementById('pay-accounts-list');
   if (!methods.length){
     el.innerHTML = '<div class="empty" style="grid-column:1/-1;padding:14px">No payment accounts set for '+sport+' yet. Use cash request instead.</div>';
@@ -3414,7 +3414,15 @@ function switchTab(name, { pushState=true }={}) {
   if (name==='feed') renderFeed();
   if (name==='players') renderDirectory();
   if (name==='profile') { renderProfile(); renderMyHist(); }
-  if (name==='tournaments') { _tournDetailId=null; renderTournaments(); loadMyProposals(); }
+  if (name==='tournaments') {
+    _tournDetailId=null;
+    renderTournaments();
+    loadMyProposals();
+    // Always re-fetch tournaments so team owner changes from admin are reflected immediately
+    dbGet('tournaments','select=*&order=created_at.desc').then(rows=>{
+      if(Array.isArray(rows)){ LC.set('tournaments',rows); renderTournaments(); }
+    }).catch(()=>{});
+  }
   window.scrollTo(0,0);
   if (pushState) {
     const hash = name==='home' ? ' ' : name;
@@ -3439,9 +3447,16 @@ function openTournDetail(id) {
   Promise.all([
     dbGet('tournament_payments','select=*&tournament_id=eq.'+id).catch(()=>[]),
     dbGet('tournament_registrations','select=*&tournament_id=eq.'+id).catch(()=>[]),
-  ]).then(([pays, regs])=>{
+    dbGet('tournaments','select=*&id=eq.'+id).catch(()=>[]),
+  ]).then(([pays, regs, tourns])=>{
     if (Array.isArray(pays)) _tournPayments = pays;
     if (Array.isArray(regs)) _tournRegs = regs;
+    if (Array.isArray(tourns) && tourns[0]) {
+      const all = LC.arr('tournaments');
+      const idx = all.findIndex(x=>x.id===id);
+      if (idx>=0) all[idx]=tourns[0]; else all.push(tourns[0]);
+      LC.set('tournaments',all);
+    }
     renderTournDetail(id);
   });
   renderTournDetail(id);
@@ -4189,7 +4204,7 @@ function renderTournDetail(id) {
     const pStatus = anyVerified && fullyPaid ? 'verified' : anyPending ? 'pending' : totalPaid > 0 ? 'partial' : 'unpaid';
     const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='partial'?'var(--gr)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
     const statusLabel = pStatus==='verified'?'Fully Paid':pStatus==='partial'?'Partially Paid':pStatus==='pending'?'Pending Review':'Unpaid';
-    const payMethods = LC.arr('payment_methods').filter(m=>m.sport===t.sport||m.sport==='all');
+    const payMethods = LC.arr('payment_methods').filter(m=>(m.sport===t.sport||m.sport==='all')&&m.payment_type!=='game_day'&&m.active!==false);
 
     const methodsList = payMethods.length
       ? payMethods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px">
