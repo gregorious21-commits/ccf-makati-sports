@@ -4263,11 +4263,19 @@ function renderTournDetail(id) {
         </div>`).join('')
       : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
 
-    const feeRows = breakdown.map(x=>`
-      <div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0">
-        <span style="color:var(--tx2)">${x.label}</span>
-        <span>₱${Number(x.amount).toLocaleString()}</span>
-      </div>`).join('');
+    const numTeams = teams.length || 1;
+    // Show per-team share per line item, with the full pool in muted text
+    const feeRows = `
+      <div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--tx3);line-height:1.6">
+        Total tournament budget of <strong style="color:var(--tx2)">₱${_feePool.toLocaleString()}</strong> split equally among <strong style="color:var(--tx2)">${numTeams} teams</strong> — your team's share is <strong style="color:var(--tx)">₱${teamFee.toLocaleString()}</strong>.
+      </div>
+      ${breakdown.map(x=>{
+        const perTeam = Math.round(Number(x.amount) / numTeams);
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+          <span style="color:var(--tx2)">${x.label} <span style="font-size:11px;color:var(--tx3)">(₱${Number(x.amount).toLocaleString()} ÷ ${numTeams})</span></span>
+          <span style="font-weight:600">₱${perTeam.toLocaleString()}</span>
+        </div>`;
+      }).join('')}`;
 
     const installmentRows = myPays.length ? myPays.map((p,i)=>{
       const sc = p.status==='verified'?'var(--gr)':p.status==='pending'?'var(--gold)':'var(--tx3)';
