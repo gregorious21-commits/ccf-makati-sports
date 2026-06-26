@@ -2452,6 +2452,16 @@ async function doRegister() {
     // Auto-login the new user.
     AUTH.set(ph, pin, 'member');
     const players = LC.arr('players'); players.push(player); LC.set('players', players);
+    // Also seed roster so the "All" tab picks up the new account immediately
+    const roster = LC.arr('roster');
+    if (!roster.find(r=>r.id===player.id)) {
+      roster.push({ id:player.id, firstName:player.firstName, lastName:player.lastName,
+        position:player.position||'', hasDgroup:player.hasDgroup||false,
+        wins:0, games:0, dupr:null, ratingBasketball:null, ratingPickleball:null,
+        ratingBadminton:null, pickleballMatches:0, avatarUrl:'', bio:'',
+        sports:player.sports||'basketball', pickleballSkill:player.pickleballSkill||'' });
+      LC.set('roster', roster);
+    }
     loginSuccess(player);
     toast('Profile created! Welcome');
     return;
@@ -2473,6 +2483,15 @@ async function doRegister() {
   const ok=await dbInsert('players',{id:player.id,first_name:fn,last_name:ln,phone:ph,email:em,position:player.position,has_dgroup:hasDG,dgroup_leader:player.dgroupLeader,attended_ccf:hasCCF,waiver_signed:true,pin,wins:0,games_played:0,is_first_game:true,joined:player.joined,sports:player.sports,pickleball_skill:player.pickleballSkill});
   if (!ok) { toast('Registration failed. Please try again.','er'); return; }
   const players=LC.arr('players'); players.push(player); LC.set('players',players);
+  const roster2=LC.arr('roster');
+  if(!roster2.find(r=>r.id===player.id)){
+    roster2.push({id:player.id,firstName:player.firstName,lastName:player.lastName,
+      position:player.position||'',hasDgroup:player.hasDgroup||false,
+      wins:0,games:0,dupr:null,ratingBasketball:null,ratingPickleball:null,
+      ratingBadminton:null,pickleballMatches:0,avatarUrl:'',bio:'',
+      sports:player.sports||'basketball',pickleballSkill:player.pickleballSkill||''});
+    LC.set('roster',roster2);
+  }
   loginSuccess(player);
   toast('Profile created! Welcome');
 }
