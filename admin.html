@@ -1668,7 +1668,36 @@ select.fi{
               <label class="fl" style="margin-top:0">Game Days</label>
               <input type="text" class="fi" id="tf-gamedays" placeholder="e.g. Sundays, Every Sunday">
             </div>
+            <div>
+              <label class="fl" style="margin-top:0">Max Teams</label>
+              <input type="number" class="fi" id="tf-max-teams" min="2" max="32" placeholder="4">
+            </div>
           </div>
+          <label class="fl" style="margin-top:16px">About / Description <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(shown in Info tab)</span></label>
+          <textarea class="fi" id="tf-description" rows="3" style="resize:vertical;min-height:72px;padding:10px 14px;font-size:13px;line-height:1.5" placeholder="Brief overview of the league — format, eligibility, what to expect…"></textarea>
+
+          <label class="fl" style="margin-top:16px">Rules & Mechanics <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(shown in Info tab — one rule per line)</span></label>
+          <textarea class="fi" id="tf-rules" rows="5" style="resize:vertical;min-height:110px;padding:10px 14px;font-size:13px;line-height:1.5" placeholder="e.g.&#10;Games are 4 quarters, 8 minutes each&#10;3-foul limit per half&#10;Score by 1s and 2s&#10;No zone defense in the final 2 minutes"></textarea>
+
+          <label class="fl" style="margin-top:16px">League Banner Image <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional — displayed in hero on member app)</span></label>
+          <div id="tf-banner-preview" style="display:none;margin-bottom:8px;border-radius:10px;overflow:hidden;height:90px;background-size:cover;background-position:center;border:1px solid var(--b);position:relative">
+            <button type="button" onclick="document.getElementById('tf-banner-url').value='';document.getElementById('tf-banner-preview').style.display='none'" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1"><i class="ti ti-x"></i></button>
+          </div>
+          <input type="hidden" id="tf-banner-url">
+          <label for="tf-banner-file" id="tf-banner-dropzone" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px dashed var(--b);border-radius:10px;cursor:pointer;background:var(--b2);color:var(--tx3);font-size:13px;transition:border-color .15s">
+            <i class="ti ti-upload" style="font-size:18px;flex-shrink:0"></i>
+            <span id="tf-banner-label">Click to upload a banner image (JPG / PNG / WebP, max 2 MB)</span>
+          </label>
+          <input type="file" id="tf-banner-file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadTournBanner(this)">
+
+          <label class="waiver-chk" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:14px;background:var(--bg2);padding:12px 14px;border-radius:8px;border:1px solid var(--b)">
+            <input type="checkbox" id="tf-pool-enabled" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer" checked>
+            <div>
+              <div style="font-size:13px;font-weight:700">Enable Player Pool</div>
+              <div style="font-size:12px;color:var(--tx3);margin-top:2px">Allow members to sign up to a player pool on the tournament tab</div>
+            </div>
+          </label>
+
           <label class="fl" style="margin-top:16px">Designated Team Owners <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(only team owners can register and manage a team)</span></label>
           <div id="tf-captains-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;min-height:36px;padding:8px;background:var(--surface-1);border:1px solid var(--border-1);border-radius:10px"></div>
           <select multiple id="tf-captains" style="display:none"></select>
@@ -1716,6 +1745,8 @@ select.fi{
       <div id="admin-tourn-stats" style="display:none"></div>
       <div id="admin-tourn-gameday" style="display:none"></div>
       <div id="admin-tourn-proposals" style="display:none"></div>
+      <div id="admin-tourn-draft" style="display:none"></div>
+      <div id="admin-tourn-pool" style="display:none"></div>
     </div>
 
     <div class="panel" id="panel-settings">
@@ -2415,8 +2446,9 @@ function renderDash(){
   revEl.textContent='₱'+net.toLocaleString();
   revEl.style.color = net>=0 ? 'var(--gr)' : 'var(--danger)';
   updatePendingBadge();
-  // Upcoming games
-  const ug=games.filter(g=>g.status!=='cancelled').slice(0,3);
+  // Upcoming games — only future dates, sorted soonest first
+  const todayStr=today();
+  const ug=games.filter(g=>g.status!=='cancelled'&&(g.date||'')>=todayStr).sort((a,b)=>(a.date||'').localeCompare(b.date||'')).slice(0,3);
   document.getElementById('dash-games').innerHTML=ug.length?ug.map(g=>{
     const cnt=new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id)).size;
     const sp=spiTag(g.sport||'basketball');
@@ -4599,6 +4631,22 @@ function pullNextFour(style, queue){
   return out;
 }
 
+async function checkPbSaveBackup(){
+  const raw = localStorage.getItem('ccf_pb_save_backup');
+  if (!raw) return;
+  let entry;
+  try { entry = JSON.parse(raw); } catch(e) { localStorage.removeItem('ccf_pb_save_backup'); return; }
+  if (!confirm('A pickleball session from '+entry.game_date+' ('+entry.player_count+' players, '+(entry.matches||[]).length+' matches) failed to save last time. Retry saving it now?')) return;
+  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'pickleball'});
+  if (ok){
+    localStorage.removeItem('ccf_pb_save_backup');
+    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:entry.game_date+' · '+entry.player_count+' players · '+(entry.matches||[]).length+' matches',p_type:'success'});
+    toast('Recovered session saved · '+(entry.matches||[]).length+' matches archived');
+  } else {
+    toast('Retry failed again — the backup is still saved locally, try again later','er');
+  }
+}
+
 async function endPickleballSession(){
   if (!pbSession){ toast('No session running','er'); return; }
   if (!confirm('End the pickleball session? '+pbSession.log.length+' match(es) will be saved.')) return;
@@ -4624,14 +4672,16 @@ async function endPickleballSession(){
     })),
     sport:'pickleball'
   };
+  localStorage.setItem('ccf_pb_save_backup', JSON.stringify(entry));
   const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'pickleball'});
-  if (ok){
-    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
-    toast('Session saved · '+pbSession.log.length+' matches archived');
-  } else {
-    toast('Save failed — check Supabase','er');
+  if (!ok) {
+    toast('Save failed — matches were NOT lost, session is still open. Check your connection and try End Session again.','er');
+    return;
   }
-  // Reset state
+  localStorage.removeItem('ccf_pb_save_backup');
+  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
+  toast('Session saved · '+pbSession.log.length+' matches archived');
+  // Reset state (only after a confirmed save)
   await endSharedSession();
   pbStopTick();
   pbSession = null;
@@ -5329,6 +5379,8 @@ function renderAdminTournaments() {
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournStats('${t.id}')" style="flex:1"><i class="ti ti-chart-bar"></i>Stats</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPool('${t.id}')" style="flex:1;position:relative"><i class="ti ti-users-group"></i>Pool${(t.player_pool&&t.player_pool.length)?`<span style="position:absolute;top:-4px;right:-4px;background:var(--gold);color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${t.player_pool.length}</span>`:''}</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openDraftManager('${t.id}')" style="flex:1"><i class="ti ti-clipboard-list"></i>Draft</button>
         <button type="button" class="btn btn-sm" style="flex:1;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)" onclick="deleteTournament('${t.id}')"><i class="ti ti-trash"></i>Delete</button>
       </div>
     </div>`;
@@ -5337,7 +5389,7 @@ function renderAdminTournaments() {
 
 // ── panel visibility helper ───────────────────────────────────
 function _showTournPanel(which) {
-  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats','admin-tourn-gameday','admin-tourn-proposals'].forEach(id=>{
+  ['admin-tourn-list','admin-tourn-form','admin-tourn-regs','admin-tourn-payments','admin-tourn-stats','admin-tourn-gameday','admin-tourn-proposals','admin-tourn-draft','admin-tourn-pool'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = id===which ? '' : 'none';
   });
@@ -5745,10 +5797,11 @@ function renderTournGameDay(t) {
       ? `<span style="font-size:11px;font-weight:700;color:var(--gr)">FINAL</span>`
       : `<span style="font-size:11px;font-weight:700;color:var(--gold)">UPCOMING</span>`;
     return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${m.date||m.time?'4px':'10px'}">
         <div style="font-weight:700;font-size:14px">${roundLabel[rid]}</div>
         ${statusBadge}
       </div>
+      ${(m.date||m.time)?`<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">${m.date?new Date(m.date+'T00:00').toLocaleDateString('en-PH',{weekday:'short',month:'short',day:'numeric'}):''}${m.date&&m.time?' · ':''}${m.time||''}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-bottom:${done?'10px':'0'}">
         <div style="text-align:right">
           <div style="font-weight:${aWon?'800':'600'};font-size:15px;color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
@@ -5833,9 +5886,9 @@ async function saveGameDayResult(tournId, round) {
   const m = matches.find(x=>x.round===round);
   if (!m) return toast('Match not found','er');
   m.scoreA = sA; m.scoreB = sB; m.winner = winner;
-  // also add time recorded
-  m.time = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
-  m.date = new Date().toISOString().slice(0,10);
+  // preserve scheduled date/time if already set; otherwise stamp with today
+  if (!m.date) m.date = new Date().toISOString().slice(0,10);
+  if (!m.time) m.time = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   const ok = await dbUpdate('tournaments','id=eq.'+tournId,{matches});
   if (!ok) return toast('Save failed','er');
   toast('Result saved');
@@ -6041,6 +6094,11 @@ function openNewTournForm() {
   document.getElementById('tf-status').value = 'upcoming';
   document.getElementById('tf-venue').value = '';
   document.getElementById('tf-gamedays').value = '';
+  document.getElementById('tf-max-teams').value = '4';
+  document.getElementById('tf-description').value = '';
+  document.getElementById('tf-rules').value = '';
+  document.getElementById('tf-pool-enabled').checked = true;
+  _resetBannerField();
   _showTournForm();
   _populateCaptainsPicker([]);
   renderTournFeesForm();
@@ -6063,11 +6121,59 @@ function editTournament(id) {
   document.getElementById('tf-status').value = t.status||'upcoming';
   document.getElementById('tf-venue').value = t.venue||'';
   document.getElementById('tf-gamedays').value = t.game_days||'';
+  document.getElementById('tf-max-teams').value = t.max_teams||4;
+  document.getElementById('tf-description').value = t.description||'';
+  document.getElementById('tf-rules').value = (t.rules||[]).join('\n');
+  document.getElementById('tf-pool-enabled').checked = t.pool_enabled !== false;
+  _resetBannerField();
+  if (t.banner_url) {
+    document.getElementById('tf-banner-url').value = t.banner_url;
+    const prev = document.getElementById('tf-banner-preview');
+    prev.style.display = '';
+    prev.style.backgroundImage = 'url('+t.banner_url+')';
+    document.getElementById('tf-banner-label').textContent = 'Click to replace banner image';
+  }
   _showTournForm();
   _populateCaptainsPicker(t.captains||[]);
   renderTournFeesForm();
   renderTournTeamsForm();
   renderTournBracketForm(t.matches||[]);
+}
+
+async function uploadTournBanner(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) return toast('Image must be under 2 MB','er');
+  const label = document.getElementById('tf-banner-label');
+  label.textContent = 'Uploading…';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const path = 'banners/' + Date.now() + '.' + ext;
+  try {
+    const r = await fetch(SB+'/storage/v1/object/tournament-assets/'+path, {
+      method:'POST',
+      headers:{ 'apikey':KEY, 'Authorization':'Bearer '+KEY, 'Content-Type':file.type, 'x-upsert':'true' },
+      body: file
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const url = SB+'/storage/v1/object/public/tournament-assets/'+path;
+    document.getElementById('tf-banner-url').value = url;
+    const prev = document.getElementById('tf-banner-preview');
+    prev.style.display = '';
+    prev.style.backgroundImage = 'url('+url+')';
+    label.textContent = file.name + ' — uploaded ✓';
+    input.value = '';
+  } catch(e) {
+    console.error('banner upload',e);
+    label.textContent = 'Click to upload a banner image (JPG / PNG / WebP, max 2 MB)';
+    toast('Upload failed — check Supabase Storage bucket "tournament-assets" exists and is public','er');
+  }
+}
+
+function _resetBannerField() {
+  document.getElementById('tf-banner-url').value = '';
+  document.getElementById('tf-banner-preview').style.display = 'none';
+  document.getElementById('tf-banner-label').textContent = 'Click to upload a banner image (JPG / PNG / WebP, max 2 MB)';
+  document.getElementById('tf-banner-file').value = '';
 }
 
 function closeTournForm() {
@@ -6145,8 +6251,10 @@ function renderTournTeamsForm() {
             const p = allPlayers.find(x=>x.id===pid);
             const nm = p ? p.firstName+(p.lastName?' '+p.lastName:'') : pid;
             const jn = (tm.jerseyNumbers||{})[pid]||'';
+            const wSigned = (tm.waivers||{})[pid] === true;
             return `<div style="display:flex;align-items:center;gap:8px">
               <span style="flex:1;font-size:13px;color:var(--text-2)">${nm}</span>
+              <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;${wSigned?'color:var(--gr);background:rgba(72,199,142,.12)':'color:var(--am,#f59e0b);background:rgba(245,158,11,.12)'}">${wSigned?'✓ Waiver Signed':'⏳ Pending Waiver'}</span>
               <input type="number" min="0" max="99" placeholder="#" value="${jn}" oninput="_setJersey(${i},'${pid}',this.value)"
                 style="width:54px;padding:5px;text-align:center;font-size:13px;font-weight:700;border:1px solid var(--border-1,rgba(255,255,255,.1));border-radius:6px;background:var(--surface-2);color:var(--tx)">
             </div>`;
@@ -6170,10 +6278,13 @@ function _toggleTeamPlayer(teamIdx, pid) {
   if (idx >= 0) {
     tm.players.splice(idx, 1);
     if (tm.owner === pid) tm.owner = null;
+    if (tm.waivers) delete tm.waivers[pid];
   } else {
     if ((tm.players||[]).length >= MAX_TOURN_PLAYERS) { toast('Max '+MAX_TOURN_PLAYERS+' players per team','er'); return; }
     if (!tm.players) tm.players = [];
     tm.players.push(pid);
+    if (!tm.waivers) tm.waivers = {};
+    if (tm.waivers[pid] === undefined) tm.waivers[pid] = false; // pending until they sign
   }
   renderTournTeamsForm();
 }
@@ -6200,7 +6311,7 @@ function renderTournBracketForm(existing) {
     const saved = ex.find(x=>x.round===r.id);
     const teamA = saved?.teamA ?? r.autoA ?? null;
     const teamB = saved?.teamB ?? r.autoB ?? null;
-    const m = { round:r.id, teamA, teamB, scoreA:saved?.scoreA??'', scoreB:saved?.scoreB??'', winner:saved?.winner??null };
+    const m = { round:r.id, teamA, teamB, scoreA:saved?.scoreA??'', scoreB:saved?.scoreB??'', winner:saved?.winner??null, date:saved?.date??'', time:saved?.time??'' };
     const isRR = r.id.startsWith('rr');
     const teamOpts = which => {
       const cur = m['team'+which];
@@ -6220,6 +6331,10 @@ function renderTournBracketForm(existing) {
         <span style="color:var(--tx3);font-size:13px">vs</span>
         <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="B" onchange="updateBracketField(this)">${teamOpts('B')}</select>
       </div>`}
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <input type="date" class="inp" style="flex:1;min-width:120px;padding:6px 8px;font-size:13px" value="${m.date??''}" data-r="${r.id}" data-side="date" onchange="updateBracketField(this)" title="Game date">
+        <input type="time" class="inp" style="width:110px;padding:6px 8px;font-size:13px" value="${m.time??''}" data-r="${r.id}" data-side="time" onchange="updateBracketField(this)" title="Tip-off time">
+      </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;gap:4px;align-items:center">
           <input type="number" class="inp" style="width:60px;padding:6px;text-align:center;font-size:15px;font-weight:700" placeholder="0" value="${m.scoreA??''}" data-r="${r.id}" data-side="scoreA" onchange="updateBracketField(this)">
@@ -6236,7 +6351,7 @@ function renderTournBracketForm(existing) {
   }).join('');
   el._matches = rounds.map(r=>{
     const saved = ex.find(x=>x.round===r.id);
-    return { round:r.id, teamA:saved?.teamA??r.autoA??null, teamB:saved?.teamB??r.autoB??null, scoreA:saved?.scoreA??null, scoreB:saved?.scoreB??null, winner:saved?.winner??null };
+    return { round:r.id, teamA:saved?.teamA??r.autoA??null, teamB:saved?.teamB??r.autoB??null, scoreA:saved?.scoreA??null, scoreB:saved?.scoreB??null, winner:saved?.winner??null, date:saved?.date??null, time:saved?.time??null };
   });
 }
 
@@ -6251,6 +6366,8 @@ function updateBracketField(el) {
   else if (side==='scoreA') m.scoreA = el.value===''?null:Number(el.value);
   else if (side==='scoreB') m.scoreB = el.value===''?null:Number(el.value);
   else if (side==='winner') m.winner = el.value||null;
+  else if (side==='date') m.date = el.value||null;
+  else if (side==='time') m.time = el.value||null;
 }
 
 // ── save / delete ─────────────────────────────────────────────
@@ -6271,6 +6388,11 @@ async function saveTournament() {
     end_date:      document.getElementById('tf-end').value||null,
     venue:         document.getElementById('tf-venue').value.trim()||null,
     game_days:     document.getElementById('tf-gamedays').value.trim()||null,
+    max_teams:     parseInt(document.getElementById('tf-max-teams').value)||4,
+    description:   document.getElementById('tf-description').value.trim()||null,
+    rules:         document.getElementById('tf-rules').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    banner_url:    document.getElementById('tf-banner-url').value.trim()||null,
+    pool_enabled:  document.getElementById('tf-pool-enabled').checked,
     fee_breakdown: _tFees.filter(f=>f.label),
     captains:      _tCaptains,
     teams:         _tTeams,
@@ -7274,6 +7396,7 @@ function exportCSV(type){
         doFullSync();
         start30s();
         startSessionPoller();
+        checkPbSaveBackup();
         return;
       }
     }
@@ -7285,6 +7408,530 @@ function exportCSV(type){
   const alp = document.getElementById('al-phone');
   if (alp) alp.focus(); else document.getElementById('pin-field').focus();
 })();
+
+// ══════════════════════════════════════════════════════════════
+// PLAYER POOL MANAGER
+// ══════════════════════════════════════════════════════════════
+
+const _POOL_POS_COLOR = {PG:'#3b82f6',SG:'#8b5cf6',SF:'#10b981',PF:'#f59e0b',C:'#ef4444'};
+let _poolTournId = null;
+
+async function openTournPool(tournId) {
+  _poolTournId = tournId;
+  _showTournPanel('admin-tourn-pool');
+  // Refresh tournament data first
+  const rows = await dbGet('tournaments','select=*&id=eq.'+tournId).catch(()=>[]);
+  if (rows && rows[0]) {
+    const tourns = LC.arr('tournaments');
+    const ti = tourns.findIndex(x=>x.id===tournId);
+    if (ti>-1) { tourns[ti]=rows[0]; LC.set('tournaments',tourns); }
+  }
+  _renderTournPool();
+}
+
+function closeTournPool() { _showTournPanel('admin-tourn-list'); }
+
+function _renderTournPool() {
+  const el = document.getElementById('admin-tourn-pool');
+  if (!el) return;
+  const t = LC.arr('tournaments').find(x=>x.id===_poolTournId);
+  if (!t) return;
+
+  const pool = Array.isArray(t.player_pool) ? t.player_pool : [];
+  const players = LC.arr('players');
+
+  const posBadge = pos => pos
+    ? `<span style="font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:${(_POOL_POS_COLOR[pos]||'#6b7280')}22;color:${_POOL_POS_COLOR[pos]||'#6b7280'};border:1px solid ${(_POOL_POS_COLOR[pos]||'#6b7280')}44">${pos}</span>`
+    : '<span style="font-size:11px;color:var(--tx3)">—</span>';
+
+  // Position breakdown
+  const posCounts = {};
+  pool.forEach(p=>{ posCounts[p.position]=(posCounts[p.position]||0)+1; });
+  const posBreakdown = ['PG','SG','SF','PF','C'].map(pos=>`
+    <div style="text-align:center">
+      <div style="font-size:18px;font-weight:800;color:${_POOL_POS_COLOR[pos]||'#fff'}">${posCounts[pos]||0}</div>
+      <div style="font-size:10px;color:var(--tx3)">${pos}</div>
+    </div>`).join('');
+
+  const memberRows = pool.length ? pool.map((p,i)=>{
+    const fullPlayer = players.find(x=>x.id===p.id);
+    const joinedDate = p.joined_at ? new Date(p.joined_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '—';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b)">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);min-width:22px;text-align:center">${i+1}</div>
+      ${p.avatar_url?`<img src="${p.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:34px;height:34px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--tx3);flex-shrink:0">${(p.name||'?')[0]}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name||'—'}</div>
+        <div style="font-size:11px;color:var(--tx3)">Joined ${joinedDate}${fullPlayer?.phone?' · '+fullPlayer.phone:''}</div>
+      </div>
+      ${posBadge(p.position)}
+      <button type="button" onclick="removeFromPool('${p.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px"><i class="ti ti-x"></i></button>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:20px 0">No players in the pool yet.</div>';
+
+  el.innerHTML = `<div style="padding:16px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeTournPool()" style="width:auto"><i class="ti ti-arrow-left"></i> Back</button>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700">${t.name}</div>
+        <div style="font-size:11px;color:var(--tx3)">Player Pool — ${pool.length} signed up</div>
+      </div>
+      ${pool.length ? `<button type="button" class="btn btn-ghost btn-sm" onclick="downloadPoolCSV()" style="width:auto;flex-shrink:0"><i class="ti ti-download"></i> CSV</button>` : ''}
+    </div>
+
+    ${pool.length ? `<div class="card" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;text-align:center;padding:14px">
+      ${posBreakdown}
+    </div>` : ''}
+
+    <div class="card" style="padding:0 14px">
+      ${memberRows}
+    </div>
+  </div>`;
+}
+
+function downloadPoolCSV() {
+  const t = LC.arr('tournaments').find(x=>x.id===_poolTournId);
+  if (!t) return;
+  const pool = Array.isArray(t.player_pool) ? t.player_pool : [];
+  if (!pool.length) return toast('Pool is empty','in');
+  const players = LC.arr('players');
+  const headers = ['#','Name','Position','Phone','Email','Attended CCF','Has D-Group','D-Group Leader','Signed Up'];
+  const escape = v => '"'+String(v||'').replace(/"/g,'""')+'"';
+  const rows = pool.map((p,i) => {
+    const fp = players.find(x=>x.id===p.id) || {};
+    const dt = p.joined_at ? new Date(p.joined_at).toLocaleString('en-PH',{dateStyle:'medium',timeStyle:'short'}) : '';
+    return [i+1, p.name||'', p.position||'', fp.phone||'', fp.email||'',
+            fp.attendedCCF?'Yes':'No', fp.hasDgroup?'Yes':'No', fp.dgroupLeader||'', dt].map(escape).join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = (t.name||'pool').replace(/[^a-z0-9]/gi,'_')+'_player_pool.csv';
+  a.click();
+}
+
+async function removeFromPool(playerId) {
+  if (!confirm('Remove this player from the pool?')) return;
+  const tourns = LC.arr('tournaments');
+  const t = tourns.find(x=>x.id===_poolTournId);
+  if (!t) return;
+  const pool = (t.player_pool||[]).filter(p=>p.id!==playerId);
+  const ok = await dbUpdate('tournaments','id=eq.'+_poolTournId,{player_pool:pool});
+  if (!ok) return toast('Remove failed','er');
+  const ti = tourns.findIndex(x=>x.id===_poolTournId);
+  if (ti>-1) { tourns[ti]={...t,player_pool:pool}; LC.set('tournaments',tourns); }
+  toast('Player removed from pool');
+  _renderTournPool();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DRAFT MANAGER
+// ══════════════════════════════════════════════════════════════
+
+let _draftTournId = null;
+let _draftAdminTimerInt = null;
+
+function _draftSlot(pickNum, draftOrder, draft) {
+  const basePicks = (draft?.total_teams||draftOrder.length||4) * (draft?.total_rounds||13);
+  const deferred = draft?.deferred_picks || [];
+  if (pickNum > basePicks) {
+    const dp = deferred[pickNum - basePicks - 1];
+    if (!dp) return null;
+    return { round: 'D', slot: pickNum - basePicks, teamId: dp.team_id, deferred: true };
+  }
+  const n = draftOrder.length;
+  if (!n) return { round:1, slot:1, teamId:null };
+  const round = Math.ceil(pickNum / n);
+  const pos = (pickNum - 1) % n;
+  const even = round % 2 === 0;
+  const idx = even ? (n - 1 - pos) : pos;
+  return { round, slot: pos + 1, teamId: draftOrder[idx] };
+}
+
+function _draftTotalPicks(draft) {
+  const base = (draft.total_teams || 4) * (draft.total_rounds || 13);
+  return base + (draft.deferred_picks || []).length;
+}
+
+async function openDraftManager(tournId) {
+  _draftTournId = tournId;
+  _showTournPanel('admin-tourn-draft');
+  await _refreshDraftManager();
+}
+
+function closeDraftManager() {
+  _showTournPanel('admin-tourn-list');
+  if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt = null; }
+}
+
+async function _refreshDraftManager() {
+  const el = document.getElementById('admin-tourn-draft');
+  el.innerHTML = '<div class="empty" style="padding:40px;text-align:center">Loading…</div>';
+  const [draftRows, tournRows] = await Promise.all([
+    dbGet('drafts', 'select=*&tournament_id=eq.'+_draftTournId+'&order=created_at.desc&limit=1').catch(()=>[]),
+    dbGet('tournaments', 'select=*&id=eq.'+_draftTournId).catch(()=>[])
+  ]);
+  if (tournRows && tournRows[0]) {
+    const tourns = LC.arr('tournaments');
+    const ti = tourns.findIndex(x=>x.id===_draftTournId);
+    if (ti>-1) { tourns[ti]=tournRows[0]; LC.set('tournaments',tourns); }
+  }
+  const t = LC.arr('tournaments').find(x => x.id === _draftTournId);
+  _renderDraftManager(draftRows && draftRows[0] ? draftRows[0] : null, t);
+}
+
+function _renderDraftManager(draft, tourn) {
+  const el = document.getElementById('admin-tourn-draft');
+  if (!el || !tourn) return;
+  const teams = tourn.teams || [];
+
+  const header = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <button type="button" class="btn btn-ghost btn-sm" onclick="closeDraftManager()" style="width:auto"><i class="ti ti-arrow-left"></i> Back</button>
+    <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:700">${tourn.name}</div><div style="font-size:11px;color:var(--tx3)">Draft Manager</div></div>
+    ${draft ? `
+      <button type="button" class="btn btn-ghost btn-sm" onclick="resetDraft('${draft.id}')" style="width:auto;font-size:11px"><i class="ti ti-refresh"></i>Reset</button>
+      <button type="button" class="btn btn-sm" onclick="deleteDraft('${draft.id}')" style="width:auto;font-size:11px;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)"><i class="ti ti-trash"></i>Delete</button>
+      <span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;background:${draft.status==='active'?'rgba(72,199,142,.15)':draft.status==='complete'?'rgba(212,175,55,.15)':'var(--b2)'};color:${draft.status==='active'?'var(--gr)':draft.status==='complete'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.05em">${draft.status}</span>
+    ` : ''}
+  </div>`;
+
+  if (!draft) {
+    el.innerHTML = `<div style="padding:16px">${header}
+      <div class="card" style="text-align:center;padding:30px 20px">
+        <i class="ti ti-clipboard-list" style="font-size:40px;color:var(--tx3);margin-bottom:12px;display:block"></i>
+        <div style="font-size:15px;font-weight:700;margin-bottom:6px">No draft yet</div>
+        <div style="font-size:13px;color:var(--tx3);margin-bottom:22px">Set up a snake draft for <strong>${tourn.name}</strong>.<br>${teams.length} teams registered.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;text-align:left">
+          <div><label class="fl" style="margin-top:0">Total Rounds</label><input type="number" class="fi" id="dc-rounds" value="13" min="1" max="30"></div>
+          <div><label class="fl" style="margin-top:0">Pick Timer (sec)</label><input type="number" class="fi" id="dc-timer" value="60" min="10" max="300"></div>
+        </div>
+        <button type="button" class="btn" onclick="createDraft()" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>Create Draft</button>
+      </div></div>`;
+    return;
+  }
+
+  const status = draft.status;
+  const draftOrder = draft.draft_order || [];
+  const picks = draft.picks || [];
+  const currentPick = draft.current_pick || 1;
+  const totalPicks = _draftTotalPicks(draft);
+  const slot = draftOrder.length ? _draftSlot(currentPick, draftOrder, draft) : null;
+  const curTeam = slot ? teams.find(x => x.id === slot.teamId) : null;
+  const poolIds = new Set((tourn.player_pool||[]).map(p=>p.id));
+  const poolPlayers = LC.arr('players').filter(p => p.isActive !== false && poolIds.has(p.id));
+  const pickedIds = picks.map(p => p.player_id);
+  const available = poolPlayers.filter(p => !pickedIds.includes(p.id));
+
+  // Lottery section
+  let lotterySection = '';
+  if (status === 'pending' || status === 'lottery') {
+    const teamRows = teams.map((tm, i) => {
+      const pos = draftOrder.indexOf(tm.id);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
+        <div style="width:26px;height:26px;border-radius:50%;background:${pos>=0?'var(--gold)':'var(--b2)'};color:${pos>=0?'#000':'var(--tx3)'};font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${pos>=0?pos+1:'?'}</div>
+        <div style="flex:1;font-size:13px;font-weight:600">${tm.name}</div>
+        ${pos>=0?`<span style="font-size:11px;font-weight:700;color:var(--gr)">Pick #${pos+1}</span>`:'<span style="font-size:11px;color:var(--tx3)">TBD</span>'}
+      </div>`;
+    }).join('');
+    lotterySection = `<div class="card" style="margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Lottery — Pick Order</div>
+      ${teamRows}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button type="button" class="btn" onclick="runDraftLottery('${draft.id}')" style="flex:1;justify-content:center;background:var(--gold);color:#000"><i class="ti ti-dice"></i>${draftOrder.length ? 'Re-run Lottery' : 'Run Lottery'}</button>
+        ${draftOrder.length > 0 && draftOrder.length === teams.length ? `<button type="button" class="btn btn-g" onclick="startDraft('${draft.id}')" style="flex:1;justify-content:center"><i class="ti ti-player-play"></i>Start Draft</button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  // Active / paused pick section
+  let pickSection = '';
+  if (status === 'active' || status === 'paused') {
+    const isDone = currentPick > totalPicks;
+    if (isDone) {
+      pickSection = `<div class="card" style="text-align:center;padding:20px;background:rgba(72,199,142,.07);border-color:var(--gr);margin-bottom:12px">
+        <i class="ti ti-trophy" style="font-size:32px;color:var(--gold);margin-bottom:8px;display:block"></i>
+        <div style="font-size:16px;font-weight:800;margin-bottom:4px">Draft Complete!</div>
+        <div style="font-size:13px;color:var(--tx3)">${picks.length} players drafted across ${draft.total_rounds} rounds</div>
+      </div>`;
+    } else {
+      const playerListHtml = status === 'active'
+        ? `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Available Players</div><span style="font-size:12px;color:var(--tx3)">${available.length} left</span></div>
+           <input type="text" class="fi" id="draft-player-search" placeholder="Search player…" oninput="_filterDraftPlayers(this.value)" style="margin-bottom:8px">
+           <div id="draft-player-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--b);border-radius:10px">${_renderAdminPlayerList(available, draft.id, tourn.player_pool||[])}</div>`
+        : `<div class="card" style="text-align:center;padding:14px;color:var(--tx3);font-size:13px"><i class="ti ti-pause" style="font-size:22px;margin-bottom:6px;display:block"></i>Draft paused</div>`;
+
+      pickSection = `<div class="card" style="margin-bottom:10px;border-color:var(--gold);background:rgba(212,175,55,.05)">
+        <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">${slot?.deferred?'Deferred Pick':'Round '+(slot?slot.round:'—')} · Pick ${currentPick} of ${totalPicks}</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:2px">${curTeam ? curTeam.name : '—'} <span style="font-size:12px;font-weight:500;color:var(--tx3)">is on the clock</span></div>
+        <div id="draft-admin-timer" style="font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--gold);margin-bottom:10px">—</div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn ${status==='paused'?'btn-g':''}" onclick="toggleDraftPause('${draft.id}')" style="flex:1;justify-content:center"><i class="ti ti-${status==='paused'?'player-play':'pause'}"></i>${status==='paused'?'Resume':'Pause'}</button>
+          <button type="button" class="btn btn-ghost" onclick="skipDraftPick('${draft.id}')" style="flex:1;justify-content:center"><i class="ti ti-forward-skip"></i>Skip</button>
+        </div>
+      </div>
+      ${playerListHtml}`;
+
+      if (status === 'active') setTimeout(() => _startAdminDraftTimer(draft), 80);
+    }
+  }
+
+  if (status === 'complete') {
+    pickSection = `<div class="card" style="text-align:center;padding:20px;background:rgba(212,175,55,.07);border-color:var(--gold);margin-bottom:12px">
+      <i class="ti ti-trophy" style="font-size:32px;color:var(--gold);margin-bottom:8px;display:block"></i>
+      <div style="font-size:16px;font-weight:800;margin-bottom:4px">Draft Complete!</div>
+      <div style="font-size:13px;color:var(--tx3)">${picks.length} players drafted across ${draft.total_rounds} rounds</div>
+    </div>`;
+  }
+
+  const boardHtml = picks.length ? _renderAdminDraftBoard(draft, teams) : '';
+
+  el.innerHTML = `<div style="padding:16px">
+    ${header}
+    <div style="font-size:11px;color:var(--tx3);margin-bottom:14px">Snake Draft · ${draft.total_rounds} rounds · ${draft.total_teams} teams · ${draft.pick_duration}s timer</div>
+    ${lotterySection}${pickSection}
+    ${boardHtml ? `<div class="sec-h"><div class="sec-t">Draft Board</div></div>${boardHtml}` : ''}
+  </div>`;
+}
+
+function _renderAdminPlayerList(players, draftId, pool) {
+  if (!players.length) {
+    const allPicked = (pool||[]).length > 0;
+    return allPicked
+      ? '<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">All pool players have been drafted!</div>'
+      : '<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">No players in the pool yet.<br><span style="font-size:11px">Players must join the pool before the draft.</span></div>';
+  }
+  const posColor = {'PG':'#3b82f6','SG':'#8b5cf6','SF':'#10b981','PF':'#f59e0b','C':'#ef4444'};
+  return players.slice(0, 60).map(p => {
+    const poolEntry = (pool||[]).find(x=>x.id===p.id);
+    const pos = poolEntry?.position || p.position || null;
+    const pc = posColor[pos] || '#6b7280';
+    return `<div class="draft-pr" data-name="${(p.firstName+' '+(p.lastName||'')).toLowerCase().trim()}" onclick="adminMakePick('${draftId}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.firstName}${p.lastName ? ' '+p.lastName : ''}</div></div>
+      ${pos ? `<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:${pc}22;color:${pc};border:1px solid ${pc}44;flex-shrink:0">${pos}</span>` : ''}
+      <button type="button" style="background:var(--gold);border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;color:#000;cursor:pointer;flex-shrink:0">Pick</button>
+    </div>`;
+  }).join('');
+}
+
+function _renderAdminDraftBoard(draft, teams) {
+  const picks = draft.picks || [];
+  const order = draft.draft_order || [];
+  if (!picks.length || !order.length) return '';
+  const byRound = {};
+  picks.forEach(p => { if (!byRound[p.round]) byRound[p.round]={}; byRound[p.round][p.team_id]=p; });
+  const cols = order.length;
+  const headers = order.map(tid => {
+    const tm = teams.find(x => x.id===tid);
+    return `<div style="font-size:9px;font-weight:800;color:var(--tx3);text-align:center;padding:4px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${tm?tm.name:'—'}</div>`;
+  }).join('');
+  const rows = Object.entries(byRound).sort((a,b)=>+a[0]-+b[0]).map(([round, teamPicks]) => `
+    <div style="display:grid;grid-template-columns:22px repeat(${cols},1fr);gap:2px;margin-bottom:2px">
+      <div style="font-size:9px;font-weight:700;color:var(--gold);text-align:center;padding-top:6px">R${round}</div>
+      ${order.map(tid => {
+        const pk = teamPicks[tid];
+        return pk
+          ? `<div style="background:var(--b2);border-radius:5px;padding:4px 5px"><div style="font-size:9px;font-weight:700;line-height:1.2;word-break:break-word">${pk.player_name}</div><div style="font-size:8px;color:var(--tx3)">#${pk.pick}</div></div>`
+          : `<div style="border:1px dashed var(--b);border-radius:5px;min-height:30px;opacity:.3"></div>`;
+      }).join('')}
+    </div>`).join('');
+  return `<div class="card" style="padding:10px;overflow-x:auto">
+    <div style="display:grid;grid-template-columns:22px repeat(${cols},1fr);gap:2px;margin-bottom:4px"><div></div>${headers}</div>
+    ${rows}
+  </div>`;
+}
+
+function _filterDraftPlayers(q) {
+  document.querySelectorAll('.draft-pr').forEach(row => {
+    row.style.display = row.dataset.name.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function _startAdminDraftTimer(draft) {
+  if (_draftAdminTimerInt) clearInterval(_draftAdminTimerInt);
+  const dur = draft.pick_duration || 60;
+  const started = draft.pick_started_at ? new Date(draft.pick_started_at).getTime() : Date.now();
+  _draftAdminTimerInt = setInterval(() => {
+    const el = document.getElementById('draft-admin-timer');
+    if (!el) { clearInterval(_draftAdminTimerInt); return; }
+    const rem = Math.max(0, dur - Math.floor((Date.now()-started)/1000));
+    el.textContent = rem + 's';
+    el.style.color = rem<=10 ? 'var(--danger,#e53e3e)' : rem<=20 ? '#f59e0b' : 'var(--gold)';
+  }, 500);
+}
+
+async function _clearDraftRostersFromTournament(tournId) {
+  const rows = await dbGet('tournaments', 'select=*&id=eq.'+tournId);
+  const tourn = rows && rows[0];
+  if (!tourn) return false;
+  const clearedTeams = (tourn.teams||[]).map(tm => ({
+    ...tm, players: [], waivers: {}
+  }));
+  const ok = await dbUpdate('tournaments', 'id=eq.'+tournId, { teams: clearedTeams });
+  if (ok) {
+    const all = LC.arr('tournaments');
+    const i = all.findIndex(x => x.id===tournId);
+    if (i > -1) { all[i] = {...tourn, teams: clearedTeams}; LC.set('tournaments', all); }
+  }
+  return ok;
+}
+
+async function deleteDraft(draftId) {
+  if (!confirm('Delete this draft? All picks and lottery results will be lost. Team rosters will also be cleared.')) return;
+  if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt = null; }
+  const dRows = await dbGet('drafts', 'select=tournament_id&id=eq.'+draftId);
+  const tournId = dRows && dRows[0] && dRows[0].tournament_id;
+  const ok = await dbDelete('drafts', 'id=eq.'+draftId);
+  if (!ok) return toast('Delete failed','er');
+  if (tournId) await _clearDraftRostersFromTournament(tournId);
+  toast('Draft deleted — team rosters cleared');
+  await _refreshDraftManager();
+}
+
+async function resetDraft(draftId) {
+  if (!confirm('Reset draft to lottery stage? All picks will be cleared and team rosters reset.')) return;
+  if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt = null; }
+  const dRows = await dbGet('drafts', 'select=tournament_id&id=eq.'+draftId);
+  const tournId = dRows && dRows[0] && dRows[0].tournament_id;
+  const ok = await dbUpdate('drafts','id=eq.'+draftId, {
+    status: 'pending', draft_order: [], picks: [], current_pick: 1, pick_started_at: null
+  });
+  if (!ok) return toast('Reset failed','er');
+  if (tournId) await _clearDraftRostersFromTournament(tournId);
+  toast('Draft reset — team rosters cleared');
+  await _refreshDraftManager();
+}
+
+async function createDraft() {
+  const tourn = LC.arr('tournaments').find(x => x.id===_draftTournId);
+  if (!tourn) return;
+  const rounds = parseInt(document.getElementById('dc-rounds').value)||13;
+  const timer = parseInt(document.getElementById('dc-timer').value)||60;
+  const id = 'draft_'+Date.now();
+  const ok = await dbInsert('drafts', {
+    id, tournament_id:_draftTournId, status:'pending',
+    draft_order:[], picks:[], current_pick:1,
+    total_rounds:rounds, total_teams:(tourn.teams||[]).length, pick_duration:timer,
+    pick_started_at:null
+  });
+  if (!ok) return toast('Failed to create draft','er');
+  toast('Draft created');
+  await _refreshDraftManager();
+}
+
+async function runDraftLottery(draftId) {
+  const tourn = LC.arr('tournaments').find(x => x.id===_draftTournId);
+  if (!tourn) return;
+  const teams = [...(tourn.teams||[])];
+  for (let i=teams.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [teams[i],teams[j]] = [teams[j],teams[i]];
+  }
+  const order = teams.map(t => t.id);
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{draft_order:order, status:'lottery'});
+  if (!ok) return toast('Lottery failed','er');
+  toast('Lottery done — draft order set!');
+  await _refreshDraftManager();
+}
+
+async function startDraft(draftId) {
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+    status:'active', current_pick:1, pick_started_at:new Date().toISOString()
+  });
+  if (!ok) return toast('Failed to start draft','er');
+  toast('Draft is LIVE!');
+  await _refreshDraftManager();
+}
+
+async function adminMakePick(draftId, playerId) {
+  const rows = await dbGet('drafts','select=*&id=eq.'+draftId).catch(()=>[]);
+  const draft = rows && rows[0];
+  if (!draft) return toast('Draft not found','er');
+  if (draft.status !== 'active') return toast('Draft is not active','er');
+
+  const player = LC.arr('players').find(p => p.id===playerId);
+  if (!player) return toast('Player not found','er');
+
+  const pickedIds = (draft.picks||[]).map(p => p.player_id);
+  if (pickedIds.includes(playerId)) return toast('Already drafted','er');
+
+  const slot = _draftSlot(draft.current_pick, draft.draft_order, draft);
+  const tourn = LC.arr('tournaments').find(x => x.id===_draftTournId);
+  const team = (tourn?.teams||[]).find(x => x.id===slot.teamId);
+
+  const newPick = {
+    pick: draft.current_pick, round: slot.round, slot: slot.slot,
+    team_id: slot.teamId, team_name: team?.name||'Team',
+    player_id: playerId,
+    player_name: player.firstName+(player.lastName?' '+player.lastName:''),
+    timestamp: new Date().toISOString()
+  };
+
+  const picks = [...(draft.picks||[]), newPick];
+  const nextPick = draft.current_pick + 1;
+  const totalPicks = _draftTotalPicks(draft);
+  const newStatus = nextPick > totalPicks ? 'complete' : 'active';
+
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+    picks, current_pick:nextPick, status:newStatus,
+    pick_started_at: newStatus==='active' ? new Date().toISOString() : null
+  });
+  if (!ok) return toast('Pick failed','er');
+
+  // Sync player into tournament team roster
+  if (tourn && slot.teamId) {
+    const updatedTeams = (tourn.teams||[]).map(tm => {
+      if (tm.id !== slot.teamId) return tm;
+      const players = [...(tm.players||[])];
+      if (!players.includes(playerId)) players.push(playerId);
+      const waivers = {...(tm.waivers||{})};
+      if (waivers[playerId] === undefined) waivers[playerId] = false;
+      return {...tm, players, waivers};
+    });
+    const tOk = await dbUpdate('tournaments','id=eq.'+_draftTournId,{teams:updatedTeams});
+    if (tOk) {
+      const tourns = LC.arr('tournaments');
+      const ti = tourns.findIndex(x=>x.id===_draftTournId);
+      if (ti>-1) { tourns[ti]={...tourn,teams:updatedTeams}; LC.set('tournaments',tourns); }
+    }
+  }
+
+  if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt=null; }
+  toast(`${player.firstName} → ${team?.name||'team'}`);
+  await _refreshDraftManager();
+}
+
+async function skipDraftPick(draftId) {
+  if (!confirm('Defer this pick? The team will get an extra pick at the end of the draft.')) return;
+  const rows = await dbGet('drafts','select=*&id=eq.'+draftId);
+  const draft = rows && rows[0];
+  if (!draft) return toast('Could not load draft — try again','er');
+  const slot = _draftSlot(draft.current_pick, draft.draft_order, draft);
+  const tourn = LC.arr('tournaments').find(x => x.id===_draftTournId);
+  const team = (tourn?.teams||[]).find(x => x.id===slot?.teamId);
+  const deferred = [...(draft.deferred_picks||[]), {team_id: slot?.teamId, team_name: team?.name||'Team'}];
+  const nextPick = draft.current_pick + 1;
+  const effectiveTotal = (draft.total_teams||4)*(draft.total_rounds||13) + deferred.length;
+  const newStatus = nextPick > effectiveTotal ? 'complete' : 'active';
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+    current_pick:nextPick, deferred_picks:deferred, status:newStatus,
+    pick_started_at: newStatus==='active' ? new Date().toISOString() : null
+  });
+  if (!ok) return toast('Defer failed — try again','er');
+  toast((team?.name||'Team')+' pick deferred to end of draft');
+  if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt=null; }
+  await _refreshDraftManager();
+}
+
+async function toggleDraftPause(draftId) {
+  const rows = await dbGet('drafts','select=*&id=eq.'+draftId);
+  const draft = rows && rows[0];
+  if (!draft) return toast('Could not load draft — try again','er');
+  const newStatus = draft.status==='active' ? 'paused' : 'active';
+  const extra = newStatus==='active' ? {pick_started_at:new Date().toISOString()} : {};
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{status:newStatus,...extra});
+  if (!ok) return toast('Update failed — try again','er');
+  toast(newStatus==='active' ? 'Draft resumed' : 'Draft paused');
+  await _refreshDraftManager();
+}
 </script>
 </body>
 </html>

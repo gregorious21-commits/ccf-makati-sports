@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CCF Makati Sports</title>
 <link rel="icon" href="logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════
    CCF MAKATI SPORTS — Player App
@@ -424,7 +425,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 
 .link-btn{
   background:none;border:none;
-  color:#7DA9F8;
+  color:var(--blue2);
   font-size:14px;font-weight:600;
   cursor:pointer;font-family:var(--font-ui);
   padding:var(--s-3) 0;
@@ -534,6 +535,133 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 .pb-edit:hover{background:var(--surface-3);color:var(--text-1)}
 .pb-edit i{font-size:14px}
+.pb-share{
+  display:inline-flex;align-items:center;gap:var(--s-2);
+  min-height:36px;padding:0 var(--s-3);
+  background:rgba(253,184,39,.10);
+  border:1px solid rgba(253,184,39,.35);
+  border-radius:var(--r-sm);
+  color:var(--gold);
+  font-size:12px;font-weight:600;
+  cursor:pointer;font-family:var(--font-ui);
+  margin-top:var(--s-4);margin-left:8px;
+}
+.pb-share:hover{background:rgba(253,184,39,.20)}
+.pb-share i{font-size:13px}
+
+/* ── STAT CARD SHEET ─────────────────────────────── */
+#sc-ovl{align-items:flex-end;padding:0}
+.sc-sheet{
+  width:100%;max-height:100dvh;
+  background:var(--bg);
+  border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border-strong);
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:scSlideUp 320ms var(--ease-out);
+}
+@keyframes scSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sc-handle{
+  width:36px;height:4px;background:rgba(255,255,255,.18);
+  border-radius:2px;margin:14px auto 8px;flex-shrink:0;
+}
+.sc-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px 10px;flex-shrink:0;
+}
+.sc-head-title{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.sc-mode-row{
+  display:flex;background:var(--surface-1);
+  border:1px solid var(--border);border-radius:var(--r-md);
+  padding:3px;gap:3px;margin:0 16px 10px;flex-shrink:0;
+}
+.sc-mtab{
+  flex:1;min-height:38px;background:transparent;border:none;
+  border-radius:10px;font-family:var(--font-ui);
+  font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;
+  transition:all 150ms var(--ease);-webkit-tap-highlight-color:transparent;
+}
+.sc-mtab.on{background:var(--surface-2);color:var(--text-1)}
+.sc-canvas-area{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:4px 16px;overflow:hidden;min-height:0;
+}
+#sc-canvas{
+  display:block;
+  height:min(calc(100dvh - 252px),480px);
+  width:auto;border-radius:14px;
+  box-shadow:0 16px 48px rgba(0,0,0,.55);
+}
+.sc-no-tourn{
+  margin:0 16px 8px;padding:12px 16px;
+  background:var(--surface-1);border:1px solid var(--border);
+  border-radius:var(--r-md);text-align:center;
+  font-size:13px;color:var(--text-3);line-height:1.5;flex-shrink:0;
+}
+.sc-foot{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.sc-photo-btn{
+  position:relative;overflow:hidden;
+  display:inline-flex;align-items:center;gap:6px;
+  min-height:44px;padding:0 14px;flex-shrink:0;
+  background:var(--surface-2);border:1px solid var(--border-strong);
+  border-radius:var(--r-sm);color:var(--text-2);
+  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-ui);
+  -webkit-tap-highlight-color:transparent;transition:all 150ms var(--ease);
+}
+.sc-photo-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.sc-photo-btn.has-photo{border-color:rgba(253,184,39,.5);color:var(--gold);background:rgba(253,184,39,.08)}
+.sc-dl-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  min-height:44px;background:var(--gold);color:#100B00;
+  border:none;border-radius:var(--r-sm);
+  font-family:var(--font-ui);font-size:14px;font-weight:700;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  transition:background 150ms var(--ease),transform 100ms var(--ease);
+}
+.sc-dl-btn:active{transform:scale(.98)}
+.sc-theme-row{display:flex;align-items:center;gap:8px;padding:0 16px 10px;flex-shrink:0}
+.sc-theme-lbl{font-size:11px;font-weight:600;color:var(--text-3);white-space:nowrap;letter-spacing:.3px;margin-right:2px}
+.sc-th{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:transform 100ms,border-color 100ms;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.sc-th.on{border-color:#fff;transform:scale(1.15)}
+.sc-th-gold{background:linear-gradient(135deg,#FDB827,#c8880a)}
+.sc-th-ice{background:linear-gradient(135deg,#38BDF8,#0369A1)}
+.sc-th-fire{background:linear-gradient(135deg,#FB923C,#9A1B00)}
+.sc-th-mono{background:linear-gradient(135deg,#e2e8f0,#64748b)}
+.sc-layout-row{display:flex;align-items:center;gap:6px;padding:0 16px 10px;flex-shrink:0}
+.sc-ltab{
+  padding:4px 11px;min-height:28px;
+  background:var(--surface-1);border:1px solid var(--border);
+  border-radius:6px;font-family:var(--font-ui);
+  font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--text-3);cursor:pointer;
+  transition:all 150ms var(--ease);-webkit-tap-highlight-color:transparent;
+}
+.sc-ltab.on{background:var(--surface-2);color:var(--text-1);border-color:var(--border-strong)}
+.sc-sport-row{display:flex;gap:6px;padding:0 16px 10px;flex-shrink:0;flex-wrap:wrap}
+.sc-stab{
+  padding:4px 14px;min-height:30px;
+  background:var(--surface-1);border:1px solid var(--border);
+  border-radius:20px;font-family:var(--font-ui);
+  font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;
+  transition:all 150ms var(--ease);-webkit-tap-highlight-color:transparent;
+}
+.sc-stab.on{background:rgba(253,184,39,.12);border-color:rgba(253,184,39,.4);color:var(--gold)}
+.sc-pos-row{
+  display:flex;align-items:center;gap:10px;
+  padding:4px 16px 10px;flex-shrink:0;
+}
+.sc-pos-lbl{font-size:11px;font-weight:600;color:var(--text-3);white-space:nowrap;letter-spacing:.3px}
+#sc-pos-slider{
+  -webkit-appearance:none;flex:1;height:4px;
+  background:var(--surface-2);border-radius:2px;outline:none;cursor:pointer;
+}
+#sc-pos-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;
+  background:var(--gold);border-radius:50%;cursor:pointer;
+  box-shadow:0 1px 6px rgba(0,0,0,.4);
+}
 .pb-bio{
   font-size:14px;color:var(--text-2);
   line-height:1.6;margin-top:var(--s-4);
@@ -583,7 +711,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 .sec-link{
   font-size:13px;font-weight:600;
-  color:#7DA9F8;cursor:pointer;
+  color:var(--blue2);cursor:pointer;
 }
 .sec-link:hover{color:#A5C4FB}
 
@@ -655,7 +783,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .dev-badge{
   display:inline-block;
   font-size:10px;font-weight:700;letter-spacing:.12em;
-  text-transform:uppercase;color:#7DA9F8;
+  text-transform:uppercase;color:var(--blue2);
   background:var(--info-soft);
   border:1px solid rgba(59,130,246,.25);
   border-radius:var(--r-sm);
@@ -765,7 +893,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .b-on { background:var(--success-soft); color:#4ADE80;        border-color:rgba(34,197,94,.30)}
 .b-tbd{ background:var(--warning-soft); color:#FBBF24;        border-color:rgba(245,158,11,.30)}
 .b-rd { background:var(--danger-soft);  color:#F87171;        border-color:rgba(239,68,68,.30)}
-.b-nv { background:var(--info-soft);    color:#7DA9F8;        border-color:rgba(59,130,246,.30)}
+.b-nv { background:var(--info-soft);    color:var(--blue2);        border-color:rgba(59,130,246,.30)}
 .b-gd { background:var(--gold-soft);    color:var(--gold-bright); border-color:rgba(253,184,39,.35)}
 
 .join-btn{
@@ -833,7 +961,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .copy-btn{
   display:inline-flex;align-items:center;gap:4px;
   background:none;border:none;
-  color:#7DA9F8;font-size:12px;font-weight:600;
+  color:var(--blue2);font-size:12px;font-weight:600;
   cursor:pointer;font-family:var(--font-ui);
   padding:6px 0;margin-top:var(--s-2);
   min-height:32px;
@@ -1151,7 +1279,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 
 /* ── TAB PANELS + BAR ── */
-.tab-panel{animation:fadeUp 250ms var(--ease-out)}
+.tab-panel{animation:fadeUp 250ms var(--ease-out);padding-bottom:calc(68px + env(safe-area-inset-bottom,0px) + 16px)}
 .tabbar{
   position:fixed;bottom:0;left:0;right:0;
   height:68px;
@@ -1223,7 +1351,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 
 /* ── TOAST ── */
 .toast{
-  position:fixed;bottom:24px;left:50%;
+  position:fixed;bottom:calc(68px + env(safe-area-inset-bottom,0px) + 16px);left:50%;
   transform:translateX(-50%) translateY(20px);
   background:var(--surface-3);color:var(--text-1);
   padding:var(--s-3) var(--s-5);
@@ -1566,7 +1694,7 @@ footer a:hover{color:var(--text-1)}
         <div class="pb-av" id="d-av" onclick="openEditProfile()">??</div>
     </div>
       <div class="pb-bio" id="d-bio" style="display:none"></div>
-      <button type="button" class="pb-edit" onclick="openEditProfile()"><i class="ti ti-edit" style="font-size:12px"></i>Edit Profile</button>
+      <button type="button" class="pb-edit" onclick="openEditProfile()"><i class="ti ti-edit" style="font-size:12px"></i>Edit Profile</button><button type="button" class="pb-share" onclick="shareCard()"><i class="ti ti-share"></i>Share My Card</button>
       <div class="stats-strip" style="margin-top:18px">
         <div class="stat"><div class="stat-n g" id="d-wins">0</div><div class="stat-l"><span class="spi spi-b"></span>Wins</div></div>
         <div class="stat"><div class="stat-n" id="d-games">0</div><div class="stat-l"><span class="spi spi-b"></span>Games</div></div>
@@ -1578,6 +1706,7 @@ footer a:hover{color:var(--text-1)}
   <div class="content">
     <!-- ───── HOME TAB ───── -->
     <div id="tab-home" class="tab-panel">
+      <div id="live-draft-widget" style="display:none;padding:0 0 4px"></div>
       <div id="live-queue" class="card lq-card" style="display:none"></div>
       <div class="sec-h"><div class="sec-t">This Week</div></div>
       <div class="sport-pills" role="tablist">
@@ -1855,7 +1984,110 @@ footer a:hover{color:var(--text-1)}
 </div>
 </div>
 
+<!-- ══ STAT CARD SHEET ══ -->
+<div class="ovl" id="sc-ovl" onclick="scBgClose(event)">
+  <div class="sc-sheet">
+    <div class="sc-handle"></div>
+    <div class="sc-head">
+      <span class="sc-head-title">My Stats Card</span>
+      <button type="button" class="x-btn" onclick="closeStatCard()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="sc-mode-row">
+      <button type="button" class="sc-mtab on" id="sct-o" onclick="scSetMode('overall')">Overall Stats</button>
+      <button type="button" class="sc-mtab" id="sct-t" onclick="scSetMode('tournament')">Tournament</button>
+    </div>
+    <div class="sc-theme-row">
+      <span class="sc-theme-lbl">THEME</span>
+      <button type="button" class="sc-th sc-th-gold on"  onclick="scSetTheme('gold')"  title="Gold"></button>
+      <button type="button" class="sc-th sc-th-ice"      onclick="scSetTheme('ice')"   title="Ice"></button>
+      <button type="button" class="sc-th sc-th-fire"     onclick="scSetTheme('fire')"  title="Fire"></button>
+      <button type="button" class="sc-th sc-th-mono"     onclick="scSetTheme('mono')"  title="Mono"></button>
+    </div>
+    <div class="sc-layout-row">
+      <span class="sc-pos-lbl">LAYOUT</span>
+      <button type="button" class="sc-ltab on" id="sll-row"   onclick="scSetLayout('row')">ROW</button>
+      <button type="button" class="sc-ltab"    id="sll-cards" onclick="scSetLayout('cards')">CARDS</button>
+      <button type="button" class="sc-ltab"    id="sll-hero"  onclick="scSetLayout('hero')">HERO</button>
+      <button type="button" class="sc-ltab"    id="sll-list"  onclick="scSetLayout('list')">LIST</button>
+    </div>
+    <div class="sc-sport-row" id="sc-sport-row" style="display:none"></div>
+    <div class="sc-canvas-area">
+      <canvas id="sc-canvas" width="1080" height="1920"></canvas>
+    </div>
+    <div class="sc-no-tourn" id="sc-no-tourn" style="display:none">
+      Not on a tournament team yet — check back once your captain sets the roster.
+    </div>
+    <div class="sc-pos-row">
+      <span class="sc-pos-lbl">POSITION</span>
+      <input type="range" id="sc-pos-slider" min="30" max="75" value="56" oninput="scSetContentY(this.value)">
+    </div>
+    <div class="sc-foot">
+      <label class="sc-photo-btn" id="sc-photo-btn">
+        <i class="ti ti-photo" style="font-size:16px"></i>
+        <span id="sc-photo-txt">Add photo</span>
+        <input type="file" accept="image/*" onchange="scHandlePhoto(this)">
+      </label>
+      <button type="button" class="sc-dl-btn" onclick="scDownload()">
+        <i class="ti ti-download" style="font-size:15px"></i>Download PNG
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
+
+<!-- ══ DRAFT NOTIFICATION MODAL ══ -->
+<div id="drafted-modal" style="display:none;position:fixed;inset:0;z-index:9800;align-items:center;justify-content:center;padding:20px;background:rgba(5,9,20,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+  <div style="position:relative;background:var(--card,#0f1729);border:1px solid var(--gold-soft,rgba(253,184,39,.4));border-radius:20px;max-width:360px;width:100%;overflow:hidden;text-align:center">
+    <div id="drafted-modal-bar" style="height:4px;width:100%;background:var(--gold)"></div>
+    <div style="padding:28px 24px 24px">
+      <div id="drafted-modal-icon" style="font-size:40px;margin-bottom:12px">🏀</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:3px;color:var(--tx3);margin-bottom:6px">YOU'VE BEEN DRAFTED</div>
+      <div id="drafted-modal-team" style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1px;line-height:1;color:var(--gold);margin-bottom:4px">TEAM LUKE</div>
+      <div id="drafted-modal-tourn" style="font-size:13px;color:var(--tx3);margin-bottom:20px">CrossCourt Season 01</div>
+      <p style="font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:22px">Welcome to the roster. Head to the <strong style="color:var(--tx)">Tournaments</strong> tab to see your full team lineup.</p>
+      <button type="button" onclick="closeDraftedModal()" class="btn btn-g" style="width:100%;justify-content:center"><i class="ti ti-check"></i>Let's Go!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOURNAMENT WAIVER MODAL ══ -->
+<div id="draft-pick-modal" style="display:none;position:fixed;inset:0;z-index:9700;align-items:center;justify-content:center;padding:16px"></div>
+
+<div id="pool-join-modal" style="display:none;position:fixed;inset:0;z-index:9650;align-items:center;justify-content:center;padding:16px">
+  <div onclick="document.getElementById('pool-join-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(0,0,0,.72)"></div>
+  <div id="pool-join-inner" style="position:relative;background:var(--card,#0f1729);border-radius:16px;max-width:380px;width:100%;padding:22px 20px"></div>
+</div>
+
+<div id="tourn-waiver-modal" style="display:none;position:fixed;inset:0;z-index:9600;align-items:center;justify-content:center;padding:16px">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.75)"></div>
+  <div style="position:relative;background:var(--card,#0f1729);border:1px solid rgba(212,175,55,.35);border-radius:16px;max-width:440px;width:100%;max-height:90vh;display:flex;flex-direction:column">
+    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--b)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <i class="ti ti-shield-check" style="font-size:22px;color:var(--gold)"></i>
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--tx)">Tournament Waiver</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:1px">Required before you can participate</div>
+        </div>
+      </div>
+    </div>
+    <div style="overflow-y:auto;padding:16px 20px;flex:1">
+      <div style="font-size:13px;color:var(--tx2);line-height:1.7;background:var(--b2);border-radius:10px;padding:14px;margin-bottom:16px">
+        <p style="margin:0 0 10px"><strong style="color:var(--tx)">1. Voluntary Participation.</strong> I voluntarily choose to participate in this CCF Makati Sports tournament and understand it involves physical activity.</p>
+        <p style="margin:0 0 10px"><strong style="color:var(--tx)">2. Assumption of Risk.</strong> I acknowledge that basketball and related sports carry inherent risks including sprains, fractures, concussions, and other physical harm. I voluntarily assume all such risks.</p>
+        <p style="margin:0 0 10px"><strong style="color:var(--tx)">3. Release of Liability.</strong> I release CCF Makati Sports, its organizers, leaders, and volunteers from any liability for injuries, accidents, or losses sustained during the tournament or any related activities.</p>
+        <p style="margin:0 0 10px"><strong style="color:var(--tx)">4. Physical Fitness.</strong> I confirm that I am in good physical health and medically fit to participate. I am solely responsible for any medical expenses arising from my participation.</p>
+        <p style="margin:0"><strong style="color:var(--tx)">5. Emergency Consent.</strong> I authorize organizers to seek emergency medical care on my behalf if I am unable to do so.</p>
+      </div>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:18px">
+        <input type="checkbox" id="tourn-waiver-chk" onchange="document.getElementById('tourn-waiver-sign').disabled=!this.checked;document.getElementById('tourn-waiver-sign').style.opacity=this.checked?'1':'.45'" style="width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--gold);cursor:pointer">
+        <span style="font-size:13px;color:var(--tx2);line-height:1.5">I have read, understood, and agree to this tournament liability waiver. I confirm I am physically fit to participate. *</span>
+      </label>
+      <button id="tourn-waiver-sign" onclick="signTournWaiver()" disabled style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;color:#000;cursor:pointer;opacity:.45;letter-spacing:.02em">Sign &amp; Continue</button>
+      <p style="font-size:11px;color:var(--tx3);text-align:center;margin:10px 0 0">You must sign this waiver to appear on your team's roster.</p>
+    </div>
+  </div>
+</div>
 
 <div id="rules-modal" style="display:none;position:fixed;inset:0;z-index:9500;align-items:center;justify-content:center;padding:16px">
   <div onclick="closeRulesGate()" style="position:absolute;inset:0;background:rgba(0,0,0,.65)"></div>
@@ -2339,9 +2571,39 @@ function loginSuccess(p) {
   document.getElementById('view-dash').style.display='block';
   window.scrollTo(0,0);
   renderProfile(); updatePayDisplay(); fetchVOTD();
-  syncAll(); startRefresh(); startLiveQueuePoll();
+  syncAll().then(()=>checkDraftNotification()); startRefresh(); startLiveQueuePoll();
   _handleHash();
   toast('Welcome back, '+p.firstName+'!');
+}
+
+function checkDraftNotification() {
+  if (!ME) return;
+  const tourns = LC.arr('tournaments');
+  for (const t of tourns) {
+    const teams = t.teams || [];
+    for (const team of teams) {
+      const players = team.players || [];
+      const inTeam = players.some(p => (typeof p === 'string' ? p : p.id) === ME.id);
+      if (!inTeam) continue;
+      const seenKey = 'draft_seen_' + ME.id + '_' + t.id;
+      if (localStorage.getItem(seenKey)) return;
+      // Team colour bar
+      const colours = { 'Team Luke': '#60A5FA', 'Team Mark': '#4ADE80', 'Team John': '#F87171', 'Team Matthew': '#FBBF24' };
+      const bar = document.getElementById('drafted-modal-bar');
+      const teamEl = document.getElementById('drafted-modal-team');
+      const tournEl = document.getElementById('drafted-modal-tourn');
+      if (bar) bar.style.background = colours[team.name] || 'var(--gold)';
+      if (teamEl) { teamEl.textContent = (team.name||'').toUpperCase(); teamEl.style.color = colours[team.name] || 'var(--gold)'; }
+      if (tournEl) tournEl.textContent = t.name || 'Tournament';
+      localStorage.setItem(seenKey, '1');
+      setTimeout(() => { document.getElementById('drafted-modal').style.display = 'flex'; }, 1200);
+      return;
+    }
+  }
+}
+
+function closeDraftedModal() {
+  document.getElementById('drafted-modal').style.display = 'none';
 }
 
 // ── REGISTER ─────────────────────────────────────────────────
@@ -2643,6 +2905,558 @@ function renderProfile() {
   document.getElementById('d-pball').textContent = pickleballGames(ME.id);
   const bio=document.getElementById('d-bio');
   if (ME.bio) { bio.style.display=''; bio.textContent=ME.bio; } else bio.style.display='none';
+}
+
+function shareCard() { openStatCard(); }
+
+// ── STAT CARD SHEET ──────────────────────────────────────────
+const SC_THEMES = {
+  gold: { bg0:'#060B1C', bg1:'#0A1124', bg2:'#0E1735', glow:'rgba(253,184,39,.06)', accent:'#FDB827', num:'#FDB827', url:'rgba(253,184,39,.68)' },
+  ice:  { bg0:'#020D1A', bg1:'#041525', bg2:'#062035', glow:'rgba(56,189,248,.07)',  accent:'#38BDF8', num:'#E0F2FE', url:'rgba(56,189,248,.70)' },
+  fire: { bg0:'#120400', bg1:'#190700', bg2:'#1E0C02', glow:'rgba(251,100,36,.07)',  accent:'#FB923C', num:'#FFBA88', url:'rgba(251,146,60,.70)' },
+  mono: { bg0:'#080808', bg1:'#101010', bg2:'#181818', glow:'rgba(255,255,255,.04)', accent:'#FFFFFF', num:'#FFFFFF', url:'rgba(255,255,255,.60)' },
+};
+function scTh() { return SC_THEMES[SC.theme] || SC_THEMES.gold; }
+
+const SC = { mode:'overall', photo:null, av:null, logo:null, stats:null, tourn:null, sport:'basketball', contentY:56, theme:'gold', layout:'row' };
+
+async function openStatCard() {
+  if (!ME) return;
+  const ovl = document.getElementById('sc-ovl');
+  ovl.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  SC.mode = 'overall';
+  document.getElementById('sct-o').classList.add('on');
+  document.getElementById('sct-t').classList.remove('on');
+  document.getElementById('sc-no-tourn').style.display = 'none';
+
+  // Sport + position reset
+  SC.sport = (ME.sports || 'basketball').split(',')[0].trim();
+  SC.contentY = 56;
+  const sl = document.getElementById('sc-pos-slider');
+  if (sl) sl.value = 56;
+  scBuildSportTabs();
+
+  // Draw immediately with cached data so it's not blank
+  scBuildStats();
+  await document.fonts.ready;
+  scDraw();
+
+  // Load logomark PNG (cached after first load)
+  if (!SC.logo) {
+    const img = new Image();
+    img.onload  = () => { SC.logo = img; scDraw(); };
+    img.onerror = () => {};
+    img.src = '/logomark.png';
+  }
+
+  // Load avatar (async — redraw when ready)
+  if (ME.avatarUrl && !SC.av) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload  = () => { SC.av = img; scDraw(); };
+    img.onerror = () => { SC.av = null; };
+    img.src = ME.avatarUrl;
+  } else if (!ME.avatarUrl) {
+    SC.av = null;
+  }
+
+  // Rank (one API call — redraw when it arrives)
+  try {
+    const r = await fetch(
+      `${SB}/rest/v1/players_public?wins=gt.${ME.wins||0}&select=id`,
+      { headers: { ...SBR, 'Prefer':'count=exact','Range-Unit':'items','Range':'0-0' } }
+    );
+    const rng  = r.headers.get('content-range') || '*/0';
+    const rank = parseInt(rng.split('/')[1] || '0') + 1;
+    SC.stats.rank = rank;
+    scDraw();
+  } catch(e) { /* rank stays null */ }
+
+  // Tournament data from cache + draft pick
+  SC.tourn = null;
+  const tourns = LC.arr('tournaments');
+  outer: for (const t of tourns) {
+    for (const team of (t.teams || [])) {
+      if ((team.players || []).includes(ME.id)) {
+        let pick = null;
+        try {
+          const drafts = await dbGet('drafts', `tournament_id=eq.${t.id}&select=picks&limit=1`);
+          if (drafts && drafts[0]) {
+            const pk = (drafts[0].picks || []).find(p => p.player_id === ME.id);
+            if (pk) pick = pk.pick;
+          }
+        } catch(e) {}
+        SC.tourn = {
+          name : t.name   || 'CCF Tournament',
+          team : team.name || 'My Team',
+          sport: t.sport  || 'Basketball',
+          pick,
+          size : (team.players || []).length,
+        };
+        break outer;
+      }
+    }
+  }
+  scDraw();
+}
+
+function scBuildStats() {
+  const wins = ME.wins  || 0;
+  const gp   = ME.games || 0;
+  SC.stats = { wins, gp, wr: gp > 0 ? Math.round(wins / gp * 100) : 0, rank: null };
+}
+
+function closeStatCard() {
+  document.getElementById('sc-ovl').classList.remove('open');
+  document.body.style.overflow = '';
+  SC.photo = null;
+  const pb = document.getElementById('sc-photo-btn');
+  pb.classList.remove('has-photo');
+  document.getElementById('sc-photo-txt').textContent = 'Add photo';
+}
+
+function scBgClose(e) { if (e.target.id === 'sc-ovl') closeStatCard(); }
+
+function scSetMode(m) {
+  SC.mode = m;
+  document.getElementById('sct-o').classList.toggle('on', m === 'overall');
+  document.getElementById('sct-t').classList.toggle('on', m === 'tournament');
+  document.getElementById('sc-no-tourn').style.display =
+    (m === 'tournament' && !SC.tourn) ? 'block' : 'none';
+  scDraw();
+}
+
+function scHandlePhoto(inp) {
+  if (!inp.files[0]) return;
+  const fr = new FileReader();
+  fr.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      SC.photo = img;
+      const pb = document.getElementById('sc-photo-btn');
+      pb.classList.add('has-photo');
+      document.getElementById('sc-photo-txt').textContent = 'Change photo';
+      scDraw();
+    };
+    img.src = e.target.result;
+  };
+  fr.readAsDataURL(inp.files[0]);
+}
+
+async function scDownload() {
+  const cv   = document.getElementById('sc-canvas');
+  const slug = (ME.firstName + '-' + ME.lastName).toLowerCase()
+    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const filename = 'ccf-stats-' + slug + '.png';
+
+  // iOS: use Web Share API so "Save Image" goes to Photos, not Files
+  if (navigator.canShare) {
+    try {
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+    } catch(e) {
+      if (e.name === 'AbortError') return; // user cancelled share sheet
+    }
+  }
+
+  // Desktop / Android fallback
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+// ── Canvas drawing ─────────────────────────────────────────────
+
+function scDraw() {
+  if (!SC.stats) return;
+  const cv  = document.getElementById('sc-canvas');
+  const ctx = cv.getContext('2d');
+  const W   = cv.width, H = cv.height, s = W / 1080;
+
+  ctx.clearRect(0, 0, W, H);
+  const th = scTh();
+
+  // Background
+  if (SC.photo) {
+    const sc = Math.max(W / SC.photo.naturalWidth, H / SC.photo.naturalHeight);
+    ctx.drawImage(SC.photo,
+      (W - SC.photo.naturalWidth  * sc) / 2,
+      (H - SC.photo.naturalHeight * sc) / 2,
+      SC.photo.naturalWidth * sc, SC.photo.naturalHeight * sc);
+  } else {
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, th.bg0); bg.addColorStop(.5, th.bg1); bg.addColorStop(1, th.bg2);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    const gl = ctx.createRadialGradient(W*.72, H*.18, 0, W*.72, H*.18, W*.65);
+    gl.addColorStop(0, th.glow); gl.addColorStop(1, 'transparent');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, W, H);
+  }
+
+  // Vignettes
+  const tg = ctx.createLinearGradient(0, 0, 0, H * .30);
+  tg.addColorStop(0, 'rgba(0,0,0,.80)'); tg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = tg; ctx.fillRect(0, 0, W, H * .30);
+
+  const bg2 = ctx.createLinearGradient(0, H * .40, 0, H);
+  bg2.addColorStop(0, 'rgba(0,0,0,0)'); bg2.addColorStop(.28, 'rgba(0,0,0,.58)'); bg2.addColorStop(1, 'rgba(0,0,0,.92)');
+  ctx.fillStyle = bg2; ctx.fillRect(0, H * .40, W, H * .60);
+
+  // Basketball court texture (plain bg only — photo replaces it)
+  if (!SC.photo) scDrawCourtLines(ctx, W, H, s);
+
+  // Gold brand accent stripe at top
+  const sg = ctx.createLinearGradient(0, 0, W, 0);
+  sg.addColorStop(0, 'transparent');
+  sg.addColorStop(.12, th.accent + '99');
+  sg.addColorStop(.88, th.accent + '99');
+  sg.addColorStop(1, 'transparent');
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, 5*s);
+
+  // CrossCourt logo (top-left) — drawn directly on canvas matching brand identity
+  scDrawCrossCourtLogo(ctx, 56*s, 56*s, s);
+
+  // Avatar (top-right)
+  scDrawAvatar(ctx, W - 80*s, 98*s, 62*s);
+  // Sport badge below avatar
+  const _sportBadge = (SC.sport || 'basketball').toUpperCase();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.font = `700 ${14*s}px Inter`; ctx.fillStyle = th.accent + '88';
+  ctx.fillText(_sportBadge, W - 80*s, 170*s);
+
+  // Content
+  if (SC.mode === 'overall') {
+    if (SC.sport === 'pickleball') scDrawPickleball(ctx, W, H, s);
+    else scDrawOverall(ctx, W, H, s);
+  } else if (SC.mode === 'tournament' && SC.tourn) {
+    scDrawTournament(ctx, W, H, s);
+  }
+
+  // Brand footer — rule + community name + year + url
+  scHRule(ctx, 60*s, H - 148*s, W - 60*s, s);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `700 ${21*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.72)';
+  ctx.fillText('CCF MAKATI SPORTS', 60*s, H - 108*s);
+  ctx.textAlign = 'right';
+  ctx.font = `600 ${19*s}px Inter`; ctx.fillStyle = th.accent + '88';
+  ctx.fillText('2025', W - 60*s, H - 108*s);
+  ctx.textAlign = 'center';
+  ctx.font = `500 ${19*s}px Inter`; ctx.fillStyle = th.url;
+  ctx.fillText('ccfmakatisports.com', W / 2, H - 62*s);
+}
+
+function scDrawAvatar(ctx, cx, cy, r) {
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  if (SC.av) {
+    ctx.clip();
+    const sc = Math.max((r*2)/SC.av.naturalWidth, (r*2)/SC.av.naturalHeight);
+    ctx.drawImage(SC.av, cx - SC.av.naturalWidth*sc/2, cy - SC.av.naturalHeight*sc/2,
+      SC.av.naturalWidth*sc, SC.av.naturalHeight*sc);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = '#1B2747'; ctx.fill(); ctx.restore();
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${r*.72}px Inter`; ctx.fillStyle = scTh().accent;
+    ctx.fillText(
+      ((ME.firstName||'')[0]||'').toUpperCase() + ((ME.lastName||'')[0]||'').toUpperCase(),
+      cx, cy
+    );
+    ctx.restore();
+  }
+  ctx.strokeStyle = scTh().accent; ctx.lineWidth = 4.5 * (r / 54);
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+}
+
+function scDrawOverall(ctx, W, H, s) {
+  const sportTag = (SC.sport || 'basketball').toUpperCase();
+  const stats = [
+    {lbl:'WINS',     val:String(SC.stats.wins)},
+    {lbl:'GAMES',    val:String(SC.stats.gp)},
+    {lbl:'WIN RATE', val:SC.stats.wr+'%'},
+    {lbl:'RANK',     val:SC.stats.rank?'#'+SC.stats.rank:'—'},
+  ];
+  const Y = H * (SC.contentY / 100);
+  if (SC.layout==='cards') { scLayoutCards(ctx,W,H,s,Y,sportTag,stats); return; }
+  if (SC.layout==='hero')  { scLayoutHero(ctx,W,H,s,Y,sportTag,stats,2); return; }
+  if (SC.layout==='list')  { scLayoutList(ctx,W,H,s,Y,sportTag,stats);  return; }
+  // Row (default) — 3 stats + win rate bar
+  scLayoutRow(ctx,W,H,s,Y,sportTag,stats.slice(0,3));
+  const sy = Y+196*s, by = sy+104*s, bw = W-120*s;
+  scRRect(ctx,60*s,by,bw,8*s,4*s,'rgba(255,255,255,.10)');
+  if (SC.stats.wr>0) scRRect(ctx,60*s,by,bw*(SC.stats.wr/100),8*s,4*s,scTh().accent);
+  ctx.textAlign='right'; ctx.font=`600 ${24*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.40)';
+  if (SC.stats.rank) ctx.fillText('#'+SC.stats.rank+' overall',W-60*s,by+46*s);
+}
+
+function scDrawTournament(ctx, W, H, s) {
+  const T = SC.tourn, Y = H * (SC.contentY / 100);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  // Tournament label
+  ctx.font = `700 ${26*s}px Inter`; ctx.fillStyle = scTh().accent + 'A6';
+  ctx.fillText(T.name.toUpperCase(), 60*s, Y);
+
+  // Team name — big, shrink to fit
+  let fs = 116;
+  ctx.font = `900 ${fs*s}px "Bebas Neue"`;
+  while (ctx.measureText(T.team).width > W - 120*s && fs > 48) { fs -= 4; ctx.font = `900 ${fs*s}px "Bebas Neue"`; }
+  ctx.fillStyle = '#fff';
+  ctx.fillText(T.team, 60*s, Y + (fs + 14)*s);
+
+  // Player + pick sub-line
+  const sub = (`${ME.firstName||''} ${ME.lastName||''}`).trim() + (T.pick ? '  ·  Draft pick #' + T.pick : '');
+  ctx.font = `500 ${28*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.48)';
+  ctx.fillText(scClamp(ctx, sub, W - 120*s), 60*s, Y + (fs + 14)*s + 56*s);
+
+  const divY = Y + (fs + 14)*s + 100*s;
+  scHRule(ctx, 60*s, divY, W - 60*s, s);
+
+  const sy = divY + 148*s, cw = (W - 120*s) / 3;
+  [['PLAYERS', String(T.size || '—')], ['SPORT', (T.sport||'').toUpperCase()], ['PICK', T.pick ? '#' + T.pick : '—']].forEach(([lbl, val], i) => {
+    const cx = 60*s + i*cw + cw/2;
+    ctx.textAlign = 'center';
+    ctx.font = `900 ${100*s}px "Bebas Neue"`; ctx.fillStyle = scTh().num; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(val, cx, sy);
+    ctx.font = `700 ${22*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.38)';
+    ctx.fillText(lbl, cx, sy + 52*s);
+    if (i < 2) scVLine(ctx, 60*s + (i+1)*cw, sy - 90*s, sy + 60*s, s);
+  });
+}
+
+function scSetTheme(t) {
+  SC.theme = t;
+  document.querySelectorAll('.sc-th').forEach(el => {
+    el.classList.toggle('on', el.getAttribute('onclick').includes(`'${t}'`));
+  });
+  scDraw();
+}
+
+function scBuildSportTabs() {
+  const sports = (ME.sports || 'basketball').split(',').map(x => x.trim()).filter(Boolean);
+  const row = document.getElementById('sc-sport-row');
+  if (!row) return;
+  if (sports.length <= 1) { row.style.display = 'none'; return; }
+  if (!sports.includes(SC.sport)) SC.sport = sports[0];
+  const labels = { basketball:'Basketball', pickleball:'Pickleball', running:'Running', badminton:'Badminton', dragonboat:'Dragon Boat' };
+  row.style.display = '';
+  row.innerHTML = sports.map(sp =>
+    `<button type="button" class="sc-stab${sp===SC.sport?' on':''}" onclick="scSetSport('${sp}')">${labels[sp]||sp}</button>`
+  ).join('');
+}
+
+function scSetSport(sp) { SC.sport = sp; scBuildSportTabs(); scDraw(); }
+
+function scSetContentY(val) { SC.contentY = Number(val); scDraw(); }
+
+function scDrawPickleball(ctx, W, H, s) {
+  const stats = [
+    {lbl:'MATCHES', val:String(ME.pickleballMatches||0)},
+    {lbl:'RATING',  val:ME.ratingPickleball!=null?Number(ME.ratingPickleball).toFixed(2):'—'},
+    {lbl:'SKILL',   val:(ME.pickleballSkill||'—').toUpperCase()},
+  ];
+  const Y = H * (SC.contentY / 100);
+  if (SC.layout==='cards') { scLayoutCards(ctx,W,H,s,Y,'Pickleball',stats); return; }
+  if (SC.layout==='hero')  { scLayoutHero(ctx,W,H,s,Y,'Pickleball',stats,1); return; }
+  if (SC.layout==='list')  { scLayoutList(ctx,W,H,s,Y,'Pickleball',stats);  return; }
+  scLayoutRow(ctx,W,H,s,Y,'Pickleball',stats);
+}
+
+function scDrawCourtLines(ctx, W, H, s) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.052)';
+  ctx.fillStyle   = 'rgba(255,255,255,.052)';
+  ctx.lineWidth   = 2.2*s;
+
+  const cx = W / 2, cy = H * .26;
+
+  // Half-court line
+  ctx.beginPath(); ctx.moveTo(80*s, cy); ctx.lineTo(W - 80*s, cy); ctx.stroke();
+
+  // Center circle
+  ctx.beginPath(); ctx.arc(cx, cy, 138*s, 0, Math.PI * 2); ctx.stroke();
+
+  // Center dot
+  ctx.beginPath(); ctx.arc(cx, cy, 11*s, 0, Math.PI * 2); ctx.fill();
+
+  // Paint / key rectangle (above center line)
+  const kw = 256*s, kh = 196*s;
+  ctx.strokeRect(cx - kw/2, cy - kh, kw, kh);
+
+  // Free-throw circle (top arc only — lane side)
+  ctx.beginPath();
+  ctx.arc(cx, cy - kh, 92*s, Math.PI, 0);
+  ctx.stroke();
+
+  // Free-throw circle (bottom arc dashed — below lane)
+  ctx.setLineDash([14*s, 10*s]);
+  ctx.beginPath();
+  ctx.arc(cx, cy - kh, 92*s, 0, Math.PI);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 3-point arc (only the curved section visible above the half-court)
+  ctx.beginPath();
+  ctx.arc(cx, cy, 378*s, Math.PI * 1.18, Math.PI * 1.82);
+  ctx.stroke();
+
+  // Restricted area arc inside paint
+  ctx.beginPath();
+  ctx.arc(cx, cy, 68*s, Math.PI, 0);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function scSetLayout(l) {
+  SC.layout = l;
+  document.querySelectorAll('.sc-ltab').forEach(el =>
+    el.classList.toggle('on', el.getAttribute('onclick').includes(`'${l}'`))
+  );
+  scDraw();
+}
+
+// Shared header: name + sport tag
+function scStatHeader(ctx, W, s, Y, sportTag) {
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const name = (`${ME.firstName||''} ${ME.lastName||''}`).trim().toUpperCase();
+  ctx.font=`800 ${72*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.97)';
+  ctx.fillText(scClamp(ctx,name,W-160*s), 60*s, Y);
+  ctx.font=`600 ${30*s}px Inter`; ctx.fillStyle=scTh().accent;
+  ctx.fillText(sportTag, 60*s, Y+60*s);
+}
+
+// ROW — 3 stats side by side with dividers
+function scLayoutRow(ctx, W, H, s, Y, sportTag, stats) {
+  scStatHeader(ctx, W, s, Y, sportTag);
+  scHRule(ctx, 60*s, Y+96*s, W-60*s, s);
+  const sy=Y+196*s, cols=Math.min(stats.length,3), cw=(W-120*s)/cols;
+  stats.slice(0,cols).forEach(({lbl,val},i) => {
+    const cx=60*s+i*cw+cw/2;
+    ctx.textAlign='center';
+    const fs=val.length>4?80*s:96*s;
+    ctx.font=`900 ${fs}px "Bebas Neue"`; ctx.fillStyle=scTh().num; ctx.textBaseline='alphabetic';
+    ctx.fillText(scClamp(ctx,val,cw-10*s), cx, sy);
+    ctx.font=`700 ${22*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.38)';
+    ctx.fillText(lbl, cx, sy+52*s);
+    if (i<cols-1) scVLine(ctx, 60*s+(i+1)*cw, sy-90*s, sy+60*s, s);
+  });
+}
+
+// CARDS — each stat in a rounded box, 2 per row
+function scLayoutCards(ctx, W, H, s, Y, sportTag, stats) {
+  scStatHeader(ctx, W, s, Y, sportTag);
+  const pad=60*s, gap=14*s, cw=(W-pad*2-gap)/2, ch=cw*0.72;
+  stats.forEach(({lbl,val},i) => {
+    const col=i%2, row=Math.floor(i/2);
+    const x=pad+col*(cw+gap), y=Y+102*s+row*(ch+gap);
+    // Card fill + border
+    scRRect(ctx, x,y,cw,ch, 18*s, 'rgba(255,255,255,.055)');
+    ctx.save(); ctx.strokeStyle=scTh().accent+'2A'; ctx.lineWidth=1.5*s;
+    const r=18*s;
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+cw-r,y); ctx.arcTo(x+cw,y,x+cw,y+r,r);
+    ctx.lineTo(x+cw,y+ch-r); ctx.arcTo(x+cw,y+ch,x+cw-r,y+ch,r);
+    ctx.lineTo(x+r,y+ch); ctx.arcTo(x,y+ch,x,y+ch-r,r);
+    ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+    ctx.closePath(); ctx.stroke(); ctx.restore();
+    // Value
+    const fs=val.length>4?66*s:82*s;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`900 ${fs}px "Bebas Neue"`; ctx.fillStyle=scTh().num;
+    ctx.fillText(scClamp(ctx,val,cw-24*s), x+cw/2, y+ch/2-10*s);
+    // Label
+    ctx.font=`700 ${18*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.32)';
+    ctx.fillText(lbl, x+cw/2, y+ch-20*s);
+  });
+}
+
+// HERO — one stat spotlighted large, rest below smaller
+function scLayoutHero(ctx, W, H, s, Y, sportTag, stats, heroIdx) {
+  scStatHeader(ctx, W, s, Y, sportTag);
+  const hero=stats[heroIdx]||stats[0];
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.font=`900 ${186*s}px "Bebas Neue"`; ctx.fillStyle=scTh().num;
+  ctx.fillText(hero.val, W/2, Y+290*s);
+  ctx.font=`700 ${26*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.36)';
+  ctx.fillText(hero.lbl, W/2, Y+332*s);
+  scHRule(ctx, 60*s, Y+368*s, W-60*s, s);
+  const rest=stats.filter((_,i)=>i!==heroIdx);
+  const cols=rest.length, cw=(W-120*s)/cols, sy=Y+454*s;
+  rest.forEach(({lbl,val},i) => {
+    const cx=60*s+i*cw+cw/2;
+    ctx.textAlign='center';
+    const fs=val.length>4?68*s:82*s;
+    ctx.font=`900 ${fs}px "Bebas Neue"`; ctx.fillStyle=scTh().num+'BB'; ctx.textBaseline='alphabetic';
+    ctx.fillText(scClamp(ctx,val,cw-10*s), cx, sy);
+    ctx.font=`700 ${20*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.28)';
+    ctx.fillText(lbl, cx, sy+46*s);
+    if (i<cols-1) scVLine(ctx, 60*s+(i+1)*cw, sy-74*s, sy+52*s, s);
+  });
+}
+
+// LIST — vertical rows, label left, value right
+function scLayoutList(ctx, W, H, s, Y, sportTag, stats) {
+  scStatHeader(ctx, W, s, Y, sportTag);
+  scHRule(ctx, 60*s, Y+96*s, W-60*s, s);
+  const rowH=128*s;
+  stats.forEach(({lbl,val},i) => {
+    const mid=Y+132*s+i*rowH+rowH/2;
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.font=`700 ${24*s}px Inter`; ctx.fillStyle='rgba(255,255,255,.32)';
+    ctx.fillText(lbl, 60*s, mid);
+    ctx.textAlign='right';
+    const fs=val.length>5?70*s:86*s;
+    ctx.font=`900 ${fs}px "Bebas Neue"`; ctx.fillStyle=scTh().num;
+    ctx.fillText(val, W-60*s, mid+24*s);
+    if (i<stats.length-1) scHRule(ctx, 60*s, Y+132*s+(i+1)*rowH, W-60*s, s);
+  });
+}
+
+function scDrawCrossCourtLogo(ctx, x, y, s) {
+  const lh = 80*s;
+  const lw = (320 / 260) * lh;
+  ctx.save();
+  if (SC.logo) {
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(SC.logo, x, y, lw, lh);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  // CCF sub-label below logo
+  ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+  ctx.font = `600 ${14*s}px Inter, sans-serif`;
+  ctx.fillStyle = 'rgba(255,255,255,.28)';
+  ctx.fillText('CCF MAKATI SPORTS', x, y + lh + 8*s);
+  ctx.restore();
+}
+function scHRule(ctx, x1, y, x2, s) {
+  ctx.save(); ctx.strokeStyle='rgba(255,255,255,.13)'; ctx.lineWidth=1.5*s;
+  ctx.beginPath(); ctx.moveTo(x1,y); ctx.lineTo(x2,y); ctx.stroke(); ctx.restore();
+}
+function scVLine(ctx, x, y1, y2, s) {
+  ctx.save(); ctx.strokeStyle='rgba(255,255,255,.11)'; ctx.lineWidth=1.5*s;
+  ctx.beginPath(); ctx.moveTo(x,y1); ctx.lineTo(x,y2); ctx.stroke(); ctx.restore();
+}
+function scRRect(ctx, x, y, w, h, r, fill) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+}
+function scClamp(ctx, txt, maxW) {
+  if (ctx.measureText(txt).width <= maxW) return txt;
+  let t = txt;
+  while (ctx.measureText(t+'…').width > maxW && t.length) t = t.slice(0,-1);
+  return t + '…';
 }
 
 // ── EDIT PROFILE (photo + bio) ────────────────────────────────
@@ -3429,7 +4243,7 @@ function switchTab(name, { pushState=true }={}) {
   });
   const pb=document.getElementById('profile-band');
   if (pb) pb.style.display = name==='profile' ? '' : 'none';
-  if (name==='home') renderFeedPreview();
+  if (name==='home') { renderFeedPreview(); startDraftPolling(); }
   if (name==='feed') renderFeed();
   if (name==='players') renderDirectory();
   if (name==='profile') { renderProfile(); renderMyHist(); }
@@ -3453,11 +4267,74 @@ function _slugify(str) {
   return (str||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 }
 
+// ── tournament waiver ─────────────────────────────────────────
+let _tournWaiverTournId = null;
+
+function _checkTournWaiver(tournId) {
+  if (!ME) return;
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  if (!t) return;
+  const myTeam = (t.teams||[]).find(tm=>(tm.players||[]).includes(ME.id));
+  if (!myTeam) return;
+  const signed = (myTeam.waivers||{})[ME.id] === true;
+  if (signed) return;
+  // unsigned — show modal
+  _tournWaiverTournId = tournId;
+  const modal = document.getElementById('tourn-waiver-modal');
+  const chk = document.getElementById('tourn-waiver-chk');
+  const btn = document.getElementById('tourn-waiver-sign');
+  if (chk) chk.checked = false;
+  if (btn) { btn.disabled = true; btn.style.opacity = '.45'; }
+  modal.style.display = 'flex';
+}
+
+async function signTournWaiver() {
+  if (!ME || !_tournWaiverTournId) return;
+  const btn = document.getElementById('tourn-waiver-sign');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const t = LC.arr('tournaments').find(x=>x.id===_tournWaiverTournId);
+  if (!t) return;
+  const teams = JSON.parse(JSON.stringify(t.teams||[]));
+  const myTeam = teams.find(tm=>(tm.players||[]).includes(ME.id));
+  if (!myTeam) return;
+  if (!myTeam.waivers) myTeam.waivers = {};
+  myTeam.waivers[ME.id] = true;
+  const ok = await dbUpdate('tournaments','id=eq.'+_tournWaiverTournId,{teams});
+  if (!ok) {
+    toast('Could not save waiver — please try again','er');
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign & Continue'; btn.style.opacity = '1'; }
+    return;
+  }
+  // update local cache
+  const all = LC.arr('tournaments');
+  const idx = all.findIndex(x=>x.id===_tournWaiverTournId);
+  if (idx>=0) { all[idx].teams = teams; LC.set('tournaments',all); }
+  document.getElementById('tourn-waiver-modal').style.display = 'none';
+  _tournWaiverTournId = null;
+  toast('Waiver signed — welcome to the tournament!');
+  renderTournDetail(t.id);
+}
+
+function switchTournTab(tab) {
+  _tDetailTab = tab;
+  ['info','myteam','schedule','standings'].forEach(t => {
+    const el = document.getElementById('tdt-'+t);
+    if (el) el.style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('.tdt-tab').forEach(btn => {
+    const active = btn.dataset.tab === tab;
+    btn.style.color = active ? '#fff' : 'rgba(255,255,255,.55)';
+    btn.style.borderBottom = active ? '2px solid #fff' : '2px solid transparent';
+    btn.style.fontWeight = active ? '700' : '500';
+  });
+}
+
 function openTournDetail(id) {
   _tournDetailId = id;
   _tournPayments = [];
   _tournPayFile = null;
   _tournRegs = [];
+  _tDetailTab = 'info';
   const t = LC.arr('tournaments').find(x=>x.id===id);
   if (t) {
     const slug = _slugify(t.name) || id;
@@ -3477,8 +4354,10 @@ function openTournDetail(id) {
       LC.set('tournaments',all);
     }
     renderTournDetail(id);
+    _checkTournWaiver(id);
   });
   renderTournDetail(id);
+  // note: _checkTournWaiver runs only in the Promise callback (needs fresh server data)
 }
 
 function _handleHash() {
@@ -3498,6 +4377,7 @@ function _handleHash() {
         if(Array.isArray(pays)) _tournPayments=pays;
         if(Array.isArray(regs)) _tournRegs=regs;
         renderTournDetail(id);
+        _checkTournWaiver(id);
       });
     }
     return;
@@ -4039,6 +4919,7 @@ let _tournPayments = [];
 let _tournPayFile = null;
 let _tournRegs = [];       // pending registrations for current tournament
 let _tournRegPlayers = []; // working player list while reg form is open
+let _tDetailTab = 'info'; // active tab inside tournament detail
 
 const TOURN_SPORT_ICON = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
 const TOURN_SPORT_GRAD = {
@@ -4088,35 +4969,47 @@ function renderTournaments() {
         : `<div style="width:28px;height:28px;border-radius:50%;border:2px dashed rgba(255,255,255,.3);flex-shrink:0"></div>`;
     }).join('');
 
-    return `<div style="margin-bottom:16px;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.35);position:relative" onclick="openTournDetail('${t.id}')">
+    const isCrossCourt = /crosscourt/i.test(t.name);
+    const cardBg = t.banner_url
+      ? `background:#0a1628`
+      : isCrossCourt
+        ? `background:linear-gradient(135deg,#0a1628 0%,#0f2244 60%,#0a1628 100%)`
+        : `background:${grad}`;
+
+    return `<div style="margin-bottom:16px;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.4);position:relative;border:1px solid rgba(255,255,255,.06)" onclick="openTournDetail('${t.id}')">
       <!-- banner -->
-      <div style="background:${grad};padding:20px 18px 16px;position:relative;overflow:hidden">
-        <!-- decorative icon watermark -->
-        <i class="ti ${icon}" style="position:absolute;right:-10px;top:-10px;font-size:90px;opacity:.12;color:#fff;pointer-events:none"></i>
+      <div style="${cardBg};padding:20px 18px 16px;position:relative;overflow:hidden;min-height:${isCrossCourt||t.banner_url?'120px':'auto'}">
+        ${t.banner_url?`
+          <div style="position:absolute;inset:0;background:url('${t.banner_url}') center/cover no-repeat;opacity:.35;pointer-events:none"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(10,22,40,.95) 45%,rgba(10,22,40,.2) 100%);pointer-events:none"></div>
+        `:isCrossCourt?`
+          <img src="crosscourt-logo.svg" alt="CrossCourt" style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);height:130px;width:auto;opacity:.9;pointer-events:none">
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,#0a1628 42%,transparent 100%);pointer-events:none"></div>
+        `:`
+          <i class="ti ${icon}" style="position:absolute;right:-10px;top:-10px;font-size:90px;opacity:.12;color:#fff;pointer-events:none"></i>
+        `}
         <!-- top row: status + sport label -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <div style="display:flex;align-items:center;gap:6px">
-            ${isActive?`<span style="width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block;animation:pulse 1.4s infinite"></span>`:''}
-            <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,${isCompleted?'.5':'.95'})">${statusLabel}</span>
-          </div>
-          <span style="font-size:11px;font-weight:700;background:rgba(0,0,0,.25);border-radius:6px;padding:3px 9px;color:rgba(255,255,255,.9)">${sportLabel}</span>
+        <div style="position:relative;display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          ${isActive?`<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 1.4s infinite;flex-shrink:0"></span>`:''}
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
+          ${!isCrossCourt?`<span style="font-size:11px;font-weight:700;background:rgba(0,0,0,.35);border-radius:6px;padding:3px 9px;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.08);margin-left:auto">${sportLabel}</span>`:''}
         </div>
         <!-- tournament name -->
-        <div style="font-size:19px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:14px;letter-spacing:-.3px">${t.name}</div>
+        <div style="position:relative;font-size:${isCrossCourt?'17px':'19px'};font-weight:800;color:#fff;line-height:1.25;margin-bottom:14px;letter-spacing:-.2px;max-width:${isCrossCourt||t.banner_url?'65%':'100%'}">${t.name}</div>
         <!-- team slots -->
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="position:relative;display:flex;align-items:center;gap:6px">
           ${pips}
-          <span style="font-size:11px;color:rgba(255,255,255,.65);margin-left:4px">${filledSlots}/${totalSlots} teams</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.55);margin-left:4px">${filledSlots}/${totalSlots} teams</span>
         </div>
       </div>
       <!-- info strip -->
-      <div style="background:var(--b2);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(255,255,255,.05)">
+      <div style="background:rgba(255,255,255,.03);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(255,255,255,.06)">
         <span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="color:${accent};font-size:13px"></i>${dateStr}</span>
         ${t.venue?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-map-pin" style="color:${accent};font-size:13px"></i>${t.venue}</span>`:''}
         ${formatLabel?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-tournament" style="color:${accent};font-size:13px"></i>${formatLabel}</span>`:''}
         ${t.game_days?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-repeat" style="color:${accent};font-size:13px"></i>${t.game_days}</span>`:''}
       </div>
-      ${ownerNames.length?`<div style="background:var(--b2);padding:0 16px 10px;font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.join(', ')}</div>`:''}
+      ${ownerNames.length?`<div style="background:rgba(255,255,255,.03);padding:0 16px 10px;font-size:12px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.04)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.join(', ')}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -4252,7 +5145,7 @@ function renderTournDetail(id) {
     const anyPending = myPays.some(p=>p.status==='pending');
     const fullyPaid = totalPaid >= teamFee;
     const pStatus = anyVerified && fullyPaid ? 'verified' : anyPending ? 'pending' : totalPaid > 0 ? 'partial' : 'unpaid';
-    const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='partial'?'var(--gr)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
+    const statusColor = pStatus==='verified'?'var(--gr)':pStatus==='partial'?'var(--gold)':pStatus==='pending'?'var(--gold)':'var(--danger,#e53e3e)';
     const statusLabel = pStatus==='verified'?'Fully Paid':pStatus==='partial'?'Partially Paid':pStatus==='pending'?'Pending Review':'Unpaid';
     const payMethods = LC.arr('payment_methods').filter(m=>(m.sport===t.sport||m.sport==='all')&&m.payment_type!=='game_day'&&m.active!==false);
 
@@ -4451,10 +5344,14 @@ function renderTournDetail(id) {
       const isMe = ME && pid===ME.id;
       const isCap = pid===myTeamObj.captain||pid===myTeamObj.owner;
       const jNum = jerseyNums[pid];
+      const wSigned = (myTeamObj.waivers||{})[pid] === true;
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
         ${jNum?`<div style="width:28px;height:28px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--tx3);flex-shrink:0">#${jNum}</div>`:'<div style="width:28px;flex-shrink:0"></div>'}
-        <div style="flex:1;font-size:13px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--tx)':'var(--tx2)'}">${_tpName(pid)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px">OWNER</span>':''}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--tx)':'var(--tx2)'}">${_tpName(pid)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+          <div style="font-size:10px;font-weight:700;margin-top:2px;${wSigned?'color:var(--gr)':'color:var(--am,#f59e0b)'}">${wSigned?'✓ Waiver signed':'⏳ Waiver pending'}</div>
+        </div>
+        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px;flex-shrink:0">OWNER</span>':''}
       </div>`;
     }).join('');
     // payment status for this team member
@@ -4483,22 +5380,64 @@ function renderTournDetail(id) {
   }
 
   // ── my tournament stats ───────────────────────────────────────
+  const roundLabelMap = {rr1:'Game 1',rr2:'Game 2',rr3:'Game 3',rr4:'Game 4',rr5:'Game 5',rr6:'Game 6','3rd':'3rd Place','final':'Championship'};
   let myStatsSection = '';
   if (ME && allStats[ME.id]) {
     const ms = allStats[ME.id];
     const avg = (v) => ms.games>0 ? (v/ms.games).toFixed(1) : '—';
+
+    // build per-game log
+    const myGameLog = matches
+      .filter(m => Array.isArray(m.stats) && m.stats.some(s=>s.playerId===ME.id))
+      .map(m => {
+        const myStat   = m.stats.find(s=>s.playerId===ME.id);
+        const isA      = myTeamObj && m.teamA===myTeamObj.id;
+        const isB      = myTeamObj && m.teamB===myTeamObj.id;
+        const oppId    = isA ? m.teamB : isB ? m.teamA : null;
+        const oppName  = oppId ? teamName(oppId) : 'Opponent';
+        const myScore  = isA ? m.scoreA : isB ? m.scoreB : null;
+        const oppScore = isA ? m.scoreB : isB ? m.scoreA : null;
+        const won      = m.winner && ((isA && m.winner==='A')||(isB && m.winner==='B'));
+        const lost     = m.winner && !won && (isA||isB);
+        const dateStr  = m.date ? new Date(m.date+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+        return { round:m.round, label:roundLabelMap[m.round]||m.round, oppName, myScore, oppScore, won, lost, dateStr, stat:myStat };
+      });
+
+    const gameLogRows = myGameLog.length ? myGameLog.map(g => `
+      <div style="padding:10px 0;border-bottom:1px solid var(--b)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div>
+            <span style="font-size:10px;font-weight:700;color:${g.round==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px">${g.label}</span>
+            ${g.dateStr?`<span style="font-size:10px;color:var(--tx3);margin-left:6px">${g.dateStr}</span>`:''}
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            ${g.myScore!==null&&g.myScore!==undefined?`<span style="font-size:12px;font-weight:700;color:var(--tx2)">${g.myScore}–${g.oppScore}</span>`:''}
+            ${g.won?'<span style="font-size:10px;font-weight:800;color:var(--gr);background:rgba(0,200,100,.1);padding:2px 7px;border-radius:10px">W</span>':g.lost?'<span style="font-size:10px;font-weight:800;color:var(--danger,#e53e3e);background:rgba(229,62,62,.1);padding:2px 7px;border-radius:10px">L</span>':''}
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--tx3);margin-bottom:6px">vs ${g.oppName}</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center">
+          ${STAT_COLS.map(f=>`<div style="background:var(--b2);border-radius:6px;padding:5px 2px">
+            <div style="font-size:15px;font-weight:800;color:${Number(g.stat[f])>0?'var(--tx)':'var(--tx3)'}">${g.stat[f]??0}</div>
+            <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px">${f}</div>
+          </div>`).join('')}
+        </div>
+      </div>`).join('') : '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No game stats recorded yet.</div>';
+
     myStatsSection = `
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">My Stats</div>
         <span style="font-size:12px;color:var(--tx3)">${ms.games} game${ms.games===1?'':'s'}</span>
       </div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center">
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;padding-bottom:12px;border-bottom:1px solid var(--b);margin-bottom:4px">
           ${STAT_COLS.map(f=>`<div>
             <div style="font-size:20px;font-weight:800">${ms[f]}</div>
             <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${f.toUpperCase()}</div>
             <div style="font-size:11px;color:var(--tx3);margin-top:2px">${avg(ms[f])} avg</div>
           </div>`).join('')}
         </div>
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px">Game Log</div>
+        ${gameLogRows}
       </div>`;
   }
 
@@ -4552,7 +5491,7 @@ function renderTournDetail(id) {
     </div>` : '';
 
   // ── waitlist ─────────────────────────────────────────────────
-  const maxTeams = t.max_teams || 8;
+  const maxTeams = t.max_teams || 4;
   const teamsFull = teams.length >= maxTeams;
   const myWaitEntry = ME ? _tournRegs.find(r=>r.captain_id===ME.id&&r.status==='waitlist') : null;
   let waitlistSection = '';
@@ -4580,51 +5519,163 @@ function renderTournDetail(id) {
     }
   }
 
+  // ── computed values for hero ──────────────────────────────────
+  const heroGrad   = TOURN_SPORT_GRAD[t.sport]   || 'linear-gradient(135deg,#1a1a2e,#16213e)';
+  const heroAccent = TOURN_SPORT_ACCENT[t.sport]  || '#f48c06';
+  const heroIcon   = TOURN_SPORT_ICON[t.sport]    || 'ti-trophy';
+  const heroDs = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
+  const heroDe = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
+  const heroDate = heroDs && heroDe ? heroDs+' – '+heroDe : heroDs||heroDe||'Date TBD';
+  const heroStatus = t.status==='completed' ? 'COMPLETED' : t.status==='active' ? 'LIVE NOW' : 'UPCOMING';
+  const heroStatusBg = t.status==='completed' ? 'rgba(255,255,255,.15)' : t.status==='active' ? '#e53e3e' : 'rgba(255,255,255,.15)';
+  const filledSlots2 = teams.length;
+  const totalSlots2  = t.max_teams || 4;
+  const pips2 = Array.from({length:totalSlots2},(_,i)=>`<span style="display:inline-block;width:${i<filledSlots2?'22':'14'}px;height:6px;border-radius:3px;background:${i<filledSlots2?'#fff':'rgba(255,255,255,.25)'};transition:width .2s"></span>`).join('');
+
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-      <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournDetail()"><i class="ti ti-arrow-left"></i> Back</button>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;flex:1">${t.name}</div>
-      ${t.status==='active'?'<span style="font-size:11px;font-weight:700;color:#fff;background:#e53e3e;padding:3px 10px;border-radius:20px;letter-spacing:.3px;flex-shrink:0">LIVE</span>':''}
+    <!-- ══ BACK + LEAGUE ROW (above hero) ══ -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-bottom:10px">
+      <button type="button" onclick="closeTournDetail()" style="background:var(--b2);border:1px solid var(--b);border-radius:20px;padding:6px 14px;color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-arrow-left"></i>Back</button>
+      <span style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:rgba(212,175,55,.1);padding:5px 12px;border-radius:20px;border:1px solid rgba(212,175,55,.2)">CROSSCOURT</span>
     </div>
 
-    <div class="card" style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+    <!-- ══ HERO BANNER ══ -->
+    <div style="margin:0 -20px 0;position:relative;overflow:hidden;background:${t.banner_url?'#0a1628':heroGrad};${t.banner_url?'min-height:180px':''}">
+      ${t.banner_url?`
+        <div style="position:absolute;inset:0;background:url('${t.banner_url}') center/cover no-repeat;opacity:.9;pointer-events:none"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 20%,rgba(10,22,40,.92) 100%);pointer-events:none"></div>
+      `:`
+        <i class="ti ${heroIcon}" style="position:absolute;right:-20px;bottom:-10px;font-size:160px;opacity:.08;color:#fff;pointer-events:none"></i>
+      `}
+      <!-- diagonal texture -->
+      <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0px,rgba(255,255,255,.02) 1px,transparent 1px,transparent 14px);pointer-events:none"></div>
+
+      <!-- main hero content -->
+      <div style="position:relative;padding:16px 20px 18px;${t.banner_url?'margin-top:80px':''}">
+        <!-- status badge -->
+        <div style="margin-bottom:10px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:${heroStatusBg};padding:4px 12px;border-radius:20px">${heroStatus}</span>
+        </div>
+        <!-- tournament name -->
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,5.5vw,32px);letter-spacing:.3px;color:#fff;line-height:1.1;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.3);word-break:break-word">${t.name}</div>
+        <!-- date + venue row -->
+        <div style="font-size:12px;color:rgba(255,255,255,.8);display:flex;flex-direction:column;gap:3px;margin-bottom:14px">
+          <span><i class="ti ti-calendar" style="margin-right:5px;opacity:.7"></i>${heroDate}</span>
+          ${t.venue?`<span><i class="ti ti-map-pin" style="margin-right:5px;opacity:.7"></i>${t.venue}</span>`:''}
+        </div>
+        <!-- team slot pips -->
+        <div style="display:flex;align-items:center;gap:5px">
+          ${pips2}
+          <span style="font-size:11px;color:rgba(255,255,255,.6);margin-left:6px">${filledSlots2}/${totalSlots2} teams</span>
+        </div>
+      </div>
+
+      <!-- ── TAB BAR ── -->
+      <div style="display:flex;background:rgba(0,0,0,.35);backdrop-filter:blur(6px)">
+        ${[
+          {id:'info',    icon:'ti-info-circle', label:'Info'},
+          {id:'myteam',  icon:'ti-users',       label:'My Team'},
+          {id:'schedule',icon:'ti-calendar',    label:'Schedule'},
+          {id:'standings',icon:'ti-list-numbers',label:'Standings'},
+        ].map(tab=>{
+          const active = _tDetailTab===tab.id;
+          return `<button class="tdt-tab" data-tab="${tab.id}" onclick="switchTournTab('${tab.id}')" style="flex:1;background:none;border:none;border-bottom:2px solid ${active?'#fff':'transparent'};color:${active?'#fff':'rgba(255,255,255,.55)'};font-size:9px;font-weight:${active?'700':'500'};letter-spacing:.03em;text-transform:uppercase;padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;overflow:hidden">
+            <i class="ti ${tab.icon}" style="font-size:15px;flex-shrink:0"></i><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${tab.label}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- ══ TAB CONTENT ══ -->
+
+    <!-- INFO TAB -->
+    <div id="tdt-info" style="${_tDetailTab==='info'?'':'display:none'}">
+      ${t.game_days||t.venue?`<div class="card" style="margin-top:16px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+        ${t.game_days?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-repeat" style="margin-right:6px;color:${heroAccent}"></i>${t.game_days}</div>`:''}
+        ${t.venue?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-map-pin" style="margin-right:6px;color:${heroAccent}"></i>${t.venue}</div>`:''}
+      </div>`:`<div style="margin-top:16px"></div>`}
+
+      ${t.description?`
+        <div class="sec-h" style="margin-top:4px"><div class="sec-t">About</div></div>
+        <div class="card" style="margin-bottom:14px;font-size:13px;color:var(--tx2);line-height:1.6">${t.description}</div>
+      `:''}
+
+      ${t.rules&&t.rules.length?`
+        <div class="sec-h" style="margin-top:4px"><div class="sec-t">Rules & Mechanics</div></div>
+        <div class="card" style="margin-bottom:14px;padding:0;overflow:hidden">
+          ${t.rules.map((r,i)=>`<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;${i>0?'border-top:1px solid var(--b)':''}">
+            <span style="font-size:11px;font-weight:800;color:var(--gold);min-width:18px;margin-top:1px">${i+1}</span>
+            <span style="font-size:13px;color:var(--tx2);line-height:1.5">${r}</span>
+          </div>`).join('')}
+        </div>
+      `:''}
+
+      <!-- PLAYER POOL SECTION -->
       ${(()=>{
-        const ds2 = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '';
-        const de2 = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'long',day:'numeric',year:'numeric'}) : '';
-        const dateStr2 = ds2 && de2 ? ds2+' – '+de2 : ds2||de2||'TBD';
-        const statusColor2 = t.status==='completed'?'var(--tx3)':t.status==='active'?'var(--gr)':'var(--gold)';
-        const statusLabel2 = t.status==='completed'?'Completed':t.status==='active'?'Ongoing':'Upcoming';
-        return `
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:13px;color:var(--tx2)"><i class="ti ti-calendar" style="margin-right:6px;opacity:.6"></i>${dateStr2}</span>
-            <span style="font-size:11px;font-weight:700;color:${statusColor2};text-transform:uppercase;letter-spacing:.5px">${statusLabel2}</span>
-          </div>
-          ${t.game_days?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-repeat" style="margin-right:6px;opacity:.6"></i>${t.game_days}</div>`:''}
-          ${t.venue?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-map-pin" style="margin-right:6px;opacity:.6"></i>${t.venue}</div>`:''}
-        `;
+        if (t.pool_enabled === false) return '';
+        const pool = Array.isArray(t.player_pool) ? t.player_pool : [];
+        const poolClosed = false;
+        const inPool = ME ? pool.some(p=>p.id===ME.id) : false;
+        const posBadgeColor = pos => ({'PG':'#3b82f6','SG':'#8b5cf6','SF':'#10b981','PF':'#f59e0b','C':'#ef4444'}[pos]||'#6b7280');
+        const memberRows = pool.map(p=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)">
+            ${p.avatar_url?`<img src="${p.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--tx3);flex-shrink:0">${(p.name||'?')[0]}</div>`}
+            <div style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name||'—'}</div>
+            ${p.position?`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:${posBadgeColor(p.position)}22;color:${posBadgeColor(p.position)};border:1px solid ${posBadgeColor(p.position)}44;flex-shrink:0">${p.position}</span>`:''}
+          </div>`).join('');
+        const joinBtn = poolClosed
+          ? `<div style="margin-top:${pool.length?'10px':'0'};padding:10px 14px;background:rgba(253,184,39,.06);border-radius:10px;border:1px solid rgba(253,184,39,.18);text-align:center">
+              <div style="font-size:12px;font-weight:700;color:var(--gold)"><i class="ti ti-lock"></i> Sign-up closed</div>
+              <div style="font-size:11px;color:var(--tx3);margin-top:3px">Draft starts July 12</div>
+            </div>`
+          : ME && !inPool
+          ? `<button type="button" onclick="openPoolJoinModal('${t.id}')" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;color:#000;cursor:pointer;margin-top:${pool.length?'10px':'0'}">Join Player Pool</button>`
+          : ME && inPool
+          ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:${pool.length?'10px':'0'};padding:10px 14px;background:rgba(72,199,142,.08);border-radius:10px;border:1px solid rgba(72,199,142,.2)">
+              <span style="font-size:13px;font-weight:700;color:var(--gr)"><i class="ti ti-check"></i> You're in the pool</span>
+              <button type="button" onclick="leavePlayerPool('${t.id}')" style="background:none;border:none;font-size:11px;color:var(--tx3);cursor:pointer;padding:0">Leave</button>
+            </div>`
+          : '';
+        return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Player Pool</div><span style="font-size:12px;color:var(--tx3)">${pool.length} signed up</span></div>
+          <div class="card" style="margin-bottom:14px;${pool.length?'padding-bottom:4px':''}">
+            ${pool.length ? memberRows : '<div style="font-size:13px;color:var(--tx3);padding:4px 0">No players in the pool yet.</div>'}
+            ${joinBtn}
+          </div>`;
       })()}
+
+      ${regSection}
+      ${waitlistSection}
+
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
+      <div class="card" style="margin-bottom:14px">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
     </div>
 
-    ${myTeamSection}
-    ${myStatsSection}
-    ${scheduleSection}
+    <!-- MY TEAM TAB -->
+    <div id="tdt-myteam" style="${_tDetailTab==='myteam'?'':'display:none'}">
+      <div style="margin-top:16px"></div>
+      ${myTeamSection||`<div class="card" style="margin-bottom:14px;background:var(--b2)"><div style="display:flex;align-items:flex-start;gap:10px"><i class="ti ti-users" style="font-size:20px;color:var(--tx3);margin-top:1px;flex-shrink:0"></i><div><div style="font-weight:700;font-size:14px;margin-bottom:4px">Not on a team yet</div><div style="font-size:13px;color:var(--tx2);line-height:1.6">You haven't been added to a team for this tournament.</div></div></div></div>`}
+      ${myStatsSection}
+      ${paySection}
+    </div>
 
-    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Round Robin</div></div>
-    ${RR_ROUNDS.map((r,i)=>matchCard(matches.find(x=>x.round===r),'Game '+(i+1))).join('')}
+    <!-- SCHEDULE TAB -->
+    <div id="tdt-schedule" style="${_tDetailTab==='schedule'?'':'display:none'}">
+      <div style="margin-top:16px"></div>
+      ${scheduleSection}
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Round Robin</div></div>
+      ${RR_ROUNDS.map((r,i)=>matchCard(matches.find(x=>x.round===r),'Game '+(i+1))).join('')}
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
+      ${matchCard(matches.find(x=>x.round==='final'),'Championship','🏆')}
+      ${matchCard(matches.find(x=>x.round==='3rd'),'3rd Place Match')}
+    </div>
 
-    ${standingsHtml}
-    ${tournLbSection}
-
-    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
-    ${matchCard(matches.find(x=>x.round==='final'),'Championship','🏆')}
-    ${matchCard(matches.find(x=>x.round==='3rd'),'3rd Place Match')}
-
-    ${paySection}
-    ${regSection}
-    ${waitlistSection}
-
-    <div class="sec-h" style="margin-top:4px"><div class="sec-t">Teams</div></div>
-    <div class="card" style="margin-bottom:14px">${rosterCards||'<div class="empty">No teams yet.</div>'}</div>
+    <!-- STANDINGS TAB -->
+    <div id="tdt-standings" style="${_tDetailTab==='standings'?'':'display:none'}">
+      <div style="margin-top:16px"></div>
+      ${standingsHtml||`<div class="card" style="margin-bottom:14px;background:var(--b2);text-align:center;padding:24px"><i class="ti ti-list-numbers" style="font-size:28px;color:var(--tx3);display:block;margin-bottom:8px"></i><div style="font-size:13px;color:var(--tx3)">Standings will appear once games are played.</div></div>`}
+      ${tournLbSection}
+      ${topPerformersHtml}
+    </div>
   `;
 }
 
@@ -5238,6 +6289,461 @@ function startLiveQueuePoll(){
   document.getElementById('view-landing').style.display='flex';
   renderHeroStatus(); renderAnn();
 })();
+
+// ══════════════════════════════════════════════════════════════
+// PLAYER POOL
+// ══════════════════════════════════════════════════════════════
+
+const BB_POSITIONS = [
+  { id:'PG', label:'Point Guard',    color:'#3b82f6' },
+  { id:'SG', label:'Shooting Guard', color:'#8b5cf6' },
+  { id:'SF', label:'Small Forward',  color:'#10b981' },
+  { id:'PF', label:'Power Forward',  color:'#f59e0b' },
+  { id:'C',  label:'Center',         color:'#ef4444' },
+];
+
+let _poolJoinTournId = null;
+let _poolJoinPos = null;
+
+function openPoolJoinModal(tournId) {
+  if (!ME) return toast('Log in to join the pool','er');
+  _poolJoinTournId = tournId;
+  _poolJoinPos = ME.position || null;
+  const inner = document.getElementById('pool-join-inner');
+  if (!inner) return;
+  inner.innerHTML = `
+    <div style="font-size:16px;font-weight:800;margin-bottom:4px">Join Player Pool</div>
+    <div style="font-size:13px;color:var(--tx3);margin-bottom:18px">Select your primary basketball position so team owners know your role.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px" id="pool-pos-grid">
+      ${BB_POSITIONS.map(p=>`
+        <button type="button" id="ppos-${p.id}" onclick="_selectPoolPos('${p.id}')"
+          style="display:flex;flex-direction:column;align-items:center;padding:12px 8px;border-radius:10px;border:2px solid ${_poolJoinPos===p.id?p.color:'var(--b)'};background:${_poolJoinPos===p.id?p.color+'18':'var(--b2)'};cursor:pointer;transition:all .15s">
+          <span style="font-size:15px;font-weight:800;color:${_poolJoinPos===p.id?p.color:'var(--tx2)'}">${p.id}</span>
+          <span style="font-size:10px;color:var(--tx3);margin-top:2px">${p.label}</span>
+        </button>`).join('')}
+    </div>
+    <button type="button" onclick="_submitPoolJoin()" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;color:#000;cursor:pointer">Join Pool</button>
+    <button type="button" onclick="document.getElementById('pool-join-modal').style.display='none'" style="width:100%;background:none;border:none;margin-top:10px;font-size:13px;color:var(--tx3);cursor:pointer">Cancel</button>`;
+  document.getElementById('pool-join-modal').style.display = 'flex';
+}
+
+function _selectPoolPos(pos) {
+  _poolJoinPos = pos;
+  BB_POSITIONS.forEach(p => {
+    const btn = document.getElementById('ppos-'+p.id);
+    if (!btn) return;
+    btn.style.border = `2px solid ${pos===p.id ? p.color : 'var(--b)'}`;
+    btn.style.background = pos===p.id ? p.color+'18' : 'var(--b2)';
+    btn.querySelector('span').style.color = pos===p.id ? p.color : 'var(--tx2)';
+  });
+}
+
+async function _submitPoolJoin() {
+  if (!ME || !_poolJoinTournId) return;
+  if (!_poolJoinPos) return toast('Select your position first','er');
+
+  const tourns = LC.arr('tournaments');
+  const t = tourns.find(x=>x.id===_poolJoinTournId);
+  if (!t) return;
+
+  const pool = [...(t.player_pool||[])];
+  if (pool.some(p=>p.id===ME.id)) {
+    document.getElementById('pool-join-modal').style.display='none';
+    return toast('Already in the pool','in');
+  }
+
+  pool.push({
+    id: ME.id,
+    name: ME.firstName+(ME.lastName?' '+ME.lastName:''),
+    position: _poolJoinPos,
+    avatar_url: ME.avatarUrl||null,
+    joined_at: new Date().toISOString()
+  });
+
+  const ok = await dbUpdate('tournaments','id=eq.'+_poolJoinTournId,{player_pool:pool});
+  if (!ok) return toast('Failed to join pool — try again','er');
+
+  // Update player's position in profile
+  await rpc('update_my_profile',{
+    p_phone:AUTH.phone(), p_pin:AUTH.pin(),
+    p_first_name:ME.firstName, p_last_name:ME.lastName||'',
+    p_bio:ME.bio||'', p_avatar_url:'',
+    p_sports:ME.sports||'basketball', p_new_position:_poolJoinPos,
+    p_pickleball_skill:ME.pickleballSkill||'',
+    p_has_dgroup:ME.hasDgroup||false, p_dgroup_leader:ME.dgroupLeader||''
+  });
+  ME.position = _poolJoinPos;
+  const players = LC.arr('players');
+  const pi = players.findIndex(x=>x.id===ME.id);
+  if (pi>-1) { players[pi].position=_poolJoinPos; LC.set('players',players); }
+
+  // Update LC tournament cache
+  const ti = tourns.findIndex(x=>x.id===_poolJoinTournId);
+  if (ti>-1) { tourns[ti]={...t,player_pool:pool}; LC.set('tournaments',tourns); }
+
+  document.getElementById('pool-join-modal').style.display='none';
+  toast("You're in the player pool!");
+  renderTournDetail(_poolJoinTournId);
+}
+
+async function leavePlayerPool(tournId) {
+  if (!ME) return;
+  if (!confirm('Leave the player pool for this tournament?')) return;
+  const tourns = LC.arr('tournaments');
+  const t = tourns.find(x=>x.id===tournId);
+  if (!t) return;
+  const pool = (t.player_pool||[]).filter(p=>p.id!==ME.id);
+  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{player_pool:pool});
+  if (!ok) return toast('Failed to leave pool','er');
+  const ti = tourns.findIndex(x=>x.id===tournId);
+  if (ti>-1) { tourns[ti]={...t,player_pool:pool}; LC.set('tournaments',tourns); }
+  toast('You left the player pool');
+  renderTournDetail(tournId);
+}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE DRAFT — member home widget
+// ══════════════════════════════════════════════════════════════
+
+let _draftPickTimerInt = null;
+let _liveDraftData = null;
+let _liveDraftTourn = null;
+let _draftChannel = null;
+let _draftFallbackInt = null;
+// Supabase JS client (Realtime only — REST still uses dbGet/dbUpdate)
+let _sbRt = null;
+function _getSbRt() {
+  if (!_sbRt && window.supabase) _sbRt = window.supabase.createClient(SB, KEY, {realtime:{timeout:30000}});
+  return _sbRt;
+}
+
+function _memberDraftSlot(pickNum, draftOrder, draft) {
+  const basePicks = (draft?.total_teams||draftOrder.length||4) * (draft?.total_rounds||13);
+  const deferred = draft?.deferred_picks || [];
+  if (pickNum > basePicks) {
+    const dp = deferred[pickNum - basePicks - 1];
+    if (!dp) return null;
+    return { round: 'D', slot: pickNum - basePicks, teamId: dp.team_id, deferred: true };
+  }
+  const n = draftOrder.length;
+  if (!n) return null;
+  const round = Math.ceil(pickNum / n);
+  const pos = (pickNum - 1) % n;
+  const even = round % 2 === 0;
+  const idx = even ? (n - 1 - pos) : pos;
+  return { round, slot: pos + 1, teamId: draftOrder[idx] };
+}
+
+function _memberDraftTotalPicks(draft) {
+  const base = (draft.total_teams||4) * (draft.total_rounds||13);
+  return base + (draft.deferred_picks||[]).length;
+}
+
+let _pickAnnouncePending = false;
+
+function _applyDraftPayload(draft) {
+  const widget = document.getElementById('live-draft-widget');
+  if (!widget) return;
+  const tourns = LC.arr('tournaments');
+  if (!tourns.some(t => t.id === draft.tournament_id)) return;
+  if (!['active','paused','complete'].includes(draft.status)) {
+    widget.style.display = 'none';
+    return;
+  }
+
+  // Detect a new pick by comparing pick counts
+  const prevCount = (_liveDraftData?.picks||[]).length;
+  const newPicks = draft.picks || [];
+  const newCount = newPicks.length;
+  const latestPick = newCount > prevCount ? newPicks[newCount - 1] : null;
+
+  _liveDraftData = draft;
+  _liveDraftTourn = tourns.find(x => x.id === draft.tournament_id);
+  widget.style.display = '';
+
+  if (latestPick && !_pickAnnouncePending) {
+    _showPickAnnouncement(latestPick, draft, _liveDraftTourn, widget);
+  } else {
+    widget.innerHTML = _renderDraftWidget(draft, _liveDraftTourn);
+    _startMemberPickTimer(draft);
+  }
+}
+
+function _showPickAnnouncement(pick, draft, tourn, widget) {
+  _pickAnnouncePending = true;
+  const player = LC.arr('roster').find(p => p.id === pick.player_id) || LC.arr('players').find(p => p.id === pick.player_id);
+  const avatar = player?.avatarUrl || '';
+  const initials = (pick.player_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const avatarHtml = avatar
+    ? `<img src="${avatar}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 0 6px rgba(212,175,55,.15)" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+  const fallbackDisplay = avatar ? 'none' : 'flex';
+
+  widget.innerHTML = `<div id="pick-announce" style="background:linear-gradient(135deg,#0a1628 0%,#0f2244 100%);border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,.35);text-align:center;padding:28px 20px 24px">
+    <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
+    <div style="display:flex;justify-content:center;margin-bottom:16px;position:relative">
+      ${avatarHtml}
+      <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#1a2f5a,#0f1d38);border:3px solid var(--gold);box-shadow:0 0 0 6px rgba(212,175,55,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--gold)">${initials}</div>
+      <div style="position:absolute;bottom:-4px;right:calc(50% - 56px);background:var(--gold);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:900;color:#000;letter-spacing:.06em;white-space:nowrap">DRAFTED</div>
+    </div>
+    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.01em;margin-bottom:4px">${pick.player_name}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--gold)">${pick.team_name}</div>
+    <div id="pick-announce-bar" style="margin-top:20px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
+      <div id="pick-announce-fill" style="height:100%;background:var(--gold);width:100%;transition:width 3.2s linear"></div>
+    </div>
+  </div>`;
+
+  widget.style.display = '';
+
+  // Start the countdown bar
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const fill = document.getElementById('pick-announce-fill');
+      if (fill) fill.style.width = '0%';
+    });
+  });
+
+  // After 3.5s, fade out and switch to normal widget
+  setTimeout(() => {
+    const el = document.getElementById('pick-announce');
+    if (el) {
+      el.style.transition = 'opacity .35s';
+      el.style.opacity = '0';
+    }
+    setTimeout(() => {
+      _pickAnnouncePending = false;
+      widget.innerHTML = _renderDraftWidget(draft, _liveDraftTourn);
+      _startMemberPickTimer(draft);
+    }, 350);
+  }, 3500);
+}
+
+function startDraftPolling() {
+  // Set interval first — must always run regardless of what Realtime does
+  if (!_draftFallbackInt) _draftFallbackInt = setInterval(_loadLiveDraft, 8000);
+  // Immediate fetch
+  _loadLiveDraft();
+  // Realtime on top for instant push — any error must never kill the poll above
+  try { _subscribeDraftRealtime(); } catch(e) { /* poll covers it */ }
+}
+
+function stopDraftPolling() {
+  if (_draftFallbackInt) { clearInterval(_draftFallbackInt); _draftFallbackInt = null; }
+  if (_draftPickTimerInt) { clearInterval(_draftPickTimerInt); _draftPickTimerInt = null; }
+  const sb = _getSbRt();
+  if (sb && _draftChannel) { sb.removeChannel(_draftChannel); _draftChannel = null; }
+}
+
+function _subscribeDraftRealtime() {
+  const sb = _getSbRt();
+  if (!sb || _draftChannel) return;
+  _draftChannel = sb.channel('ccf-draft-live')
+    .on('postgres_changes', {event:'*', schema:'public', table:'drafts'}, payload => {
+      const draft = payload.new || payload.old;
+      if (!draft) return;
+      if (payload.eventType === 'DELETE' || draft.status === 'complete') {
+        const widget = document.getElementById('live-draft-widget');
+        if (widget) widget.style.display = 'none';
+        return;
+      }
+      _applyDraftPayload(draft);
+    })
+    .subscribe(status => {
+      // If Realtime not available (table not in publication), fall back to 5s polling
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        if (_draftFallbackInt) clearInterval(_draftFallbackInt);
+        _draftFallbackInt = setInterval(_loadLiveDraft, 5000);
+      }
+    });
+}
+
+async function _loadLiveDraft() {
+  const tourns = LC.arr('tournaments');
+  const widget = document.getElementById('live-draft-widget');
+  if (!widget) return;
+  const tIds = tourns.map(t=>t.id).filter(Boolean).join(',');
+  if (!tIds) { widget.style.display='none'; return; }
+  const rows = await dbGet('drafts','select=*&status=in.(active,paused)&tournament_id=in.('+tIds+')&order=created_at.desc&limit=1');
+  if (rows === null) return; // network error — skip this tick, keep trying
+  const draft = rows[0];
+  if (!draft) { widget.style.display='none'; return; }
+  _applyDraftPayload(draft);
+}
+
+function _renderDraftWidget(draft, tourn) {
+  if (!draft || !tourn) return '';
+  const status = draft.status;
+  const order = draft.draft_order || [];
+  const picks = draft.picks || [];
+  const currentPick = draft.current_pick || 1;
+  const totalPicks = _memberDraftTotalPicks(draft);
+  const teams = tourn.teams || [];
+  const slot = order.length ? _memberDraftSlot(currentPick, order, draft) : null;
+  const curTeam = slot ? teams.find(x=>x.id===slot.teamId) : null;
+  const myTeam = ME ? teams.find(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : null;
+  const isMyTurn = myTeam && slot && slot.teamId===myTeam.id && status==='active' && currentPick<=totalPicks;
+  const progressPct = Math.min(100, Math.round((picks.length/totalPicks)*100));
+  const recent = [...picks].reverse().slice(0,4);
+
+  const recentHtml = recent.length
+    ? recent.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:10px;font-weight:800;color:var(--gold);min-width:36px;flex-shrink:0">R${p.round}.${p.slot}</div>
+        <div style="flex:1;font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.player_name}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">${p.team_name}</div>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:rgba(255,255,255,.35);padding:6px 0">No picks yet</div>';
+
+  return `<div style="background:linear-gradient(135deg,#0a1628 0%,#0f2244 100%);border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,.2)">
+    <div style="padding:11px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:${status==='active'?'#4ade80':'#f59e0b'};flex-shrink:0${status==='active'?';animation:pulse 1.4s infinite':''}"></span>
+        <span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff">${status==='active'?'LIVE DRAFT':status==='paused'?'DRAFT PAUSED':'DRAFT LOTTERY'}</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.4)">${tourn.name}</span>
+      </div>
+      <span style="font-size:10px;color:rgba(255,255,255,.4)">${picks.length}/${totalPicks}</span>
+    </div>
+    <div style="height:2px;background:rgba(255,255,255,.07)"><div style="height:2px;background:var(--gold);width:${progressPct}%;transition:width .4s"></div></div>
+    <div style="padding:13px 14px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
+        <div style="font-size:${isMyTurn?'17px':'15px'};font-weight:800;color:${isMyTurn?'var(--gold)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${currentPick>totalPicks?'All picks complete!':(isMyTurn?'YOUR PICK!':(curTeam?curTeam.name+' on the clock':'Waiting…'))}
+        </div>
+      </div>
+      <div style="text-align:center;flex-shrink:0;min-width:40px">
+        <div id="draft-member-timer" style="font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1">—</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.04em">sec</div>
+      </div>
+    </div>
+    ${isMyTurn?`<div style="padding:0 14px 12px"><button type="button" onclick="openDraftPickModal()" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;color:#000;cursor:pointer;letter-spacing:.02em">Make Your Pick</button></div>`:''}
+    <div style="padding:8px 14px 12px;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Recent Picks</div>
+      ${recentHtml}
+    </div>
+  </div>`;
+}
+
+function _startMemberPickTimer(draft) {
+  if (_draftPickTimerInt) clearInterval(_draftPickTimerInt);
+  if (draft.status !== 'active') return;
+  const dur = draft.pick_duration || 60;
+  const started = draft.pick_started_at ? new Date(draft.pick_started_at).getTime() : Date.now();
+  _draftPickTimerInt = setInterval(() => {
+    const el = document.getElementById('draft-member-timer');
+    if (!el) { clearInterval(_draftPickTimerInt); return; }
+    const rem = Math.max(0, dur - Math.floor((Date.now()-started)/1000));
+    el.textContent = rem;
+    el.style.color = rem<=10 ? '#f87171' : rem<=20 ? '#fbbf24' : 'var(--gold)';
+  }, 500);
+}
+
+function openDraftPickModal() {
+  if (!_liveDraftData || !ME) return;
+  const draft = _liveDraftData;
+  const tourn = _liveDraftTourn;
+  const teams = tourn?.teams||[];
+  const pickedIds = (draft.picks||[]).map(p=>p.player_id);
+  const poolIds = new Set((tourn?.player_pool||[]).map(p=>p.id));
+  const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players')).filter(p=>poolIds.has(p.id) && !pickedIds.includes(p.id));
+  const slot = _memberDraftSlot(draft.current_pick, draft.draft_order, draft);
+  const team = teams.find(x=>x.id===slot?.teamId);
+  const el = document.getElementById('draft-pick-modal');
+  if (!el) return;
+
+  const playerRows = allPlayers.slice(0,100).map(p=>`
+    <div class="dpm-row" data-name="${(p.firstName+' '+(p.lastName||'')).toLowerCase().trim()}" onclick="submitDraftPick('${draft.id}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.firstName}${p.lastName?' '+p.lastName:''}</div><div style="font-size:11px;color:var(--tx3)">${p.position||'—'}</div></div>
+      <span style="font-size:11px;font-weight:700;color:var(--gold)">Select</span>
+    </div>`).join('');
+
+  el.innerHTML = `
+    <div onclick="document.getElementById('draft-pick-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(0,0,0,.72)"></div>
+    <div style="position:relative;background:var(--card,#0f1729);border-radius:16px;max-width:420px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:15px 16px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+        <div>
+          <div style="font-size:15px;font-weight:800">Make Your Pick</div>
+          <div style="font-size:12px;color:var(--gold);font-weight:600">Round ${slot?.round} · Pick ${draft.current_pick} — ${team?.name||'Your Team'}</div>
+        </div>
+        <button type="button" onclick="document.getElementById('draft-pick-modal').style.display='none'" style="background:none;border:none;font-size:20px;color:var(--tx3);cursor:pointer;padding:4px"><i class="ti ti-x"></i></button>
+      </div>
+      <div style="padding:10px 14px;border-bottom:1px solid var(--b);flex-shrink:0">
+        <input type="text" class="fi" id="dpm-search" placeholder="Search player…" oninput="_filterPickModal(this.value)" style="margin-bottom:0">
+      </div>
+      <div style="overflow-y:auto;flex:1">${playerRows}</div>
+    </div>`;
+  el.style.display = 'flex';
+  setTimeout(() => { const s=document.getElementById('dpm-search'); if(s) s.focus(); }, 80);
+}
+
+function _filterPickModal(q) {
+  document.querySelectorAll('.dpm-row').forEach(row => {
+    row.style.display = row.dataset.name.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+async function submitDraftPick(draftId, playerId) {
+  const modal = document.getElementById('draft-pick-modal');
+  if (modal) modal.style.display = 'none';
+
+  const rows = await dbGet('drafts','select=*&id=eq.'+draftId);
+  const draft = rows && rows[0];
+  if (!draft || draft.status!=='active') return toast('Pick window closed','er');
+
+  const slot = _memberDraftSlot(draft.current_pick, draft.draft_order, draft);
+  const tourn = LC.arr('tournaments').find(x=>x.id===draft.tournament_id);
+  const teams = tourn?.teams||[];
+  const team = teams.find(x=>x.id===slot?.teamId);
+  const myTeam = ME ? teams.find(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : null;
+  if (!myTeam || myTeam.id!==slot?.teamId) return toast('Not your turn','er');
+
+  const player = LC.arr('players').find(p=>p.id===playerId);
+  if (!player) return toast('Player not found','er');
+
+  const pickedIds = (draft.picks||[]).map(p=>p.player_id);
+  if (pickedIds.includes(playerId)) return toast('Already drafted','er');
+
+  const newPick = {
+    pick:draft.current_pick, round:slot.round, slot:slot.slot,
+    team_id:slot.teamId, team_name:team?.name||'Team',
+    player_id:playerId,
+    player_name:player.firstName+(player.lastName?' '+player.lastName:''),
+    timestamp:new Date().toISOString()
+  };
+
+  const picks = [...(draft.picks||[]), newPick];
+  const nextPick = draft.current_pick + 1;
+  const totalPicks = _memberDraftTotalPicks(draft);
+  const newStatus = nextPick > totalPicks ? 'complete' : 'active';
+
+  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+    picks, current_pick:nextPick, status:newStatus,
+    pick_started_at: newStatus==='active' ? new Date().toISOString() : null
+  });
+  if (!ok) return toast('Pick failed — try again','er');
+
+  // Sync player into tournament team roster
+  if (tourn && slot?.teamId) {
+    const updatedTeams = (tourn.teams||[]).map(tm => {
+      if (tm.id !== slot.teamId) return tm;
+      const players = [...(tm.players||[])];
+      if (!players.includes(playerId)) players.push(playerId);
+      const waivers = {...(tm.waivers||{})};
+      if (waivers[playerId] === undefined) waivers[playerId] = false;
+      return {...tm, players, waivers};
+    });
+    const tOk = await dbUpdate('tournaments','id=eq.'+draft.tournament_id,{teams:updatedTeams});
+    if (tOk) {
+      const tourns = LC.arr('tournaments');
+      const ti = tourns.findIndex(x=>x.id===draft.tournament_id);
+      if (ti>-1) { tourns[ti]={...tourn,teams:updatedTeams}; LC.set('tournaments',tourns); }
+    }
+  }
+
+  toast('Pick submitted!');
+  // Realtime will push the update to all viewers automatically.
+  // Only fall back to a manual fetch if the realtime channel isn't connected.
+  if (!_draftChannel) await _loadLiveDraft();
+}
 </script>
 </body>
 </html>
