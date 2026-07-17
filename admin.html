@@ -6889,6 +6889,14 @@ function exportSummaryCSV(){
 // ── ATTENDANCE BY SPORT × MONTH (matrix report) ──────────────────
 const ATT_SPORTS=[['basketball','Basketball','spi-b'],['pickleball','Pickleball','spi-p'],['running','Running','spi-r'],['badminton','Badminton','spi-bd'],['dragonboat','Dragonboat','spi-db']];
 const ATT_MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// Historical attendance before the app was launched (month index 0=Jan … 11=Dec).
+const ATT_STATIC={
+  2026:{
+    basketball:{ 1:46, 2:69, 3:62, 5:57 },
+    pickleball: { 3:70, 4:62, 5:73 },
+    running:    { 2:43, 3:39, 4:42 },
+  }
+};
 function attMonthsForSel(sel){
   if(sel==='year') return [0,1,2,3,4,5,6,7,8,9,10,11];
   if(sel && sel[0]==='q'){ const q=parseInt(sel[1])-1; return [q*3,q*3+1,q*3+2]; }
@@ -6901,11 +6909,22 @@ function attMatrixData(year, months){
   ATT_SPORTS.forEach(([sp])=>{ data[sp]={}; months.forEach(m=>data[sp][m]=0); });
   games.forEach(g=>{
     const sp=g.sport||'basketball';
-    if(!data[sp]) return; // ignore sports not on the app
+    if(!data[sp]) return;
     const mi=parseInt((g.date||'').slice(5,7))-1;
     if(months.indexOf(mi)<0) return;
     data[sp][mi]+=gameAttendedCount(g.id,sp);
   });
+  // Merge static historical data (pre-app records).
+  const staticYear=ATT_STATIC[year];
+  if(staticYear){
+    Object.entries(staticYear).forEach(([sp,mdata])=>{
+      if(!data[sp]) return;
+      Object.entries(mdata).forEach(([mi,count])=>{
+        const m=parseInt(mi);
+        if(months.indexOf(m)>=0) data[sp][m]=(data[sp][m]||0)+count;
+      });
+    });
+  }
   return data;
 }
 function renderAttendanceMatrix(){
