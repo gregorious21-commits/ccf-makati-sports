@@ -7640,8 +7640,18 @@ function _renderDraftManager(draft, tourn) {
   const totalPicks = _draftTotalPicks(draft);
   const slot = draftOrder.length ? _draftSlot(currentPick, draftOrder, draft) : null;
   const curTeam = slot ? teams.find(x => x.id === slot.teamId) : null;
-  const poolIds = new Set((tourn.player_pool||[]).map(p=>p.id));
-  const poolPlayers = LC.arr('players').filter(p => p.isActive !== false && poolIds.has(p.id));
+  // Build the draftable list from the tournament pool itself (the source of
+  // truth for who signed up), not by filtering the admin's local player cache
+  // down to pool IDs. That used to silently drop anyone whose cache entry was
+  // stale, missing, or flagged isActive:false — even though a stale global
+  // active flag has nothing to do with being signed up for this tournament.
+  const cachedPlayers = LC.arr('players');
+  const poolPlayers = (tourn.player_pool||[]).map(pe => {
+    const cached = cachedPlayers.find(p => p.id === pe.id);
+    if (cached) return cached;
+    const parts = (pe.name || 'Unknown').split(' ');
+    return { id: pe.id, firstName: parts[0]||'Unknown', lastName: parts.slice(1).join(' '), position: pe.position||'' };
+  });
   const pickedIds = picks.map(p => p.player_id);
   const available = poolPlayers.filter(p => !pickedIds.includes(p.id));
 
