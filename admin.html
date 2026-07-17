@@ -4647,6 +4647,25 @@ async function checkPbSaveBackup(){
   }
 }
 
+async function checkBbSaveBackup(){
+  const raw = localStorage.getItem('ccf_bb_save_backup');
+  if (!raw) return;
+  let entry;
+  try { entry = JSON.parse(raw); } catch(e) { localStorage.removeItem('ccf_bb_save_backup'); return; }
+  if (!confirm('A basketball game day from '+entry.game_date+' ('+entry.player_count+' players, '+(entry.matches||[]).length+' matches) failed to save last time. Retry saving it now?')) return;
+  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'basketball'});
+  if (ok){
+    localStorage.removeItem('ccf_bb_save_backup');
+    const hist=LC.arr('history');
+    hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
+    LC.set('history',hist);
+    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:entry.game_date+' — '+entry.player_count+' players, '+(entry.matches||[]).length+' matches',p_type:'success'});
+    toast('Recovered game day saved · '+(entry.matches||[]).length+' matches archived');
+  } else {
+    toast('Retry failed again — the backup is still saved locally, try again later','er');
+  }
+}
+
 async function endPickleballSession(){
   if (!pbSession){ toast('No session running','er'); return; }
   if (!confirm('End the pickleball session? '+pbSession.log.length+' match(es) will be saved.')) return;
@@ -5105,14 +5124,18 @@ async function bbEndSession(){
       winner:(m.winner==='A'?m.teamA:m.teamB).map(bbFirst).join(' & ')
     }))
   };
+  localStorage.setItem('ccf_bb_save_backup', JSON.stringify(entry));
   const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'basketball'});
-  if(ok){
-    const hist=LC.arr('history');
-    hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
-    LC.set('history',hist);
-    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+bbRotation.log.length+' matches',p_type:'success'});
-    toast('Game Day archived · wins saved!');
-  } else toast('Archive failed — check Supabase','er');
+  if (!ok) {
+    toast('Archive failed — player wins were already saved, but the game day is NOT lost. Session is still open, try End Game Day again.','er');
+    return;
+  }
+  localStorage.removeItem('ccf_bb_save_backup');
+  const hist=LC.arr('history');
+  hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
+  LC.set('history',hist);
+  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+bbRotation.log.length+' matches',p_type:'success'});
+  toast('Game Day archived · wins saved!');
   await endSharedSession();
   bbRotation=null; presentIds=[]; bbTimerStop();
   document.getElementById('bb-active').style.display='none';
@@ -7397,6 +7420,7 @@ function exportCSV(type){
         start30s();
         startSessionPoller();
         checkPbSaveBackup();
+        checkBbSaveBackup();
         return;
       }
     }
