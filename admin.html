@@ -1075,6 +1075,7 @@ select.fi{
     <div class="nav-item" data-p="history"><i class="ti ti-history"></i>Game History</div>
     <div class="nav-item" data-p="finance"><i class="ti ti-cash"></i>Finance</div>
     <div class="nav-item" data-p="summary"><i class="ti ti-chart-bar"></i>Summary</div>
+    <div class="nav-item" data-p="gospel"><i class="ti ti-heart"></i>Gospel Sharing</div>
     <div class="nav-item" data-p="attendance"><i class="ti ti-run"></i>Run Attendance</div>
     <div class="nav-sec">Config</div>
     <div class="nav-item" data-p="settings"><i class="ti ti-settings"></i>Settings</div>
@@ -1219,6 +1220,29 @@ select.fi{
       <div class="card">
         <div class="card-h"><div class="card-t"><i class="ti ti-list"></i>Posts</div><button type="button" class="btn btn-ghost btn-sm" onclick="renderFeedAdmin()"><i class="ti ti-refresh"></i>Refresh</button></div>
         <div id="feed-admin-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- GOSPEL SHARING -->
+    <div class="panel" id="panel-gospel">
+      <div class="card">
+        <div class="card-h">
+          <div class="card-t"><i class="ti ti-heart"></i>Gospel Sharing</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="date" class="fi" id="gs-date" style="width:auto;min-width:140px" onchange="renderGospelPanel()">
+            <button type="button" class="btn btn-sm" onclick="renderGospelPanel()"><i class="ti ti-refresh"></i>Refresh</button>
+          </div>
+        </div>
+        <div class="note">Tap a player's name to mark that the gospel was shared with them on this date. Marked players are highlighted. Each person can only be marked once per date.</div>
+        <div id="gs-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>
+        <div id="gs-list"><div class="empty">Loading…</div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-h">
+          <div class="card-t"><i class="ti ti-history"></i>Recent Gospel Shares</div>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="renderGospelHistory()"><i class="ti ti-refresh"></i>Refresh</button>
+        </div>
+        <div id="gs-history"><div class="empty">Loading…</div></div>
       </div>
     </div>
 
@@ -2374,6 +2398,7 @@ function renderPanel(pid){
   if(pid==='players')      renderPlayers();
   if(pid==='announcements')loadAnnouncements();
   if(pid==='feed')         renderFeedAdmin();
+  if(pid==='gospel')       renderGospelPanel();
   if(pid==='attendance')   renderRunRecords();
   if(pid==='devotion')     loadDevotion();
   if(pid==='gameday')      {if(!currentTeams.length)renderGameDay()}
@@ -7984,6 +8009,123 @@ async function toggleDraftPause(draftId) {
   if (!ok) return toast('Update failed — try again','er');
   toast(newStatus==='active' ? 'Draft resumed' : 'Draft paused');
   await _refreshDraftManager();
+}
+
+// ── GOSPEL SHARING ────────────────────────────────────────────
+let gsShared = new Set(); // player_ids marked for current gs-date
+
+function gsDefaultDate() {
+  // Default to most recent Sunday (or today if today is Sunday)
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun
+  d.setDate(d.getDate() - day);
+  return d.toISOString().split('T')[0];
+}
+
+async function gsLoadShared(date) {
+  const rows = await dbGet('gospel_shares', 'select=player_id&date=eq.' + date);
+  gsShared = new Set(Array.isArray(rows) ? rows.map(r => r.player_id) : []);
+}
+
+async function renderGospelPanel() {
+  const dateEl = document.getElementById('gs-date');
+  if (!dateEl.value) dateEl.value = gsDefaultDate();
+  const date = dateEl.value;
+
+  const listEl = document.getElementById('gs-list');
+  const statsEl = document.getElementById('gs-stats');
+  listEl.innerHTML = '<div class="empty">Loading…</div>';
+
+  await gsLoadShared(date);
+
+  const players = LC.arr('players').filter(p => p.isActive !== false);
+  players.sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+
+  const total = players.length;
+  const marked = players.filter(p => gsShared.has(String(p.id))).length;
+
+  statsEl.innerHTML = `
+    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--gold)">${marked}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Gospel Shared</span>
+    </div>
+    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--tx2)">${total - marked}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Not Yet</span>
+    </div>
+    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--blue)">${total}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Players Total</span>
+    </div>`;
+
+  if (!players.length) {
+    listEl.innerHTML = '<div class="empty">No active players found. Sync first.</div>';
+    return;
+  }
+
+  listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:4px 0">
+    ${players.map(p => {
+      const sid = String(p.id);
+      const on = gsShared.has(sid);
+      const name = (p.firstName + ' ' + p.lastName).trim() || 'Unnamed';
+      return `<button type="button" onclick="gsToggle('${sid}','${date}')"
+        style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid ${on ? 'var(--gold)' : 'var(--b)'};background:${on ? 'rgba(245,197,24,0.08)' : 'var(--card)'};cursor:pointer;text-align:left;transition:all .15s;width:100%">
+        <span style="font-size:18px">${on ? '✝️' : '⭕'}</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:13px;font-weight:600;color:${on ? 'var(--gold)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+          <span style="font-size:11px;color:var(--tx3)">${p.sports || 'basketball'}</span>
+        </span>
+      </button>`;
+    }).join('')}
+  </div>`;
+
+  renderGospelHistory();
+}
+
+async function gsToggle(playerId, date) {
+  const wasMarked = gsShared.has(playerId);
+  // Optimistic UI update
+  if (wasMarked) gsShared.delete(playerId); else gsShared.add(playerId);
+  renderGospelPanel();
+
+  let ok;
+  if (wasMarked) {
+    ok = await dbDelete('gospel_shares', 'player_id=eq.' + playerId + '&date=eq.' + date);
+    if (ok) toast('Removed', 'in'); else toast('Failed to remove', 'er');
+  } else {
+    ok = await dbUpsert('gospel_shares', { player_id: playerId, date, shared_by: AUTH.name() || 'Admin' });
+    if (ok) toast('Gospel marked ✝', 'in'); else toast('Failed to save', 'er');
+  }
+  if (!ok) {
+    // Revert
+    if (wasMarked) gsShared.add(playerId); else gsShared.delete(playerId);
+    renderGospelPanel();
+  }
+}
+
+async function renderGospelHistory() {
+  const el = document.getElementById('gs-history');
+  if (!el) return;
+  const rows = await dbGet('gospel_shares', 'select=player_id,date,shared_by&order=date.desc,created_at.desc&limit=60');
+  if (!rows || !rows.length) { el.innerHTML = '<div class="empty">No records yet.</div>'; return; }
+
+  const players = LC.arr('players');
+  const getName = id => { const p = players.find(x => String(x.id) === String(id)); return p ? (p.firstName + ' ' + p.lastName).trim() : id; };
+
+  // Group by date
+  const byDate = {};
+  rows.forEach(r => { if (!byDate[r.date]) byDate[r.date] = []; byDate[r.date].push(r); });
+
+  el.innerHTML = Object.entries(byDate).map(([date, entries]) => `
+    <div style="margin-bottom:16px">
+      <div style="font-family:'Bebas Neue';font-size:16px;letter-spacing:1px;color:var(--tx2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--b)">
+        ${new Date(date + 'T00:00:00').toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+        <span style="font-size:12px;font-family:'DM Sans',sans-serif;color:var(--tx3);font-weight:400;letter-spacing:0;margin-left:8px">${entries.length} people</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${entries.map(r => `<span style="background:rgba(245,197,24,0.1);border:1px solid rgba(245,197,24,0.3);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--gold)">✝ ${getName(r.player_id)}</span>`).join('')}
+      </div>
+    </div>`).join('');
 }
 </script>
 </body>
