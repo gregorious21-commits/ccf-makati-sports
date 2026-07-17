@@ -880,6 +880,41 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 .game-spots.warn{color:#FBBF24;font-weight:700}
 
+.attendee-stack{display:flex;align-items:center;margin-top:var(--s-2)}
+.attendee-avatar{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid var(--surface-1);
+  margin-left:-8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:#fff;
+  background-size:cover;background-position:center;
+  flex-shrink:0;
+}
+.attendee-avatar:first-child{margin-left:0}
+.attendee-more{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid var(--surface-1);
+  margin-left:-8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:var(--text-3);
+  background:var(--surface-2);
+  flex-shrink:0;
+}
+.attendee-label{font-size:12px;color:var(--text-3);margin-left:var(--s-2)}
+.game-share-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:50%;
+  background:none;border:1px solid var(--border);
+  color:var(--text-3);cursor:pointer;flex-shrink:0;
+  transition:all 150ms var(--ease);
+}
+.game-share-btn:hover{border-color:var(--border-strong);color:var(--text-1)}
+.game-card.gc-highlight{animation:gcPulse 1.6s var(--ease) 2}
+@keyframes gcPulse{
+  0%,100%{border-color:var(--border)}
+  50%{border-color:var(--gold,#FDB827)}
+}
+
 /* ── BADGES ── */
 .badge{
   display:inline-flex;align-items:center;gap:var(--s-1);
@@ -3692,6 +3727,7 @@ function renderWeekGames() {
   const all  =LC.arr('games').filter(g=>g.status!=='cancelled'&&g.status!=='completed');
   const games=currentSportFilter==='all'?all:all.filter(g=>(g.sport||'basketball')===currentSportFilter);
   const regs =LC.arr('regs');
+  const players=LC.arr('players');
   const el   =document.getElementById('week-games');
   if (!games.length) {
     const msg = currentSportFilter==='pickleball' ? 'No pickleball games yet. Check back soon.'
@@ -3726,9 +3762,24 @@ function renderWeekGames() {
     const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Venue</a>` : '';
     const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold)"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
     const wxLine = g.weatherNote ? `<div style="margin:0 20px 10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
-    return `<div class="game-card">
+    const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id))];
+    const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
+    const shownAttendees = attendees.slice(0,5);
+    const extraCount = attendees.length - shownAttendees.length;
+    const attendeeStack = attendees.length ? `<div class="attendee-stack">
+      ${shownAttendees.map((p,i)=>{
+        const nm = (p.firstName+' '+(p.lastName||'')).trim();
+        const style = p.avatarUrl ? `background-image:url('${feedEsc(p.avatarUrl)}')` : `background:${lbCol(i)}`;
+        const txt = p.avatarUrl ? '' : ini(p.firstName,p.lastName);
+        return `<div class="attendee-avatar" style="${style}" title="${feedEsc(nm)}">${txt}</div>`;
+      }).join('')}
+      ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
+      <span class="attendee-label">${attendees.length} signed up</span>
+    </div>` : '';
+    const shareBtn = `<button type="button" class="game-share-btn" onclick="shareGame('${g.id}')" title="Share this game" aria-label="Share this game"><i class="ti ti-share"></i></button>`;
+    return `<div class="game-card" id="game-card-${g.id}">
       <div class="${tClass}">
-        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div></div>${sBadge}</div>
+        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}${shareBtn}</div></div>
     </div>
       ${wxLine}
       <div class="game-bot">
@@ -3738,6 +3789,35 @@ function renderWeekGames() {
       ${mySt==='pending'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">Waiting for admin confirmation</div>':''}
   </div>`;
   }).join('');
+  _maybeScrollToGame();
+}
+
+let _pendingGameScrollId = null;
+function _maybeScrollToGame(){
+  if (!_pendingGameScrollId) return;
+  const card = document.getElementById('game-card-'+_pendingGameScrollId);
+  if (!card) return;
+  card.scrollIntoView({behavior:'smooth', block:'center'});
+  card.classList.add('gc-highlight');
+  setTimeout(()=>card.classList.remove('gc-highlight'), 3200);
+  _pendingGameScrollId = null;
+}
+
+async function shareGame(gameId){
+  const g = LC.arr('games').find(x=>x.id===gameId);
+  if (!g) return;
+  const url = location.origin + location.pathname + '#game/' + gameId;
+  const text = g.label + ' · ' + g.time + (g.venue?' at '+g.venue:'') + '. Join us!';
+  if (navigator.share) {
+    try { await navigator.share({ title: g.label, text, url }); return; }
+    catch(e) { if (e.name==='AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Game link copied!');
+  } catch(e) {
+    toast('Could not copy link','er');
+  }
 }
 
 // ── PAYMENT FLOW ─────────────────────────────────────────────
@@ -4363,6 +4443,12 @@ function openTournDetail(id) {
 function _handleHash() {
   const hash = location.hash.replace('#','');
   if (!hash || hash==='home') { switchTab('home',{pushState:false}); return; }
+  if (hash.startsWith('game/')) {
+    const id = hash.split('/')[1] || null;
+    switchTab('home',{pushState:false});
+    if (id) { _pendingGameScrollId = id; renderWeekGames(); }
+    return;
+  }
   if (hash.startsWith('tournaments/')) {
     const parts = hash.split('/');
     const id = parts[2] || null;
