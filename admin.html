@@ -1234,6 +1234,10 @@ select.fi{
           </div>
         </div>
         <div class="note">Tap a player's name to mark that the gospel was shared with them on this date. Marked players are highlighted. Each person can only be marked once per date.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <input type="text" class="fi" id="gs-search" placeholder="Search player…" oninput="gsFilterList(this.value)" style="flex:1;min-width:180px">
+          <button type="button" class="btn btn-sm" style="width:auto;background:rgba(245,197,24,.12);border:1px solid var(--gold);color:var(--gold)" onclick="gsMarkAllDgroup()"><i class="ti ti-users"></i>Mark all D-Group members</button>
+        </div>
         <div id="gs-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>
         <div id="gs-list"><div class="empty">Loading…</div></div>
       </div>
@@ -8068,18 +8072,44 @@ async function renderGospelPanel() {
       const sid = String(p.id);
       const on = gsShared.has(sid);
       const name = (p.firstName + ' ' + p.lastName).trim() || 'Unnamed';
-      return `<button type="button" onclick="gsToggle('${sid}','${date}')"
+      return `<button type="button" data-gs-name="${name.toLowerCase()}" onclick="gsToggle('${sid}','${date}')"
         style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid ${on ? 'var(--gold)' : 'var(--b)'};background:${on ? 'rgba(245,197,24,0.08)' : 'var(--card)'};cursor:pointer;text-align:left;transition:all .15s;width:100%">
         <span style="font-size:18px">${on ? '✝️' : '⭕'}</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-size:13px;font-weight:600;color:${on ? 'var(--gold)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-          <span style="font-size:11px;color:var(--tx3)">${p.sports || 'basketball'}</span>
+          <span style="font-size:11px;color:var(--tx3)">${p.sports || 'basketball'}${p.hasDgroup ? ' · <span style=\'color:var(--gold)\'>D-Group</span>' : ''}</span>
         </span>
       </button>`;
     }).join('')}
   </div>`;
 
+  gsFilterList(document.getElementById('gs-search')?.value || '');
   renderGospelHistory();
+}
+
+function gsFilterList(q) {
+  const query = (q || '').toLowerCase().trim();
+  document.querySelectorAll('#gs-list [data-gs-name]').forEach(el => {
+    el.style.display = el.dataset.gsName.includes(query) ? '' : 'none';
+  });
+}
+
+async function gsMarkAllDgroup() {
+  const dateEl = document.getElementById('gs-date');
+  const date = dateEl.value || gsDefaultDate();
+  const players = LC.arr('players').filter(p => p.isActive !== false && p.hasDgroup);
+  const toMark = players.filter(p => !gsShared.has(String(p.id)));
+  if (!toMark.length) { toast('Everyone with a D-Group is already marked for this date', 'in'); return; }
+  if (!confirm('Mark ' + toMark.length + ' D-Group member(s) as gospel shared for ' + date + '?')) return;
+  const rows = toMark.map(p => ({ player_id: String(p.id), date, shared_by: (AUTH.name() || 'Admin') + ' (bulk: D-Group)' }));
+  const ok = await dbUpsert('gospel_shares', rows);
+  if (ok) {
+    toMark.forEach(p => gsShared.add(String(p.id)));
+    toast('Marked ' + toMark.length + ' D-Group member(s)', 'in');
+    renderGospelPanel();
+  } else {
+    toast('Bulk mark failed — check Supabase', 'er');
+  }
 }
 
 async function gsToggle(playerId, date) {
