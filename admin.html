@@ -2843,9 +2843,10 @@ async function confirmReg(id){
   const upd = isAdvance ? {status:'confirmed', paid:true} : {status:'confirmed'};
   const ok = await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:id,p_status:'confirmed',p_paid:isAdvance?true:r.paid,p_is_first_timer:r.isFirstTimer||false,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
   if (ok){
-    const title = isAdvance ? ' Payment Verified' : ' Cash Request Approved';
-    const body  = (r.playerName||'Player') + (isAdvance ? ' confirmed for ' : ' approved (cash on game day) for ') + r.gameLabel;
-    dbNotif(title, body, 'success');
+    // Personal confirmation — not broadcast. The notifications table has no
+    // per-recipient targeting, so this used to show up in every member's feed
+    // ("Jeracel approved for..."). The player already sees their own game
+    // card flip to "Confirmed" on the next sync, which is the real signal.
     toast((r.playerName||'Player') + (isAdvance ? ' verified' : ' approved (cash)'));
   } else toast('Save failed','er');
   renderRegs(); renderDash();
