@@ -12,6 +12,28 @@ Always preserve working functionality unless specifically instructed otherwise.
 
 ---
 
+# SCOPE OF PROCESS (read this before applying anything below)
+
+The full process in this document (phased workflow, Understanding/Plan/Risks
+response format, "Suggested Improvements" instead of refactoring, etc.) is
+for **non-trivial features and changes** — new functionality, schema
+changes, anything touching auth/payments/data integrity, or anything the
+user describes as a feature.
+
+For **small fixes** — a bug fix, a CSS tweak, a copy change, a one-line
+logic correction, something the user points at directly ("this is broken,
+fix it") — skip the ceremony. Just:
+
+- Find the bug, fix it, verify it works, ship it.
+- Still flag real risks if you spot one (e.g. "this also affects X").
+- Still don't silently refactor unrelated code while you're in there.
+
+Use judgment on which mode a request calls for. If genuinely unsure whether
+something is "small" or "a feature," ask rather than assume the heavy
+process is wanted.
+
+---
+
 # PROJECT GOALS
 
 This application should be:
