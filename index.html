@@ -3008,7 +3008,13 @@ function myCurrentTeamEntries(playerId) {
       return;
     }
     const inPool = (t.player_pool||[]).some(p => p.id === playerId);
-    if (inPool) entries.push({ tournament: t, team: null, teamIndex: 0, poolOnly: true });
+    if (!inPool) return;
+    // Only show "waiting for draft day" if the draft genuinely hasn't
+    // happened yet — once any team has players assigned, picking is done
+    // (or underway), so someone left in the pool just wasn't drafted and
+    // shouldn't be told they're still waiting.
+    const draftStarted = teams.some(tm => (tm.players||[]).length > 0);
+    if (!draftStarted) entries.push({ tournament: t, team: null, teamIndex: 0, poolOnly: true });
   });
   return entries;
 }
