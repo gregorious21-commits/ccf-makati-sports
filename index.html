@@ -693,6 +693,42 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   margin-top:var(--s-1);
 }
 
+.team-stack{
+  display:flex;gap:var(--s-3);overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  margin-top:var(--s-5);padding-bottom:2px;
+  -webkit-overflow-scrolling:touch;
+}
+.team-stack::-webkit-scrollbar{display:none}
+.team-card{
+  scroll-snap-align:start;flex:0 0 auto;width:260px;
+  border-radius:var(--r-lg);padding:var(--s-4) var(--s-4) var(--s-3);
+  position:relative;overflow:hidden;cursor:pointer;
+  background:var(--surface-1);border:1px solid var(--border);
+  transition:transform 150ms var(--ease);
+}
+.team-card:active{transform:scale(.98)}
+.team-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.team-card-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.team-card-eyebrow .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.team-card-name{font-family:var(--font-display);font-size:26px;letter-spacing:.02em;line-height:1;margin-top:4px}
+.team-card-league{font-size:12px;color:var(--text-2);margin-top:3px}
+.team-mates{display:flex;align-items:center;margin-top:var(--s-3)}
+.tm-av{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-8px;
+  display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;
+  background-size:cover;background-position:center;flex-shrink:0}
+.tm-av:first-child{margin-left:0}
+.tm-more{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-8px;
+  background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--text-3);flex-shrink:0}
+.tm-label{font-size:11px;color:var(--text-3);margin-left:8px}
+.team-card-cta{font-size:11px;font-weight:700;color:var(--text-1);margin-top:var(--s-3);display:flex;align-items:center;gap:4px}
+.team-card.pool-only{background:var(--surface-1);border:1px dashed var(--border-strong)}
+.team-card.pool-only::before{display:none}
+.team-pill{
+  display:inline-flex;align-items:center;gap:6px;margin-top:var(--s-3);padding:6px 14px;border-radius:20px;
+  font-size:12px;font-weight:700;cursor:pointer;
+}
+
 /* ── CONTENT AREA ── */
 .content{
   max-width:640px;margin:0 auto;
@@ -1736,6 +1772,7 @@ footer a:hover{color:var(--text-1)}
         <div class="stat"><div class="stat-n" id="d-rate">—</div><div class="stat-l"><span class="spi spi-b"></span>Rate</div></div>
         <div class="stat"><div class="stat-n" id="d-pball">0</div><div class="stat-l"><span class="spi spi-p"></span>Games</div></div>
     </div>
+      <div id="my-team-stack"></div>
   </div>
 </div>
   <div class="content">
@@ -2949,9 +2986,75 @@ function renderProfile() {
   document.getElementById('d-pball').textContent = pickleballGames(ME.id);
   const bio=document.getElementById('d-bio');
   if (ME.bio) { bio.style.display=''; bio.textContent=ME.bio; } else bio.style.display='none';
+  const stack = document.getElementById('my-team-stack');
+  if (stack) stack.innerHTML = renderTeamStackHtml(myCurrentTeamEntries(ME.id));
 }
 
 function shareCard() { openStatCard(); }
+
+// ── CURRENT TEAM / LEAGUE (profile) ────────────────────────────
+// Looks across every active/upcoming tournament for teams the player is on
+// (or, failing that, whether they're waiting in the pool). Completed
+// tournaments are intentionally excluded — this is "current", not history.
+function myCurrentTeamEntries(playerId) {
+  if (!playerId) return [];
+  const tourns = LC.arr('tournaments').filter(t => t.status === 'active' || t.status === 'upcoming');
+  const entries = [];
+  tourns.forEach(t => {
+    const teams = t.teams || [];
+    const myTeam = teams.find(tm => (tm.players||[]).includes(playerId) || tm.owner === playerId);
+    if (myTeam) {
+      entries.push({ tournament: t, team: myTeam, teamIndex: teams.findIndex(x=>x.id===myTeam.id), poolOnly: false });
+      return;
+    }
+    const inPool = (t.player_pool||[]).some(p => p.id === playerId);
+    if (inPool) entries.push({ tournament: t, team: null, teamIndex: 0, poolOnly: true });
+  });
+  return entries;
+}
+
+function renderTeamStackHtml(entries, opts) {
+  opts = opts || {};
+  if (!entries.length) return '';
+  const roster = LC.arr('roster');
+  const cards = entries.map(e => {
+    const t = e.tournament;
+    if (e.poolOnly) {
+      return `<div class="team-card pool-only" onclick="goToMyTeamTournament('${t.id}')">
+        <div class="team-card-eyebrow" style="color:var(--gold)">${feedEsc(t.name)}</div>
+        <div style="font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.4"><i>You're in the player pool.</i> Waiting for draft day.</div>
+      </div>`;
+    }
+    const color = lbCol(e.teamIndex);
+    const mateIds = (e.team.players||[]).filter(pid => pid !== ME?.id).slice(0,3);
+    const mates = mateIds.map(pid => roster.find(p=>p.id===pid)).filter(Boolean);
+    const mateCount = (e.team.players||[]).length;
+    const matesHtml = mates.length ? `<div class="team-mates">
+      ${mates.map((p,i)=>{
+        const style = p.avatarUrl ? `background-image:url('${feedEsc(p.avatarUrl)}')` : `background:${lbCol(i)}`;
+        const txt = p.avatarUrl ? '' : ini(p.firstName,p.lastName);
+        return `<div class="tm-av" style="${style}">${txt}</div>`;
+      }).join('')}
+      ${mateCount>mates.length?`<div class="tm-more">+${mateCount-mates.length}</div>`:''}
+      <div class="tm-label">${mateCount} teammate${mateCount===1?'':'s'}</div>
+    </div>` : '';
+    return `<div class="team-card" onclick="goToMyTeamTournament('${t.id}')">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${color}"></div>
+      <div class="team-card-eyebrow" style="color:${color}"><span class="dot" style="background:${color}"></span>Current Team</div>
+      <div class="team-card-name">${feedEsc(e.team.name).toUpperCase()}</div>
+      <div class="team-card-league">${feedEsc(t.name)}</div>
+      ${matesHtml}
+      ${opts.compact ? '' : '<div class="team-card-cta">View Team &amp; Standings <i class="ti ti-arrow-right"></i></div>'}
+    </div>`;
+  }).join('');
+  return `<div class="team-stack">${cards}</div>`;
+}
+
+function goToMyTeamTournament(tournId) {
+  closeViewPlayer();
+  switchTab('tournaments');
+  openTournDetail(tournId);
+}
 
 // ── STAT CARD SHEET ──────────────────────────────────────────
 const SC_THEMES = {
@@ -5054,6 +5157,7 @@ function viewPlayer(id){
       <div class="pv-name">${p.firstName.toUpperCase()} ${p.lastName.toUpperCase()}</div>
       <div class="pv-pos">${p.position||'Player'} · ${dg}</div>
       <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-top:4px">${rankTxt}</div>
+      ${renderTeamStackHtml(myCurrentTeamEntries(id), {compact:true})}
   </div>
     <div class="pv-stats">
       <div class="pv-stat"><div class="pv-stat-n g">${p.wins||0}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Wins</div></div>
