@@ -749,6 +749,16 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   max-width:640px;margin:0 auto;
   padding:var(--s-6) var(--s-5) 100px;
 }
+@media(min-width:1024px){
+  .content,.pb-in{max-width:960px}
+  #week-games{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4)}
+  #week-games .game-card{margin-bottom:0}
+  #week-games .game-card:last-child:nth-child(odd){grid-column:1/-1}
+  #dir-list > .card{display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-6)}
+  #my-hist{display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-6)}
+  #my-hist .hist-row:nth-last-child(-n+2){border-bottom:none}
+  #my-hist .hist-row:last-child:nth-child(odd){grid-column:1/-1}
+}
 .sec-h{
   display:flex;align-items:center;justify-content:space-between;
   margin:var(--s-7) 0 var(--s-3);
@@ -1546,6 +1556,9 @@ footer a:hover{color:var(--text-1)}
      The "All" pill has no icon, so it keeps its text. */
   .sport-pills .sport-pill .pl,
   .tog-row.filter-row .tog .pl{display:none}
+  /* #dir-f-all (Players directory "All" pill) has no icon span at all -
+     hiding its .pl would leave it completely blank, so it's exempted. */
+  #dir-f-all .pl{display:inline}
   .sport-pills .sport-pill .spi,
   .tog-row.filter-row .tog .spi{margin-right:0;font-size:1.25em}
   .sport-pills .sport-pill{padding:0 16px}
