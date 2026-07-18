@@ -694,36 +694,51 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 
 .team-stack{
-  display:flex;gap:var(--s-3);overflow-x:auto;
-  scroll-snap-type:x mandatory;
+  display:flex;gap:var(--s-3);
   margin-top:var(--s-5);padding-bottom:2px;
+}
+.team-stack.scrollable{
+  overflow-x:auto;scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
+  margin-left:calc(var(--s-5) * -1);margin-right:calc(var(--s-5) * -1);
+  padding-left:var(--s-5);padding-right:var(--s-5);
 }
-.team-stack::-webkit-scrollbar{display:none}
+.team-stack.scrollable::-webkit-scrollbar{display:none}
 .team-card{
-  scroll-snap-align:start;flex:0 0 auto;width:260px;
-  border-radius:var(--r-lg);padding:var(--s-4) var(--s-4) var(--s-3);
+  border-radius:var(--r-lg);padding:var(--s-5);
   position:relative;overflow:hidden;cursor:pointer;
-  background:var(--surface-1);border:1px solid var(--border);
-  transition:transform 150ms var(--ease);
+  border:1px solid var(--border);
+  transition:transform 150ms var(--ease), border-color 150ms var(--ease);
 }
+.team-stack:not(.scrollable) .team-card{flex:1 1 auto;width:100%}
+.team-stack.scrollable .team-card{scroll-snap-align:start;flex:0 0 auto;width:min(300px,82vw)}
 .team-card:active{transform:scale(.98)}
-.team-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.team-card-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
-.team-card-eyebrow .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.team-card-name{font-family:var(--font-display);font-size:26px;letter-spacing:.02em;line-height:1;margin-top:4px}
-.team-card-league{font-size:12px;color:var(--text-2);margin-top:3px}
-.team-mates{display:flex;align-items:center;margin-top:var(--s-3)}
-.tm-av{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-8px;
-  display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;
+.team-card:hover{border-color:var(--border-strong)}
+.team-card-top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)}
+.team-card-badge{
+  width:38px;height:38px;border-radius:var(--r-md);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:17px;color:#fff;
+}
+.team-card-eyebrow{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3)}
+.team-card-name{font-family:var(--font-display);font-size:24px;letter-spacing:.02em;line-height:1.05;margin-top:2px}
+.team-card-league{font-size:12px;color:var(--text-2);margin-top:2px;display:flex;align-items:center;gap:5px}
+.team-mates{display:flex;align-items:center;margin-top:var(--s-4);padding-top:var(--s-4);border-top:1px solid var(--border)}
+.tm-av{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-9px;
+  display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;
   background-size:cover;background-position:center;flex-shrink:0}
 .tm-av:first-child{margin-left:0}
-.tm-more{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-8px;
-  background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--text-3);flex-shrink:0}
-.tm-label{font-size:11px;color:var(--text-3);margin-left:8px}
-.team-card-cta{font-size:11px;font-weight:700;color:var(--text-1);margin-top:var(--s-3);display:flex;align-items:center;gap:4px}
-.team-card.pool-only{background:var(--surface-1);border:1px dashed var(--border-strong)}
-.team-card.pool-only::before{display:none}
+.tm-more{width:24px;height:24px;border-radius:50%;border:2px solid var(--surface-1);margin-left:-9px;
+  background:var(--surface-2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text-3);flex-shrink:0}
+.tm-label{font-size:12px;color:var(--text-2);margin-left:10px;font-weight:500}
+.team-card-cta{
+  font-size:12px;font-weight:700;margin-top:var(--s-4);
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  padding:9px;border-radius:var(--r-md);
+}
+.team-card.pool-only{border:1px dashed var(--border-strong)}
+.team-card.pool-only .team-card-eyebrow{color:var(--gold-bright)}
+.team-card.pool-only p{font-size:13px;color:var(--text-2);line-height:1.45;margin-top:var(--s-2)}
 .team-pill{
   display:inline-flex;align-items:center;gap:6px;margin-top:var(--s-3);padding:6px 14px;border-radius:20px;
   font-size:12px;font-weight:700;cursor:pointer;
@@ -3027,12 +3042,13 @@ function renderTeamStackHtml(entries, opts) {
     const t = e.tournament;
     if (e.poolOnly) {
       return `<div class="team-card pool-only" onclick="goToMyTeamTournament('${t.id}')">
-        <div class="team-card-eyebrow" style="color:var(--gold)">${feedEsc(t.name)}</div>
-        <div style="font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.4"><i>You're in the player pool.</i> Waiting for draft day.</div>
+        <div class="team-card-eyebrow">${feedEsc(t.name)}</div>
+        <p><i>You're in the player pool.</i> Waiting for draft day.</p>
       </div>`;
     }
     const color = lbCol(e.teamIndex);
-    const mateIds = (e.team.players||[]).filter(pid => pid !== ME?.id).slice(0,3);
+    const initial = (e.team.name||'?').replace(/^team\s+/i,'').trim().charAt(0).toUpperCase() || 'T';
+    const mateIds = (e.team.players||[]).filter(pid => pid !== ME?.id).slice(0,4);
     const mates = mateIds.map(pid => roster.find(p=>p.id===pid)).filter(Boolean);
     const mateCount = (e.team.players||[]).length;
     const matesHtml = mates.length ? `<div class="team-mates">
@@ -3044,16 +3060,20 @@ function renderTeamStackHtml(entries, opts) {
       ${mateCount>mates.length?`<div class="tm-more">+${mateCount-mates.length}</div>`:''}
       <div class="tm-label">${mateCount} teammate${mateCount===1?'':'s'}</div>
     </div>` : '';
-    return `<div class="team-card" onclick="goToMyTeamTournament('${t.id}')">
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${color}"></div>
-      <div class="team-card-eyebrow" style="color:${color}"><span class="dot" style="background:${color}"></span>Current Team</div>
-      <div class="team-card-name">${feedEsc(e.team.name).toUpperCase()}</div>
-      <div class="team-card-league">${feedEsc(t.name)}</div>
+    return `<div class="team-card" style="background:linear-gradient(160deg, ${color}20, var(--surface-1) 60%)" onclick="goToMyTeamTournament('${t.id}')">
+      <div class="team-card-top">
+        <div>
+          <div class="team-card-eyebrow">Current Team</div>
+          <div class="team-card-name">${feedEsc(e.team.name).toUpperCase()}</div>
+          <div class="team-card-league"><i class="ti ti-trophy" style="font-size:12px"></i>${feedEsc(t.name)}</div>
+        </div>
+        <div class="team-card-badge" style="background:${color}">${initial}</div>
+      </div>
       ${matesHtml}
-      ${opts.compact ? '' : '<div class="team-card-cta">View Team &amp; Standings <i class="ti ti-arrow-right"></i></div>'}
+      ${opts.compact ? '' : `<div class="team-card-cta" style="background:${color}22;color:${color}">View Team &amp; Standings <i class="ti ti-arrow-right"></i></div>`}
     </div>`;
   }).join('');
-  return `<div class="team-stack">${cards}</div>`;
+  return `<div class="team-stack${entries.length>1?' scrollable':''}">${cards}</div>`;
 }
 
 function goToMyTeamTournament(tournId) {
