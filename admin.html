@@ -5520,6 +5520,24 @@ function renderTournRegsPanel(t, regs) {
   const pending  = regs.filter(r=>r.status==='pending');
   const approved = regs.filter(r=>r.status==='approved');
   const rejected = regs.filter(r=>r.status==='rejected');
+  const waitlist = regs.filter(r=>r.status==='waitlist');
+
+  const waitCard = r => {
+    const name = _tPlayerName(r.captain_id);
+    const dt = r.created_at ? new Date(r.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700">${name}</div>
+          <div style="font-size:12px;color:var(--tx2)">Waiting since ${dt}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button type="button" class="btn btn-sm" style="flex:1;background:var(--gold);color:#000" onclick="notifyTournWaitlist('${r.id}','${t.name.replace(/'/g,"\\'")}')"><i class="ti ti-bell"></i>Notify — Slot Opened</button>
+        <button type="button" class="btn btn-sm btn-ghost" style="flex:1" onclick="removeTournWaitlistEntry('${r.id}','${t.id}')"><i class="ti ti-x"></i>Remove</button>
+      </div>
+    </div>`;
+  };
 
   const regCard = (r, showActions) => {
     const captainName = _tPlayerName(r.captain_id);
@@ -5560,7 +5578,24 @@ function renderTournRegsPanel(t, regs) {
     ${rejected.length ? `
       <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Rejected (${rejected.length})</div>
       ${rejected.map(r=>regCard(r,false)).join('')}` : ''}
+
+    ${waitlist.length ? `
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Waitlist (${waitlist.length})</div>
+      ${waitlist.map(waitCard).join('')}` : ''}
   `;
+}
+
+async function notifyTournWaitlist(regId, tournName) {
+  const ok = await dbNotif('A Slot Opened Up!','A team slot just opened in '+tournName+' — check the app if you’re on the waitlist.','info');
+  if (ok) toast('Notification sent'); else toast('Failed to send notification','er');
+}
+
+async function removeTournWaitlistEntry(regId, tournId) {
+  if (!confirm('Remove this person from the waitlist?')) return;
+  const ok = await rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:regId,p_status:'cancelled'});
+  if (!ok) return toast('Failed','er');
+  toast('Removed from waitlist','in');
+  openTournRegs(tournId);
 }
 
 async function approveTournReg(regId, tournId) {
@@ -5578,18 +5613,19 @@ async function approveTournReg(regId, tournId) {
   // idempotency: if team already added, just mark reg approved
   const existing = teams.find(tm=>tm.name===teamName);
   if (existing) {
-    const ok2 = await dbUpdate('tournament_registrations','id=eq.'+regId,{status:'approved'});
+    const ok2 = await rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:regId,p_status:'approved'});
     if (!ok2) return toast('Failed to mark approved','er');
     toast(teamName+' already in tournament — marked approved');
     openTournRegs(tournId); return;
   }
+  if (teams.length >= (t.max_teams||4)) return toast('Tournament already has its max number of teams — edit max teams first','er');
   const newTeam = { id:'tm'+Date.now(), name:teamName, captain:captainId, owner:captainId, players };
   teams.push(newTeam);
-  const ok1 = await dbUpdate('tournaments','id=eq.'+tournId,{ teams });
+  const ok1 = await rpc('admin_update_tournament_teams',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:tournId,p_teams:teams});
   if (!ok1) return toast('Failed to add team','er');
-  const ok2 = await dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'approved' });
+  const ok2 = await rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:regId,p_status:'approved'});
   if (!ok2) toast('Team added but registration status not updated — check manually','er');
-  else toast(teamName+' added to tournament');
+  else { toast(teamName+' added to tournament'); dbNotif('Team Approved',teamName+' is officially in '+t.name+'!','success'); }
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
   if (Array.isArray(fresh)) LC.set('tournaments', fresh);
   openTournRegs(tournId);
@@ -5597,7 +5633,7 @@ async function approveTournReg(regId, tournId) {
 
 async function rejectTournReg(regId, tournId) {
   if (!confirm('Reject this registration?')) return;
-  const ok = await dbUpdate('tournament_registrations','id=eq.'+regId,{ status:'rejected' });
+  const ok = await rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:regId,p_status:'rejected'});
   if (!ok) return toast('Failed','er');
   toast('Registration rejected','in');
   openTournRegs(tournId);
@@ -5708,7 +5744,7 @@ async function saveTournMatchStats(tournId, round) {
   });
   m.stats = Object.values(statsMap);
 
-  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{ matches });
+  const ok = await rpc('admin_update_tournament_matches',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:tournId,p_matches:matches});
   if (!ok) return toast('Save failed','er');
   toast('Stats saved');
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
@@ -5762,7 +5798,7 @@ async function autoProgressBracket(tournId) {
   setMatch('3rd',   s3.id, s4.id);
 
   if (!changed) return;
-  await dbUpdate('tournaments','id=eq.'+tournId,{matches});
+  await rpc('admin_update_tournament_matches',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:tournId,p_matches:matches});
   const fresh2 = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
   if (Array.isArray(fresh2)) LC.set('tournaments',fresh2);
   toast('Finals auto-set from standings');
@@ -5836,7 +5872,7 @@ function renderTournProposals() {
 
 function approveProposal(id, name, sport, format) {
   // Mark approved then pre-fill new tournament form
-  dbUpdate('tournament_registrations','id=eq.'+id,{status:'proposal_approved'}).then(ok=>{
+  rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:id,p_status:'proposal_approved'}).then(ok=>{
     if (!ok) return toast('Failed to update','er');
     const idx = _proposals.findIndex(p=>p.id===id);
     if (idx>-1) _proposals[idx].status='proposal_approved';
@@ -5857,7 +5893,7 @@ function approveProposal(id, name, sport, format) {
 function rejectProposal(id) {
   const reason = prompt('Reason for rejection (optional — will be shown to member):');
   if (reason === null) return; // cancelled
-  dbUpdate('tournament_registrations','id=eq.'+id,{status:'proposal_rejected', notes: reason||null}).then(ok=>{
+  rpc('admin_set_tournament_reg_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_reg_id:id,p_status:'proposal_rejected',p_notes:reason||null}).then(ok=>{
     if (!ok) return toast('Failed to update','er');
     const idx = _proposals.findIndex(p=>p.id===id);
     if (idx>-1) { _proposals[idx].status='proposal_rejected'; if(reason) _proposals[idx].notes=reason; }
@@ -5996,7 +6032,7 @@ async function saveGameDayResult(tournId, round) {
   // preserve scheduled date/time if already set; otherwise stamp with today
   if (!m.date) m.date = new Date().toISOString().slice(0,10);
   if (!m.time) m.time = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
-  const ok = await dbUpdate('tournaments','id=eq.'+tournId,{matches});
+  const ok = await rpc('admin_update_tournament_matches',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:tournId,p_matches:matches});
   if (!ok) return toast('Save failed','er');
   toast('Result saved');
   const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
@@ -6101,14 +6137,14 @@ async function openTournPayments(id) {
 function closeTournPayments() { _showTournPanel('admin-tourn-list'); }
 
 async function verifyTournPayment(payId, tournId) {
-  const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'verified',verified_at:new Date().toISOString()});
-  if (ok) { toast('Payment verified'); openTournPayments(tournId); }
+  const ok = await rpc('admin_set_tournament_payment_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_payment_id:payId,p_status:'verified'});
+  if (ok) { toast('Payment verified'); dbNotif('Payment Verified','A team payment was verified.','success'); openTournPayments(tournId); }
   else toast('Failed to verify','er');
 }
 
 async function rejectTournPayment(payId, tournId) {
   if (!confirm('Reject this payment? The team will need to resubmit.')) return;
-  const ok = await dbUpdate('tournament_payments','id=eq.'+payId,{status:'rejected'});
+  const ok = await rpc('admin_set_tournament_payment_status',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_payment_id:payId,p_status:'rejected'});
   if (ok) { toast('Payment rejected','in'); openTournPayments(tournId); }
   else toast('Failed','er');
 }
@@ -6147,8 +6183,7 @@ async function submitAdminPayment(teamId, tournId) {
   if (!amt || amt<=0) return toast('Enter an amount','er');
   const note = document.getElementById('adm-pay-note')?.value.trim()||'';
   const status = document.getElementById('adm-pay-status')?.value||'verified';
-  const payload = { tournament_id:tournId, team_id:teamId, player_id:null, amount:amt, proof_url:null, status, notes:note };
-  const ok = await dbInsert('tournament_payments', payload);
+  const ok = await rpc('admin_insert_tournament_payment',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_tournament_id:tournId,p_team_id:teamId,p_amount:amt,p_status:status,p_notes:note});
   if (!ok) return toast('Save failed','er');
   toast('Payment recorded');
   document.getElementById('admin-pay-form-'+teamId)?.remove();
@@ -6506,9 +6541,7 @@ async function saveTournament() {
     matches:       (bracketEl && bracketEl._matches) ? bracketEl._matches : [],
   };
   try {
-    const res = _tEditId
-      ? await dbUpdate('tournaments','id=eq.'+_tEditId, payload)
-      : await dbInsert('tournaments', payload);
+    const res = await rpc('admin_upsert_tournament',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:_tEditId,p_payload:payload});
     if (!res) throw new Error('Save failed');
     toast(_tEditId ? 'Tournament updated' : 'Tournament created');
     const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
@@ -6521,7 +6554,8 @@ async function saveTournament() {
 async function deleteTournament(id) {
   if (!confirm('Delete this tournament? This cannot be undone.')) return;
   try {
-    await dbDelete('tournaments','id=eq.'+id);
+    const ok = await rpc('admin_delete_tournament',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:id});
+    if (!ok) return toast('Delete failed','er');
     const fresh = await dbGet('tournaments','select=*&order=created_at.desc').catch(()=>[]);
     if (Array.isArray(fresh)) LC.set('tournaments', fresh);
     toast('Deleted','in');
@@ -7643,7 +7677,7 @@ async function removeFromPool(playerId) {
   const t = tourns.find(x=>x.id===_poolTournId);
   if (!t) return;
   const pool = (t.player_pool||[]).filter(p=>p.id!==playerId);
-  const ok = await dbUpdate('tournaments','id=eq.'+_poolTournId,{player_pool:pool});
+  const ok = await rpc('admin_update_tournament_pool',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:_poolTournId,p_pool:pool});
   if (!ok) return toast('Remove failed','er');
   const ti = tourns.findIndex(x=>x.id===_poolTournId);
   if (ti>-1) { tourns[ti]={...t,player_pool:pool}; LC.set('tournaments',tourns); }
@@ -7903,7 +7937,7 @@ async function _clearDraftRostersFromTournament(tournId) {
   const clearedTeams = (tourn.teams||[]).map(tm => ({
     ...tm, players: [], waivers: {}
   }));
-  const ok = await dbUpdate('tournaments', 'id=eq.'+tournId, { teams: clearedTeams });
+  const ok = await rpc('admin_update_tournament_teams',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:tournId,p_teams:clearedTeams});
   if (ok) {
     const all = LC.arr('tournaments');
     const i = all.findIndex(x => x.id===tournId);
@@ -7917,7 +7951,7 @@ async function deleteDraft(draftId) {
   if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt = null; }
   const dRows = await dbGet('drafts', 'select=tournament_id&id=eq.'+draftId);
   const tournId = dRows && dRows[0] && dRows[0].tournament_id;
-  const ok = await dbDelete('drafts', 'id=eq.'+draftId);
+  const ok = await rpc('admin_delete_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId});
   if (!ok) return toast('Delete failed','er');
   if (tournId) await _clearDraftRostersFromTournament(tournId);
   toast('Draft deleted — team rosters cleared');
@@ -7929,9 +7963,9 @@ async function resetDraft(draftId) {
   if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt = null; }
   const dRows = await dbGet('drafts', 'select=tournament_id&id=eq.'+draftId);
   const tournId = dRows && dRows[0] && dRows[0].tournament_id;
-  const ok = await dbUpdate('drafts','id=eq.'+draftId, {
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:tournId,p_payload:{
     status: 'pending', draft_order: [], picks: [], current_pick: 1, pick_started_at: null
-  });
+  }});
   if (!ok) return toast('Reset failed','er');
   if (tournId) await _clearDraftRostersFromTournament(tournId);
   toast('Draft reset — team rosters cleared');
@@ -7944,12 +7978,11 @@ async function createDraft() {
   const rounds = parseInt(document.getElementById('dc-rounds').value)||13;
   const timer = parseInt(document.getElementById('dc-timer').value)||60;
   const id = 'draft_'+Date.now();
-  const ok = await dbInsert('drafts', {
-    id, tournament_id:_draftTournId, status:'pending',
-    draft_order:[], picks:[], current_pick:1,
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:id,p_tournament_id:_draftTournId,p_payload:{
+    status:'pending', draft_order:[], picks:[], current_pick:1,
     total_rounds:rounds, total_teams:(tourn.teams||[]).length, pick_duration:timer,
     pick_started_at:null
-  });
+  }});
   if (!ok) return toast('Failed to create draft','er');
   toast('Draft created');
   await _refreshDraftManager();
@@ -7964,16 +7997,16 @@ async function runDraftLottery(draftId) {
     [teams[i],teams[j]] = [teams[j],teams[i]];
   }
   const order = teams.map(t => t.id);
-  const ok = await dbUpdate('drafts','id=eq.'+draftId,{draft_order:order, status:'lottery'});
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:_draftTournId,p_payload:{draft_order:order, status:'lottery'}});
   if (!ok) return toast('Lottery failed','er');
   toast('Lottery done — draft order set!');
   await _refreshDraftManager();
 }
 
 async function startDraft(draftId) {
-  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:_draftTournId,p_payload:{
     status:'active', current_pick:1, pick_started_at:new Date().toISOString()
-  });
+  }});
   if (!ok) return toast('Failed to start draft','er');
   toast('Draft is LIVE!');
   await _refreshDraftManager();
@@ -8008,10 +8041,10 @@ async function adminMakePick(draftId, playerId) {
   const totalPicks = _draftTotalPicks(draft);
   const newStatus = nextPick > totalPicks ? 'complete' : 'active';
 
-  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:_draftTournId,p_payload:{
     picks, current_pick:nextPick, status:newStatus,
     pick_started_at: newStatus==='active' ? new Date().toISOString() : null
-  });
+  }});
   if (!ok) return toast('Pick failed','er');
 
   // Sync player into tournament team roster
@@ -8024,7 +8057,7 @@ async function adminMakePick(draftId, playerId) {
       if (waivers[playerId] === undefined) waivers[playerId] = false;
       return {...tm, players, waivers};
     });
-    const tOk = await dbUpdate('tournaments','id=eq.'+_draftTournId,{teams:updatedTeams});
+    const tOk = await rpc('admin_update_tournament_teams',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:_draftTournId,p_teams:updatedTeams});
     if (tOk) {
       const tourns = LC.arr('tournaments');
       const ti = tourns.findIndex(x=>x.id===_draftTournId);
@@ -8049,10 +8082,10 @@ async function skipDraftPick(draftId) {
   const nextPick = draft.current_pick + 1;
   const effectiveTotal = (draft.total_teams||4)*(draft.total_rounds||13) + deferred.length;
   const newStatus = nextPick > effectiveTotal ? 'complete' : 'active';
-  const ok = await dbUpdate('drafts','id=eq.'+draftId,{
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:_draftTournId,p_payload:{
     current_pick:nextPick, deferred_picks:deferred, status:newStatus,
     pick_started_at: newStatus==='active' ? new Date().toISOString() : null
-  });
+  }});
   if (!ok) return toast('Defer failed — try again','er');
   toast((team?.name||'Team')+' pick deferred to end of draft');
   if (_draftAdminTimerInt) { clearInterval(_draftAdminTimerInt); _draftAdminTimerInt=null; }
@@ -8065,7 +8098,7 @@ async function toggleDraftPause(draftId) {
   if (!draft) return toast('Could not load draft — try again','er');
   const newStatus = draft.status==='active' ? 'paused' : 'active';
   const extra = newStatus==='active' ? {pick_started_at:new Date().toISOString()} : {};
-  const ok = await dbUpdate('drafts','id=eq.'+draftId,{status:newStatus,...extra});
+  const ok = await rpc('admin_upsert_draft',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:draftId,p_tournament_id:_draftTournId,p_payload:{status:newStatus,...extra}});
   if (!ok) return toast('Update failed — try again','er');
   toast(newStatus==='active' ? 'Draft resumed' : 'Draft paused');
   await _refreshDraftManager();
