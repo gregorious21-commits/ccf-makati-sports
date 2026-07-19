@@ -4122,13 +4122,16 @@ function proceedJoin() {
   document.getElementById('pay-sub').textContent = g.label + ' · ' + (g.sport==='pickleball'?'Pickleball':g.sport==='badminton'?'Badminton':g.sport==='dragonboat'?'Dragonboat':g.sport==='running'?'Running':'Basketball');
   renderPaymentMethods(g.sport||'basketball');
   // Show Reclub pill only for pickleball; hide First Timer for pickleball
+  // AND for anyone who's already used it or has any past (non-cancelled)
+  // registration — first-timer pricing is a one-time-per-profile perk, not
+  // just the default tab for new players.
   const reclubPill = document.getElementById('pt-reclub');
   const firstPill  = document.getElementById('pt-first');
-  if(reclubPill) reclubPill.style.display = (g.sport==='pickleball') ? '' : 'none';
-  if(firstPill)  firstPill.style.display  = (g.sport==='pickleball') ? 'none' : '';
-  // Default tab: first-timer path only for non-pickleball new players
   const regs=LC.arr('regs');
   const hasPrior = regs.some(r=>r.playerId===ME.id && (r.status||'').toLowerCase()!=='cancelled') || ME.isFirstGame===false;
+  if(reclubPill) reclubPill.style.display = (g.sport==='pickleball') ? '' : 'none';
+  if(firstPill)  firstPill.style.display  = (g.sport==='pickleball' || hasPrior) ? 'none' : '';
+  // Default tab
   setPayType(hasPrior || g.sport==='pickleball' ? 'online' : 'first');
   // Reset cash request form
   const cn = document.getElementById('cash-note'); if (cn) cn.value = '';
@@ -4218,17 +4221,23 @@ document.getElementById('btn-submit-cash').addEventListener('click', async () =>
 document.getElementById('btn-submit-first').addEventListener('click', async () => {
   const g=LC.arr('games').find(x=>x.id===joinGameId);
   if (!g) { toast('Game not found','er'); return; }
-  // Client-side check: has this player attended/confirmed any prior game?
+  // Hard block, not just a flag for admin review — first-timer pricing is a
+  // one-time-per-profile perk. Any non-cancelled registration ever (including
+  // a prior first-timer claim) or isFirstGame===false disqualifies it.
   const regs=LC.arr('regs');
-  const priorGames=regs.filter(r=>r.playerId===ME.id && r.gameId!==g.id && (r.status||'').toLowerCase()!=='cancelled');
-  const flagged = priorGames.length>0 || ME.isFirstGame===false;
+  const hasPrior = regs.some(r=>r.playerId===ME.id && (r.status||'').toLowerCase()!=='cancelled') || ME.isFirstGame===false;
+  if (hasPrior) {
+    toast('First-timer pricing has already been used on this profile — please choose another payment method.','er');
+    setPayType('online');
+    return;
+  }
   const sport=g.sport||'basketball';
   const reg={
     id:'R'+Date.now(), playerId:ME.id, playerName:ME.firstName+' '+ME.lastName,
     phone:ME.phone, email:ME.email||'',
     gameId:g.id, gameLabel:g.label, gameTime:g.time||'',
     fee:0, payType:'firsttimer',
-    refNum: flagged ? 'FLAG: has prior registrations' : 'First-timer claim',
+    refNum:'First-timer claim',
     hasProof:false, proofUrl:'',
     status:'pending', paid:false, isFirstTimer:true,
     registered:new Date().toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}),
@@ -4237,6 +4246,11 @@ document.getElementById('btn-submit-first').addEventListener('click', async () =
   const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:0,p_pay_type:'firsttimer',p_ref_num:reg.refNum,p_has_proof:false,p_proof_url:'',p_status:'pending',p_paid:false,p_is_first_timer:true,p_registered:reg.registered,p_sport:sport});
   if(!ok){ toast('Registration failed. Try again.','er'); return; }
   regs.push(reg); LC.set('regs',regs);
+  // Mark used locally right away so eligibility checks are correct even
+  // before the next full sync re-derives it from regs.
+  const players=LC.arr('players');
+  const idx=players.findIndex(x=>x.id===ME.id);
+  if (idx>-1) { players[idx].isFirstGame=false; LC.set('players',players); ME=players[idx]; }
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast('First-game claim submitted! An organizer will confirm your free slot.');
