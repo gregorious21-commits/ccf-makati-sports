@@ -1604,6 +1604,9 @@ footer a:hover{color:var(--text-1)}
 .lq-court{border:1px solid var(--b,rgba(255,255,255,.08));border-radius:10px;padding:9px 11px}
 .lq-court.mine{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06)}
 .lq-court-h{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--gold2,var(--gold));margin-bottom:4px}
+.lq-court-h-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.lq-bb-clock{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;color:var(--tx);display:flex;align-items:center;gap:4px}
+.lq-bb-clock i{font-size:12px;color:var(--gold2,var(--gold))}
 .lq-teams{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--tx)}
 .lq-vs{font-size:10px;color:var(--tx3);text-transform:uppercase}
 .lq-qhead{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--tx2);margin-bottom:6px}
@@ -6455,27 +6458,40 @@ function lqName(pid){
   const ln=(p.lastName||'').trim();
   return p.firstName+(ln?(' '+ln.charAt(0)+'.'):'');
 }
-async function fetchLiveQueue(){
+async function fetchLiveSession(){
   try{
     const rows=await dbGet('game_sessions','select=status,state&id=eq.current');
     if(!Array.isArray(rows)||!rows[0]) return null;
     const row=rows[0];
     if(row.status!=='active') return null;
     const st=row.state||{};
-    if(st.sport!=='pickleball' || !st.pb || !st.pb.active) return null;
-    return st.pb;
+    if(st.sport==='pickleball' && st.pb && st.pb.active) return {sport:'pickleball', pb:st.pb};
+    if(st.sport==='basketball' && st.bbRot && st.bbRot.active) return {sport:'basketball', bbRot:st.bbRot, bbTimer:st.bbTimer};
+    return null;
   }catch(e){ return null; }
 }
 async function renderLiveQueue(){
   const card=document.getElementById('live-queue');
   if(!card) return;
-  const pb=await fetchLiveQueue();
-  if(!pb || !Array.isArray(pb.courts)){
+  const live=await fetchLiveSession();
+  if(!live){
     card.style.display='none';
     _lqInterval=20000;   // back off when nothing is live
+    stopBbClockTick();
     return;
   }
   _lqInterval=8000;
+  if(live.sport==='basketball'){
+    renderLiveBasketball(card, live.bbRot, live.bbTimer);
+    card.style.display='';
+    return;
+  }
+  stopBbClockTick();
+  renderLivePickleball(card, live.pb);
+  card.style.display='';
+}
+function renderLivePickleball(card, pb){
+  if(!pb || !Array.isArray(pb.courts)){ card.style.display='none'; return; }
   const meId=ME?ME.id:null;
   const queue=Array.isArray(pb.queue)?pb.queue:[];
   // Where am I?
@@ -6533,6 +6549,94 @@ async function renderLiveQueue(){
     <div class="lq-foot">Updates automatically every few seconds · view only</div>`;
   card.style.display='';
 }
+
+// ── LIVE BASKETBALL (read-only, polled) ────────────────────────
+// Mirrors the pickleball live view above: teamA vs teamB, bench as the
+// waiting "queue", recent match log, plus a live-ticking match clock
+// (bbTimer is already synced into the shared session state — it just
+// was never rendered to members before).
+let _bbClockTickId=null;
+let _lastBbTimer=null;
+function bbTimerRemainingMsClient(t){
+  if(!t) return 0;
+  if(t.running && t.endsAt) return Math.max(0, t.endsAt-Date.now());
+  return t.remainingMs!=null ? t.remainingMs : (t.minutes||0)*60*1000;
+}
+function fmtClock(ms){
+  const s=Math.ceil(ms/1000);
+  const m=Math.floor(s/60), r=s%60;
+  return m+':'+String(r).padStart(2,'0');
+}
+function startBbClockTick(){
+  if(_bbClockTickId) return;
+  _bbClockTickId=setInterval(()=>{
+    if(document.visibilityState!=='visible') return;
+    const el=document.getElementById('lq-bb-clock');
+    if(!el || !_lastBbTimer) return;
+    el.textContent=fmtClock(bbTimerRemainingMsClient(_lastBbTimer));
+  },1000);
+}
+function stopBbClockTick(){
+  if(_bbClockTickId){ clearInterval(_bbClockTickId); _bbClockTickId=null; }
+  _lastBbTimer=null;
+}
+function renderLiveBasketball(card, bb, bbTimer){
+  if(!bb){ card.style.display='none'; return; }
+  const meId=ME?ME.id:null;
+  const teamA=Array.isArray(bb.teamA)?bb.teamA:[];
+  const teamB=Array.isArray(bb.teamB)?bb.teamB:[];
+  const bench=Array.isArray(bb.bench)?bb.bench:[];
+  const onCourt=meId&&(teamA.includes(meId)||teamB.includes(meId));
+  const onBench=meId&&bench.includes(meId);
+  let myStatus='';
+  if(onCourt) myStatus=`<div class="lq-you playing"><i class="ti ti-player-play"></i> You're playing now</div>`;
+  else if(onBench) myStatus=`<div class="lq-you next"><i class="ti ti-bell-ringing"></i> You're on the bench, up soon</div>`;
+
+  _lastBbTimer=bbTimer||null;
+  const clockHtml=bbTimer ? `<div class="lq-bb-clock"><i class="ti ti-clock-play"></i><span id="lq-bb-clock">${fmtClock(bbTimerRemainingMsClient(bbTimer))}</span></div>` : '';
+
+  const aNames=teamA.map(lqName).join(', ')||'—';
+  const bNames=teamB.map(lqName).join(', ')||'—';
+  const courtHtml=`<div class="lq-court${onCourt?' mine':''}">
+    <div class="lq-court-h-row"><span class="lq-court-h">Match ${bb.matchNum||1}</span>${clockHtml}</div>
+    <div class="lq-teams"><span>${aNames}</span><span class="lq-vs">vs</span><span>${bNames}</span></div>
+  </div>`;
+
+  const benchHtml=bench.length? bench.map(pid=>{
+    const mine=meId&&pid===meId;
+    return `<div class="lq-qrow${mine?' mine':''}"><span>${lqName(pid)}${mine?' (You)':''}</span></div>`;
+  }).join('') : '<div style="font-size:13px;color:var(--tx3);padding:6px">Everyone present is playing.</div>';
+
+  const log=Array.isArray(bb.log)?bb.log:[];
+  let resultsHtml='';
+  if(log.length){
+    const recent=log.slice(-6).reverse();
+    resultsHtml=`<div class="lq-qhead" style="margin-top:14px">Recent Results</div>` + recent.map(m=>{
+      const winIds=(m.winner==='A'?m.teamA:m.teamB)||[];
+      const loseIds=(m.winner==='A'?m.teamB:m.teamA)||[];
+      const winNames=winIds.map(lqName).join(', ')||'—';
+      const loseNames=loseIds.map(lqName).join(', ')||'—';
+      const mine=meId&&([...(m.teamA||[]),...(m.teamB||[])].includes(meId));
+      const iWon=mine&&((m.winner==='A'&&(m.teamA||[]).includes(meId))||(m.winner==='B'&&(m.teamB||[]).includes(meId)));
+      const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'#22C55E':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
+      return `<div class="lq-result${mine?' mine':''}">
+        <div class="lq-result-top"><span class="lq-result-win">${winNames}</span></div>
+        <div class="lq-result-bot"><span>def. ${loseNames}</span>${tag}</div>
+      </div>`;
+    }).join('');
+  }
+
+  card.innerHTML=`
+    <div class="sec-h" style="margin-bottom:10px"><div class="sec-t"><span class="spi spi-b"></span> Live Basketball</div><div class="lq-live">● LIVE</div></div>
+    ${myStatus}
+    <div class="lq-courts">${courtHtml}</div>
+    <div class="lq-qhead">Bench (${bench.length})</div>
+    ${benchHtml}
+    ${resultsHtml}
+    <div class="lq-foot">Updates automatically every few seconds · view only</div>`;
+  startBbClockTick();
+}
+
 function startLiveQueuePoll(){
   if(_lqTimer) return;
   let _last=0;
