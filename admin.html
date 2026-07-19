@@ -1227,19 +1227,13 @@ select.fi{
     <div class="panel" id="panel-gospel">
       <div class="card">
         <div class="card-h">
-          <div class="card-t"><i class="ti ti-heart"></i>Gospel Sharing</div>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            <input type="date" class="fi" id="gs-date" style="width:auto;min-width:140px" onchange="renderGospelPanel()">
-            <button type="button" class="btn btn-sm" onclick="renderGospelPanel()"><i class="ti ti-refresh"></i>Refresh</button>
-          </div>
+          <div class="card-t"><i class="ti ti-heart"></i>Gospel Sharing Tracker</div>
+          <button type="button" class="btn btn-sm" onclick="renderGospelPanel()"><i class="ti ti-refresh"></i>Refresh</button>
         </div>
-        <div class="note">Tap a player's name to mark that the gospel was shared with them on this date. Marked players are highlighted. Each person can only be marked once per date.</div>
+        <div class="note">Tracks whether we've ever shared the gospel with someone — a lifetime status, not a weekly checklist. D-Group members already know the gospel and are excluded automatically. First-timers are the priority list: people who just showed up and may not have heard it yet.</div>
+        <div id="gs-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <input type="text" class="fi" id="gs-search" placeholder="Search player…" oninput="gsApplyFilter()" style="flex:1;min-width:180px">
-          <select class="fi" id="gs-group-filter" style="width:auto;min-width:170px" onchange="gsApplyFilter()">
-            <option value="">All players</option>
-            <option value="dgroup">D-Group members</option>
-          </select>
+          <input type="text" class="fi" id="gs-search" placeholder="Search player…" oninput="gsRenderList()" style="flex:1;min-width:180px">
           <button type="button" class="btn btn-sm" style="width:auto;background:rgba(245,197,24,.12);border:1px solid var(--gold);color:var(--gold)" onclick="gsMarkAllShown()"><i class="ti ti-users"></i>Mark all shown</button>
         </div>
         <div id="gs-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>
@@ -1247,7 +1241,7 @@ select.fi{
       </div>
       <div class="card" style="margin-top:12px">
         <div class="card-h">
-          <div class="card-t"><i class="ti ti-history"></i>Recent Gospel Shares</div>
+          <div class="card-t"><i class="ti ti-history"></i>Gospel Share Log</div>
           <button type="button" class="btn btn-ghost btn-sm" onclick="renderGospelHistory()"><i class="ti ti-refresh"></i>Refresh</button>
         </div>
         <div id="gs-history"><div class="empty">Loading…</div></div>
@@ -8078,170 +8072,180 @@ async function toggleDraftPause(draftId) {
 }
 
 // ── GOSPEL SHARING ────────────────────────────────────────────
-let gsShared = new Set(); // player_ids marked for current gs-date
+// Lifetime tracker: has the gospel ever been shared with this person?
+// D-Group members already know the gospel and are auto-excluded from the
+// working list. First-timers (tagged on any registration) are the default,
+// priority segment — the actual people this ministry needs to reach.
+let gsShared = new Map();   // player_id (string) -> {date, sharedBy} — first time it happened
+let gsSegment = 'firsttimers'; // 'firsttimers' | 'all'
+let gsStatusFilter = 'notyet'; // 'notyet' | 'shared' | 'all'
 
-function gsDefaultDate() {
-  // Default to most recent Sunday (or today if today is Sunday)
-  const d = new Date();
-  const day = d.getDay(); // 0=Sun
-  d.setDate(d.getDate() - day);
-  return d.toISOString().split('T')[0];
+async function gsLoadAllShared() {
+  const rows = await dbGet('gospel_shares', 'select=player_id,date,shared_by&order=date.asc');
+  gsShared = new Map();
+  (rows || []).forEach(r => {
+    const id = String(r.player_id);
+    if (!gsShared.has(id)) gsShared.set(id, { date: r.date, sharedBy: r.shared_by }); // keep earliest
+  });
 }
 
-async function gsLoadShared(date) {
-  const rows = await dbGet('gospel_shares', 'select=player_id&date=eq.' + date);
-  gsShared = new Set(Array.isArray(rows) ? rows.map(r => r.player_id) : []);
+function gsIsShared(p) {
+  return !!p.hasDgroup || gsShared.has(String(p.id));
+}
+
+// Latest game date (ISO, sortable) each player was tagged first-timer on any
+// registration — this is the real "just showed up as a newcomer" signal,
+// distinct from players.isFirstGame (which just means "hasn't played yet").
+function gsFirstTimerInfo() {
+  const games = LC.arr('games');
+  const gameDate = id => { const g = games.find(x => x.id === id); return g ? (g.date || '') : ''; };
+  const map = new Map();
+  LC.arr('regs').forEach(r => {
+    if (!r.playerId || !r.isFirstTimer) return;
+    const id = String(r.playerId);
+    const when = gameDate(r.gameId);
+    const cur = map.get(id);
+    if (!cur || when > cur) map.set(id, when);
+  });
+  return map;
 }
 
 async function renderGospelPanel() {
-  const dateEl = document.getElementById('gs-date');
-  if (!dateEl.value) dateEl.value = gsDefaultDate();
-  const date = dateEl.value;
+  document.getElementById('gs-list').innerHTML = '<div class="empty">Loading…</div>';
+  await gsLoadAllShared();
+  gsRenderList();
+}
 
-  const listEl = document.getElementById('gs-list');
+function gsRenderToolbar() {
+  const el = document.getElementById('gs-toolbar');
+  if (!el) return;
+  const seg = (val, label) => `<button type="button" class="fin-pill${gsSegment === val ? ' on' : ''}" onclick="gsSetSegment('${val}')">${label}</button>`;
+  const stat = (val, label) => `<button type="button" class="fin-pill${gsStatusFilter === val ? ' on' : ''}" onclick="gsSetStatus('${val}')">${label}</button>`;
+  el.innerHTML = `
+    <div style="display:flex;gap:6px">${seg('firsttimers', 'First-Timers')}${seg('all', 'All Players')}</div>
+    <div style="display:flex;gap:6px">${stat('notyet', 'Not Yet')}${stat('shared', 'Shared')}${stat('all', 'All')}</div>`;
+}
+function gsSetSegment(seg) { gsSegment = seg; gsRenderList(); }
+function gsSetStatus(st) { gsStatusFilter = st; gsRenderList(); }
+
+// Fast, local re-render — no network call. Used for search/segment/status
+// changes and after optimistic mark/unmark updates.
+function gsRenderList() {
   const statsEl = document.getElementById('gs-stats');
-  listEl.innerHTML = '<div class="empty">Loading…</div>';
+  const listEl = document.getElementById('gs-list');
+  if (!listEl) return;
 
-  await gsLoadShared(date);
+  gsRenderToolbar();
 
   const players = LC.arr('players').filter(p => p.isActive !== false);
-  players.sort((a, b) => (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+  const ftMap = gsFirstTimerInfo();
+  const query = (document.getElementById('gs-search')?.value || '').toLowerCase().trim();
 
-  gsPopulateRunOptions();
-
-  const total = players.length;
-  const marked = players.filter(p => gsShared.has(String(p.id))).length;
+  const dgroupCount = players.filter(p => p.hasDgroup).length;
+  const eligible = players.filter(p => !p.hasDgroup); // D-Group auto-excluded — already know the gospel
+  const firstTimers = eligible.filter(p => ftMap.has(String(p.id)));
+  const ftNotYet = firstTimers.filter(p => !gsIsShared(p));
+  const ftShared = firstTimers.filter(p => gsIsShared(p));
+  const allNotYet = eligible.filter(p => !gsIsShared(p));
 
   statsEl.innerHTML = `
     <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--gold)">${marked}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Gospel Shared</span>
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--am)">${ftNotYet.length}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">First-Timers — Not Yet</span>
     </div>
     <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--tx2)">${total - marked}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Not Yet</span>
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--gold)">${ftShared.length}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">First-Timers — Shared</span>
     </div>
     <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--blue)">${total}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">Players Total</span>
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--tx2)">${allNotYet.length}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">All Players — Not Yet</span>
+    </div>
+    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
+      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--blue)">${dgroupCount}</span>
+      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">D-Group (auto-shared)</span>
     </div>`;
 
-  if (!players.length) {
-    listEl.innerHTML = '<div class="empty">No active players found. Sync first.</div>';
+  let pool = gsSegment === 'firsttimers' ? firstTimers : eligible;
+  if (gsStatusFilter === 'notyet') pool = pool.filter(p => !gsIsShared(p));
+  else if (gsStatusFilter === 'shared') pool = pool.filter(p => gsIsShared(p));
+  if (query) pool = pool.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
+
+  pool = pool.slice().sort((a, b) => gsSegment === 'firsttimers'
+    ? (ftMap.get(String(b.id)) || '').localeCompare(ftMap.get(String(a.id)) || '')
+    : (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
+
+  if (!pool.length) {
+    listEl.innerHTML = '<div class="empty">' + (gsSegment === 'firsttimers' && gsStatusFilter === 'notyet'
+      ? 'No first-timers waiting — everyone’s been reached! 🎉'
+      : 'No players match this filter.') + '</div>';
     return;
   }
 
-  listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:4px 0">
-    ${players.map(p => {
+  listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding:4px 0">
+    ${pool.map(p => {
       const sid = String(p.id);
-      const on = gsShared.has(sid);
+      const on = gsIsShared(p);
       const name = (p.firstName + ' ' + p.lastName).trim() || 'Unnamed';
-      return `<button type="button" data-gs-name="${name.toLowerCase()}" data-gs-id="${sid}" data-gs-dgroup="${p.hasDgroup ? '1' : '0'}" onclick="gsToggle('${sid}','${date}')"
+      const ft = ftMap.has(sid);
+      const info = gsShared.get(sid);
+      const sub = on ? ('Shared' + (info && info.date ? ' ' + fmtWhen(info.date) : '')) : (ft ? 'First-timer · not yet shared' : 'Not yet shared');
+      return `<button type="button" data-gs-id="${sid}" onclick="gsToggle('${sid}')"
         style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid ${on ? 'var(--gold)' : 'var(--b)'};background:${on ? 'rgba(245,197,24,0.08)' : 'var(--card)'};cursor:pointer;text-align:left;transition:all .15s;width:100%">
         <span style="font-size:18px">${on ? '✝️' : '⭕'}</span>
         <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600;color:${on ? 'var(--gold)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-          <span style="font-size:11px;color:var(--tx3)">${p.sports || 'basketball'}${p.hasDgroup ? ' · <span style=\'color:var(--gold)\'>D-Group</span>' : ''}</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:13px;font-weight:600;color:${on ? 'var(--gold)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+            ${ft ? '<span style="flex:none;font-size:9px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.12);border-radius:4px;padding:1px 5px">1ST</span>' : ''}
+          </span>
+          <span style="font-size:11px;color:var(--tx3)">${sub}</span>
         </span>
       </button>`;
     }).join('')}
   </div>`;
-
-  gsApplyFilter();
-  renderGospelHistory();
-}
-
-// Populate the group-filter dropdown with recent running sessions, keeping
-// whatever the admin had selected (D-Group / a specific run / All) intact
-// across re-renders.
-function gsPopulateRunOptions() {
-  const sel = document.getElementById('gs-group-filter');
-  if (!sel) return;
-  const prevValue = sel.value;
-  const runGames = LC.arr('games')
-    .filter(g => g.sport === 'running')
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-    .slice(0, 15);
-  const runOptions = runGames.map(g => {
-    const dateLabel = g.date ? new Date(g.date + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : g.label;
-    return `<option value="run:${g.id}">Run: ${dateLabel}${g.label ? ' — ' + g.label : ''}</option>`;
-  }).join('');
-  sel.innerHTML = `<option value="">All players</option><option value="dgroup">D-Group members</option>` +
-    (runOptions ? `<optgroup label="Weekly Run Attendees">${runOptions}</optgroup>` : '');
-  if ([...sel.options].some(o => o.value === prevValue)) sel.value = prevValue;
-}
-
-// Returns the set of player IDs who attended a given running game (checked
-// in present on Game Day), or null if the filter isn't a run-session filter.
-function gsRunAttendeeIds(gameId) {
-  return new Set(
-    LC.arr('regs')
-      .filter(r => r.gameId === gameId && r.sport === 'running' && r.attended)
-      .map(r => String(r.playerId))
-  );
-}
-
-function gsApplyFilter() {
-  const query = (document.getElementById('gs-search')?.value || '').toLowerCase().trim();
-  const filterVal = document.getElementById('gs-group-filter')?.value || '';
-  let runAttendees = null;
-  if (filterVal.startsWith('run:')) runAttendees = gsRunAttendeeIds(filterVal.slice(4));
-
-  document.querySelectorAll('#gs-list [data-gs-name]').forEach(el => {
-    let show = el.dataset.gsName.includes(query);
-    if (show && filterVal === 'dgroup') show = el.dataset.gsDgroup === '1';
-    if (show && runAttendees) show = runAttendees.has(el.dataset.gsId);
-    el.style.display = show ? '' : 'none';
-  });
 }
 
 async function gsMarkAllShown() {
-  const dateEl = document.getElementById('gs-date');
-  const date = dateEl.value || gsDefaultDate();
-  const filterVal = document.getElementById('gs-group-filter')?.value || '';
-  const filterLabel = filterVal.startsWith('run:')
-    ? (document.querySelector('#gs-group-filter option:checked')?.textContent || 'Run')
-    : filterVal === 'dgroup' ? 'D-Group' : 'All shown';
+  const idsShown = [...document.querySelectorAll('#gs-list [data-gs-id]')].map(el => el.dataset.gsId);
+  const toMark = idsShown.filter(id => !gsShared.has(id));
 
-  const visibleIds = [...document.querySelectorAll('#gs-list [data-gs-name]')]
-    .filter(el => el.style.display !== 'none')
-    .map(el => el.dataset.gsId);
-  const toMark = visibleIds.filter(id => !gsShared.has(id));
+  if (!idsShown.length) { toast('No players match the current filter', 'er'); return; }
+  if (!toMark.length) { toast('Everyone shown is already marked shared', 'in'); return; }
+  if (!confirm('Mark ' + toMark.length + ' player(s) as gospel shared?')) return;
 
-  if (!visibleIds.length) { toast('No players match the current filter', 'er'); return; }
-  if (!toMark.length) { toast('Everyone shown is already marked for this date', 'in'); return; }
-  if (!confirm('Mark ' + toMark.length + ' player(s) as gospel shared for ' + date + '?')) return;
-
-  const rows = toMark.map(id => ({ player_id: id, date, shared_by: (AUTH.name() || 'Admin') + ' (bulk: ' + filterLabel + ')' }));
+  const today = new Date().toISOString().split('T')[0];
+  const label = gsSegment === 'firsttimers' ? 'First-Timers' : 'All Players';
+  const rows = toMark.map(id => ({ player_id: id, date: today, shared_by: (AUTH.name() || 'Admin') + ' (bulk: ' + label + ')' }));
   const ok = await dbUpsert('gospel_shares', rows);
   if (ok) {
-    toMark.forEach(id => gsShared.add(id));
+    toMark.forEach(id => gsShared.set(id, { date: today, sharedBy: AUTH.name() || 'Admin' }));
     toast('Marked ' + toMark.length + ' player(s)', 'in');
-    renderGospelPanel();
+    gsRenderList();
   } else {
     toast('Bulk mark failed — check Supabase', 'er');
   }
 }
 
-async function gsToggle(playerId, date) {
-  const wasMarked = gsShared.has(playerId);
-  // Optimistic UI update
-  if (wasMarked) gsShared.delete(playerId); else gsShared.add(playerId);
-  renderGospelPanel();
+async function gsToggle(playerId) {
+  const wasShared = gsShared.has(playerId);
 
-  let ok;
-  if (wasMarked) {
-    ok = await dbDelete('gospel_shares', 'player_id=eq.' + playerId + '&date=eq.' + date);
-    if (ok) toast('Removed', 'in'); else toast('Failed to remove', 'er');
+  if (wasShared) {
+    if (!confirm('Unmark as gospel-shared? This clears their history.')) return;
+    const prev = gsShared.get(playerId);
+    gsShared.delete(playerId);
+    gsRenderList();
+    const ok = await dbDelete('gospel_shares', 'player_id=eq.' + playerId);
+    if (ok) toast('Removed', 'in');
+    else { toast('Failed to remove', 'er'); gsShared.set(playerId, prev); gsRenderList(); }
   } else {
-    ok = await dbUpsert('gospel_shares', { player_id: playerId, date, shared_by: AUTH.name() || 'Admin' });
-    if (ok) toast('Gospel marked ✝', 'in'); else toast('Failed to save', 'er');
+    const today = new Date().toISOString().split('T')[0];
+    gsShared.set(playerId, { date: today, sharedBy: AUTH.name() || 'Admin' });
+    gsRenderList();
+    const ok = await dbUpsert('gospel_shares', { player_id: playerId, date: today, shared_by: AUTH.name() || 'Admin' });
+    if (ok) toast('Gospel marked ✝', 'in');
+    else { toast('Failed to save', 'er'); gsShared.delete(playerId); gsRenderList(); }
   }
-  if (!ok) {
-    // Revert
-    if (wasMarked) gsShared.add(playerId); else gsShared.delete(playerId);
-    renderGospelPanel();
-  }
+  renderGospelHistory();
 }
 
 async function renderGospelHistory() {
