@@ -3915,7 +3915,7 @@ function renderWeekGames() {
   }
   el.innerHTML=games.map(g=>{
     const myReg  =ME?regs.find(r=>r.gameId===g.id&&r.playerId===ME.id&&r.status!=='cancelled'):null;
-    const count  =new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id)).size;
+    const count  =new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
     const spots  =(g.spots||20)-count;
     const mySt   =myReg?(myReg.status||'pending'):'';
     const tClass =g.status==='confirmed'?'game-top g-on':g.status==='cancelled'?'game-top g-off':'game-top';
@@ -3929,8 +3929,11 @@ function renderWeekGames() {
       : (g.sport||'basketball')==='dragonboat'
       ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
       : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
-    const mBadge =mySt==='confirmed'?'<span class="badge b-on"> Confirmed</span>':mySt==='cancelled'?'<span class="badge b-rd"> Cancelled</span>':mySt?'<span class="badge b-tbd"> Pending</span>':'';
-    const jBtn   =!mySt&&spots>0&&ME?`<button type="button" class="join-btn" onclick="startJoin('${g.id}')"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`:'';
+    const waitlistPos = mySt==='waitlist' ? regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort((a,b)=>(a.registered||'').localeCompare(b.registered||'')).findIndex(r=>r.playerId===ME.id)+1 : 0;
+    const mBadge =mySt==='confirmed'?'<span class="badge b-on"> Confirmed</span>':mySt==='cancelled'?'<span class="badge b-rd"> Cancelled</span>':mySt==='waitlist'?`<span class="badge b-tbd">Waitlisted${waitlistPos?' #'+waitlistPos:''}</span>`:mySt?'<span class="badge b-tbd"> Pending</span>':'';
+    const cancelBtn = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="game-share-btn" onclick="event.stopPropagation();cancelMyRegistration('${myReg.id}','${g.id}')" title="Cancel my slot" aria-label="Cancel my slot"><i class="ti ti-x"></i></button>` : '';
+    const jBtn   =!mySt&&spots>0&&ME?`<button type="button" class="join-btn" onclick="startJoin('${g.id}')"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
+      :!mySt&&spots<=0&&ME?`<button type="button" class="join-btn" style="background:var(--surface-2);color:var(--text-1)" onclick="startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>`:'';
     const vurl   =(g.venueUrl||'').trim();
     const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Venue</a>` : '';
     const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold)"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
@@ -3957,9 +3960,10 @@ function renderWeekGames() {
       ${wxLine}
       <div class="game-bot">
         <div class="game-spots ${spots<=3&&!mySt?'warn':''}">${spots<=0&&!myReg?'Game full':spots+' slots left'}</div>
-        ${myReg?mBadge:jBtn}
+        <div style="display:flex;align-items:center;gap:8px">${myReg?mBadge:jBtn}${cancelBtn}</div>
     </div>
       ${mySt==='pending'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">Waiting for admin confirmation</div>':''}
+      ${mySt==='waitlist'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">You\'ll be automatically confirmed if a slot opens up</div>':''}
   </div>`;
   }).join('');
   _maybeScrollToGame();
@@ -3999,7 +4003,7 @@ function openGameDetail(gameId){
   const regs = LC.arr('regs');
   const players = LC.arr('roster'); // full public roster — LC.arr('players') is ME-only on member app
   const myReg = ME ? regs.find(r=>r.gameId===g.id&&r.playerId===ME.id&&r.status!=='cancelled') : null;
-  const count = new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id)).size;
+  const count = new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
   const spots = (g.spots||20)-count;
   const mySt = myReg ? (myReg.status||'pending') : '';
 
@@ -4013,8 +4017,10 @@ function openGameDetail(gameId){
     : (g.sport||'basketball')==='dragonboat'
     ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
     : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
-  const mBadge = mySt==='confirmed' ? '<span class="badge b-on"> Confirmed</span>' : mySt==='cancelled' ? '<span class="badge b-rd"> Cancelled</span>' : mySt ? '<span class="badge b-tbd"> Pending</span>' : '';
-  const jBtn = !mySt&&spots>0&&ME ? `<button type="button" class="join-btn" onclick="closeGameDetail();startJoin('${g.id}')" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>` : '';
+  const mBadge = mySt==='confirmed' ? '<span class="badge b-on"> Confirmed</span>' : mySt==='cancelled' ? '<span class="badge b-rd"> Cancelled</span>' : mySt==='waitlist' ? '<span class="badge b-tbd">Waitlisted</span>' : mySt ? '<span class="badge b-tbd"> Pending</span>' : '';
+  const jBtn = !mySt&&spots>0&&ME ? `<button type="button" class="join-btn" onclick="closeGameDetail();startJoin('${g.id}')" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
+    : !mySt&&spots<=0&&ME ? `<button type="button" class="join-btn" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--text-1)" onclick="closeGameDetail();startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>` : '';
+  const cancelBtnDetail = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;color:var(--text-danger,#e53e3e)" onclick="closeGameDetail();cancelMyRegistration('${myReg.id}','${g.id}')"><i class="ti ti-x"></i>Cancel My Slot</button>` : '';
   const vurl = (g.venueUrl||'').trim();
   const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Open Map</a>` : '';
   const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold);margin-top:4px"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
@@ -4051,7 +4057,9 @@ function openGameDetail(gameId){
     </div>
     <div style="padding:14px 20px 20px">
       ${mySt==='pending' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Waiting for admin confirmation</div>' : ''}
+      ${mySt==='waitlist' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">You\'ll be automatically confirmed if a slot opens up</div>' : ''}
       ${jBtn}
+      ${cancelBtnDetail}
     </div>`;
   document.getElementById('game-detail-modal').style.display = 'flex';
 }
@@ -4100,7 +4108,40 @@ function copyMethod(id){
   navigator.clipboard.writeText(num.textContent).then(()=> toast((m?m.label:'Account') + ' number copied!'));
 }
 
+// Was the player's most recent CONFIRMED basketball registration strictly
+// before `game` a no-show (attended===false), AND is `game` the very next
+// basketball game after that no-show (not some later one)? Scoping the check
+// to "the immediate next game" rather than "any game until they play again"
+// means the block always self-clears after exactly one skipped game — a
+// blocked player is never stuck unable to ever clear it, since they were
+// blocked from the one game that would've cleared them.
+function isBlockedForGame(playerId, game) {
+  if (!game || (game.sport||'basketball') !== 'basketball') return false;
+  const games = LC.arr('games');
+  const regs  = LC.arr('regs');
+  const priorGames = regs
+    .filter(r => r.playerId===playerId && r.sport==='basketball' && r.status==='confirmed')
+    .map(r => ({ reg:r, game: games.find(g=>g.id===r.gameId) }))
+    .filter(x => x.game && (x.game.date||'') < (game.date||''))
+    .sort((a,b) => (b.game.date||'').localeCompare(a.game.date||''));
+  if (!priorGames.length) return false;
+  const last = priorGames[0];
+  if (last.reg.attended !== false) return false;
+  const noShowDate = last.game.date;
+  const gameDate = game.date;
+  const somethingBetween = games.some(g =>
+    (g.sport||'basketball')==='basketball' && g.status!=='cancelled' &&
+    (g.date||'') > noShowDate && (g.date||'') < gameDate
+  );
+  return !somethingBetween;
+}
+
 function startJoin(id) {
+  const g = LC.arr('games').find(x=>x.id===id);
+  if (g && ME && isBlockedForGame(ME.id, g)) {
+    toast("You were marked as a no-show for your last confirmed basketball game, so you can't join this one. See an organizer if you think this is a mistake.", 'er');
+    return;
+  }
   // Show the Community Rules & Waiver first — the player must agree before joining.
   pendingJoinId = id;
   openRulesGate();
@@ -4112,6 +4153,15 @@ function proceedJoin() {
   if (!id) return;
   joinGameId = id;
   const g = LC.arr('games').find(x=>x.id===id); if (!g) return;
+  // Full? Join the waitlist instead of a real slot — checked fresh here (not
+  // just at button-render time) in case capacity changed while the waiver
+  // modal was open.
+  const regsNow  = LC.arr('regs');
+  const countNow = new Set(regsNow.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
+  if ((g.spots||20)-countNow <= 0) {
+    joinWaitlist(g);
+    return;
+  }
   // Free sessions (running, or any ₱0 game) skip payment entirely — register and confirm.
   if (g.sport==='running' || (g.fee||0) <= 0) {
     freeJoin(g);
@@ -4128,7 +4178,7 @@ function proceedJoin() {
   const reclubPill = document.getElementById('pt-reclub');
   const firstPill  = document.getElementById('pt-first');
   const regs=LC.arr('regs');
-  const hasPrior = regs.some(r=>r.playerId===ME.id && (r.status||'').toLowerCase()!=='cancelled') || ME.isFirstGame===false;
+  const hasPrior = regs.some(r=>r.playerId===ME.id && !['cancelled','waitlist'].includes((r.status||'').toLowerCase())) || ME.isFirstGame===false;
   if(reclubPill) reclubPill.style.display = (g.sport==='pickleball') ? '' : 'none';
   if(firstPill)  firstPill.style.display  = (g.sport==='pickleball' || hasPrior) ? 'none' : '';
   // Default tab
@@ -4164,6 +4214,44 @@ async function freeJoin(g){
   const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
   renderWeekGames(); renderMyHist();
   toast("You're in! See you there.");
+}
+
+// Game's full — hold a waitlist spot instead. Doesn't count against g.spots
+// (excluded everywhere spots/hasPrior are computed). Not broadcast to
+// everyone; the player just sees their own card flip to Confirmed once
+// admin's sync cycle promotes them (see admin.html's waitlist auto-promote).
+async function joinWaitlist(g){
+  const sport=g.sport||'basketball';
+  const reged=new Date().toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const reg={ id:'R'+Date.now(), playerId:ME.id, playerName:ME.firstName+' '+ME.lastName, phone:ME.phone, email:ME.email||'',
+    gameId:g.id, gameLabel:g.label, gameTime:g.time||'', fee:g.fee||0, payType:'waitlist', refNum:'', hasProof:false, proofUrl:'',
+    status:'waitlist', paid:false, registered:reged, sport };
+  const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:reg.fee,p_pay_type:'waitlist',p_ref_num:'',p_has_proof:false,p_proof_url:'',p_status:'waitlist',p_paid:false,p_is_first_timer:false,p_registered:reged,p_sport:sport});
+  if(!ok){ toast('Could not join the waitlist. Try again.','er'); return; }
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  document.getElementById('pay-section').style.display='none';
+  renderWeekGames(); renderMyHist();
+  toast("You're on the waitlist — you'll be confirmed automatically if a slot opens up.");
+}
+
+// Self-cancel. Approximates the "no cancellations within 4 hours" rule as
+// "not on the day of the game itself" since game times are stored as free
+// text (e.g. "6:00 PM - 9:00 PM") and aren't reliably parseable to the hour.
+async function cancelMyRegistration(regId, gameId){
+  const g = LC.arr('games').find(x=>x.id===gameId);
+  const todayStr = new Date().toISOString().slice(0,10);
+  if (g && g.date===todayStr) {
+    toast("Cancellations aren't allowed on the day of the game — please contact an organizer directly.", 'er');
+    return;
+  }
+  if (!confirm('Cancel your slot for '+(g?g.label:'this game')+'?')) return;
+  const ok = await rpc('member_cancel_registration', { p_phone: ME.phone, p_pin: AUTH.pin(), p_id: regId });
+  if (!ok) { toast('Could not cancel. Try again.','er'); return; }
+  const regs=LC.arr('regs');
+  const idx=regs.findIndex(r=>r.id===regId);
+  if (idx>-1) { regs[idx].status='cancelled'; LC.set('regs',regs); }
+  renderWeekGames(); renderMyHist();
+  toast('Your slot has been cancelled.');
 }
 
 // ── PROOF UPLOAD ──────────────────────────────────────────────
@@ -4222,10 +4310,11 @@ document.getElementById('btn-submit-first').addEventListener('click', async () =
   const g=LC.arr('games').find(x=>x.id===joinGameId);
   if (!g) { toast('Game not found','er'); return; }
   // Hard block, not just a flag for admin review — first-timer pricing is a
-  // one-time-per-profile perk. Any non-cancelled registration ever (including
-  // a prior first-timer claim) or isFirstGame===false disqualifies it.
+  // one-time-per-profile perk. Any non-cancelled, non-waitlist registration
+  // ever (including a prior first-timer claim) or isFirstGame===false
+  // disqualifies it. Waitlist entries don't count — they haven't played.
   const regs=LC.arr('regs');
-  const hasPrior = regs.some(r=>r.playerId===ME.id && (r.status||'').toLowerCase()!=='cancelled') || ME.isFirstGame===false;
+  const hasPrior = regs.some(r=>r.playerId===ME.id && !['cancelled','waitlist'].includes((r.status||'').toLowerCase())) || ME.isFirstGame===false;
   if (hasPrior) {
     toast('First-timer pricing has already been used on this profile — please choose another payment method.','er');
     setPayType('online');

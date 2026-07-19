@@ -2291,10 +2291,38 @@ async function doFullSync() {
   if(Array.isArray(hist))        LC.set('history',hist.map(h=>({id:h.id,date:h.game_date||'',playerCount:h.player_count||0,teams:h.teams||[],matches:h.matches||[],sport:h.sport||'basketball'})));
   if(Array.isArray(pmethods))    LC.set('payment_methods', pmethods);
   updatePendingBadge();
+  if (Array.isArray(games) && Array.isArray(regs)) await promoteWaitlistedPlayers().catch(()=>{});
   setSyncing(false);
   // Re-render active panel
   const active=document.querySelector('.panel.on');
   if(active) renderPanel(active.id.replace('panel-',''));
+}
+
+// Waitlist auto-promotion. Runs every sync cycle (~30s while an admin has
+// this tab open) since only an authenticated admin session can update
+// someone else's registration row — members can only insert their own via
+// member_insert_registration. Promotion isn't broadcast; the promoted
+// player just sees their own card flip to Confirmed on their next sync.
+async function promoteWaitlistedPlayers(){
+  const games = LC.arr('games');
+  const regs  = LC.arr('regs');
+  const todayStr = new Date().toISOString().slice(0,10);
+  const upcoming = games.filter(g => g.status!=='cancelled' && g.status!=='completed' && (g.date||'') >= todayStr);
+  let anyPromoted = false;
+  for (const g of upcoming) {
+    const confirmedCount = new Set(regs.filter(r=>r.gameId===g.id && r.status==='confirmed').map(r=>r.playerId)).size;
+    const openSpots = (g.spots||20) - confirmedCount;
+    if (openSpots <= 0) continue;
+    // r.id is 'R'+Date.now() — a plain string sort already reflects join order.
+    const waitlisted = regs.filter(r=>r.gameId===g.id && r.status==='waitlist').sort((a,b)=>a.id.localeCompare(b.id));
+    if (!waitlisted.length) continue;
+    const toPromote = waitlisted.slice(0, openSpots);
+    for (const r of toPromote) {
+      const ok = await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:r.id,p_status:'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer||false,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
+      if (ok) { r.status='confirmed'; anyPromoted=true; toast(r.playerName+' auto-promoted from the waitlist for '+g.label,'in'); }
+    }
+  }
+  if (anyPromoted) LC.set('regs', regs);
 }
 
 function start30s(){if(syncInterval)clearInterval(syncInterval);syncInterval=setInterval(()=>{doFullSync().catch(()=>{})},30000)}
@@ -5108,6 +5136,32 @@ function bbUndoLast(){
   toast('Match '+last.matchNum+' undone — pick the winner again');
 }
 
+// The game actually happening today for a given sport, date-matched (not
+// just "first non-cancelled/completed game" — that pattern used elsewhere in
+// this file can wrongly return a stale past game nobody marked completed).
+function todaysGameFor(sport){
+  const todayStr = new Date().toISOString().slice(0,10);
+  return LC.arr('games').find(g => (g.sport||'basketball')===sport && g.date===todayStr);
+}
+
+// Mark no-shows on the real registration rows for today's basketball game:
+// anyone confirmed-registered but never toggled present gets attended:false.
+// This is what index.html's join flow checks to block a no-show from the
+// very next basketball game (self-clears after that one game automatically).
+async function markBasketballAttendance(){
+  const todaysGame = todaysGameFor('basketball');
+  if (!todaysGame) return;
+  const regs = LC.arr('regs');
+  const todaysRegs = regs.filter(r => r.gameId===todaysGame.id && r.status==='confirmed' && (r.sport||'basketball')==='basketball');
+  for (const r of todaysRegs) {
+    const attended = presentIds.includes(r.playerId);
+    await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:r.id,p_status:'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer||false,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:attended,p_attended_at:attended?new Date().toISOString():''});
+    r.attended = attended;
+    r.attendedAt = attended ? new Date().toISOString() : '';
+  }
+  LC.set('regs', regs);
+}
+
 async function bbEndSession(){
   if(!bbRotation){ toast('No session running','er'); return; }
   if(!bbRotation.log.length){
@@ -5170,6 +5224,7 @@ async function bbEndSession(){
   LC.set('history',hist);
   await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+bbRotation.log.length+' matches',p_type:'success'});
   toast('Game Day archived · wins saved!');
+  await markBasketballAttendance(); // uses presentIds — must run before it's reset below
   await endSharedSession();
   bbRotation=null; presentIds=[]; bbTimerStop();
   document.getElementById('bb-active').style.display='none';
