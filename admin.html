@@ -4463,7 +4463,7 @@ function pbFinishMatch(courtId){
     const sLose = winner==='A' ? c.scoreB : c.scoreA;
     await rpc('admin_apply_rating',{
       p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(),
-      p_sport:'pickleball',
+      p_sport:(gdSport==='badminton'?'badminton':'pickleball'),
       p_winner_ids:wIds, p_loser_ids:lIds,
       p_score_winner:sWin, p_score_loser:sLose
     });
@@ -4693,11 +4693,15 @@ async function checkPbSaveBackup(){
   if (!raw) return;
   let entry;
   try { entry = JSON.parse(raw); } catch(e) { localStorage.removeItem('ccf_pb_save_backup'); return; }
-  if (!confirm('A pickleball session from '+entry.game_date+' ('+entry.player_count+' players, '+(entry.matches||[]).length+' matches) failed to save last time. Retry saving it now?')) return;
-  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'pickleball'});
+  const backupSport = entry.sport||'pickleball';
+  if (!confirm('A '+backupSport+' session from '+entry.game_date+' ('+entry.player_count+' players, '+(entry.matches||[]).length+' matches) failed to save last time. Retry saving it now?')) return;
+  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:backupSport});
   if (ok){
     localStorage.removeItem('ccf_pb_save_backup');
-    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:entry.game_date+' · '+entry.player_count+' players · '+(entry.matches||[]).length+' matches',p_type:'success'});
+    const hist=LC.arr('history');
+    hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches,sport:backupSport});
+    LC.set('history',hist);
+    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:(backupSport==='badminton'?'Badminton':'Pickleball')+' Session Complete',p_message:entry.game_date+' · '+entry.player_count+' players · '+(entry.matches||[]).length+' matches',p_type:'success'});
     toast('Recovered session saved · '+(entry.matches||[]).length+' matches archived');
   } else {
     toast('Retry failed again — the backup is still saved locally, try again later','er');
@@ -4732,8 +4736,9 @@ async function endPickleballSession(){
   pbSession.courts.forEach(c=>{ c.teamA.forEach(p=>everyoneAttended.add(p)); c.teamB.forEach(p=>everyoneAttended.add(p)); });
   pbSession.queue.forEach(q=>everyoneAttended.add(q.pid));
   pbSession.log.forEach(m=>{ m.teamA.forEach(p=>everyoneAttended.add(p)); m.teamB.forEach(p=>everyoneAttended.add(p)); });
+  const sportNow = (gdSport==='badminton') ? 'badminton' : 'pickleball';
   const games = LC.arr('games');
-  const next = games.find(g=>(g.sport||'basketball')==='pickleball' && (g.status==='confirmed'||g.status==='tbd'));
+  const next = games.find(g=>(g.sport||'basketball')===sportNow && (g.status==='confirmed'||g.status==='tbd'));
   const dateLabel = next ? next.label : fmtDate(new Date().toISOString().slice(0,10));
   const entry = {
     id:'GH'+Date.now(),
@@ -4746,16 +4751,22 @@ async function endPickleballSession(){
       scoreA:m.scoreA, scoreB:m.scoreB,
       winner:m.winner
     })),
-    sport:'pickleball'
+    sport:sportNow
   };
   localStorage.setItem('ccf_pb_save_backup', JSON.stringify(entry));
-  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'pickleball'});
+  const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:sportNow});
   if (!ok) {
     toast('Save failed — matches were NOT lost, session is still open. Check your connection and try End Session again.','er');
     return;
   }
   localStorage.removeItem('ccf_pb_save_backup');
-  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Pickleball Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
+  // Keep the local cache in sync immediately, same as the basketball end-flows —
+  // otherwise Game History/stats show this session as missing until the next
+  // ~30s background sync happens to run.
+  const hist = LC.arr('history');
+  hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches,sport:sportNow});
+  LC.set('history',hist);
+  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:(sportNow==='badminton'?'Badminton':'Pickleball')+' Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
   toast('Session saved · '+pbSession.log.length+' matches archived');
   // Reset state (only after a confirmed save)
   await endSharedSession();
