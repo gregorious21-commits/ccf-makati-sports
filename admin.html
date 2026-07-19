@@ -1390,9 +1390,6 @@ select.fi{
           <button type="button" class="btn btn-rd" style="width:100%;justify-content:center;margin-top:4px" onclick="bbEndSession()"><i class="ti ti-flag"></i>End Game Day & Archive</button>
           <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;color:var(--tx3)" onclick="discardLiveSession()"><i class="ti ti-trash"></i>Discard — don't save</button>
       </div>
-        <!-- legacy round-robin containers (kept hidden for compatibility) -->
-        <div id="teams-grid" style="display:none"></div>
-        <div id="matches-section" style="display:none"><div id="matches-list"></div></div>
       </div>
 
       <!-- ── PICKLEBALL FLOW ── -->
@@ -2192,7 +2189,7 @@ async function loadAdminPin(){
   }
   return adminPin;
 }
-let lbSort='wins', presentIds=[], currentTeams=[], currentMatches=[];
+let lbSort='wins', presentIds=[];
 // Shared basketball game timer. endsAt = epoch ms when it hits 0 (when running).
 let bbTimer={minutes:12, running:false, endsAt:null, remainingMs:12*60*1000};
 let bbTimerTick=null;
@@ -2431,7 +2428,7 @@ function renderPanel(pid){
   if(pid==='gospel')       renderGospelPanel();
   if(pid==='attendance')   renderRunRecords();
   if(pid==='devotion')     loadDevotion();
-  if(pid==='gameday')      {if(!currentTeams.length)renderGameDay()}
+  if(pid==='gameday')      renderGameDay();
   if(pid==='weekly')       renderWeekly();
   if(pid==='leaderboard')  renderLb();
   if(pid==='history')      renderHist();
@@ -3174,7 +3171,7 @@ async function saveWalkin(){
       if(!presentIds.includes(existing.id))presentIds.push(existing.id);
       // If a live session is running, slot them in too
       if (pbSession && pbSession.active) addLateToPickleball(existing.id);
-      else if (currentTeams.length)     addLateToBasketball(existing.id);
+      else if (bbRotation && bbRotation.active) addLateToBasketball(existing.id);
       let paidRes=null;
       if(paid) paidRes=await recordWalkinPaid(existing.id, existing.firstName+' '+existing.lastName, existing.phone, existing.email);
       closeModal('walkin');clearWalkinForm();renderGameDay();
@@ -3229,7 +3226,7 @@ async function saveWalkin(){
   presentIds.push(player.id);
   // If a live session is running, slot them in too
   if (pbSession && pbSession.active) addLateToPickleball(player.id);
-  else if (currentTeams.length)     addLateToBasketball(player.id);
+  else if (bbRotation && bbRotation.active) addLateToBasketball(player.id);
   let paidRes=null;
   if(paid) paidRes=await recordWalkinPaid(player.id, fn+' '+ln, newPhone, '');
   closeModal('walkin');clearWalkinForm();renderGameDay();
@@ -3501,9 +3498,6 @@ async function renderRunRecords(){
     </div>`).join('');
 }
 function renderGameDay(){
-  // (Previously short-circuited when currentTeams.length — that prevented
-  //  the chip list from reflecting late additions. The chip renderer is now
-  //  state-aware, so it's safe to always render.)
   const regs=LC.arr('regs');const players=LC.arr('players');const games=LC.arr('games');
   const chips=document.getElementById('present-chips');
   // Default sport to whatever the next confirmed/TBD game is (first time only)
@@ -3548,7 +3542,7 @@ function renderGameDay(){
   // - Basketball teams exist → show team name, or unselected.
   // - No session yet → show present/not-present.
   const sessionLive = (gdSport==='pickleball'||gdSport==='badminton') && pbSession && pbSession.active;
-  const teamsLive   = gdSport==='basketball' && (currentTeams.length > 0 || (bbRotation && bbRotation.active));
+  const teamsLive   = gdSport==='basketball' && bbRotation && bbRotation.active;
   const renderChip = p => {
     let cssClass = 'chip', statusTag = '';
     if (sessionLive){
@@ -3564,21 +3558,11 @@ function renderGameDay(){
         statusTag = ` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
       }
     } else if (teamsLive){
-      if (bbRotation && bbRotation.active){
-        const inA=bbRotation.teamA.includes(p.id), inB=bbRotation.teamB.includes(p.id), inBench=bbRotation.bench.includes(p.id);
-        if (inA){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#22C55E;text-transform:uppercase;letter-spacing:.04em">Team A</span>`; }
-        else if (inB){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#3B82F6;text-transform:uppercase;letter-spacing:.04em">Team B</span>`; }
-        else if (inBench){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">Bench</span>`; }
-        else statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
-      } else {
-        const onTeam = currentTeams.find(t => t.players.includes(p.id));
-        if (onTeam){
-          cssClass += ' on';
-          statusTag = ` <span style="font-size:9px;color:${onTeam.color};text-transform:uppercase;letter-spacing:.04em">${onTeam.name}</span>`;
-        } else {
-          statusTag = ` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
-        }
-      }
+      const inA=bbRotation.teamA.includes(p.id), inB=bbRotation.teamB.includes(p.id), inBench=bbRotation.bench.includes(p.id);
+      if (inA){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#22C55E;text-transform:uppercase;letter-spacing:.04em">Team A</span>`; }
+      else if (inB){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#3B82F6;text-transform:uppercase;letter-spacing:.04em">Team B</span>`; }
+      else if (inBench){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">Bench</span>`; }
+      else statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
     } else {
       if (presentIds.includes(p.id)) cssClass += ' on';
     }
@@ -3642,8 +3626,8 @@ const USE_SHARED_SESSION = true;
 let sessionId=null, sessionToken=null, sessionMeta=null;
 let applyingRemote=false, sessionPushing=false, sessionPoller=null, _pushTimer=null;
 
-function sessionLiveLocally(){ return (pbSession && pbSession.active) || (currentTeams && currentTeams.length>0) || (bbRotation && bbRotation.active); }
-function snapshotSession(){ return { sport:gdSport, presentIds:presentIds.slice(), teams:currentTeams, matches:currentMatches, pb:pbSession, bbRot:bbRotation, bbTimer:bbTimer }; }
+function sessionLiveLocally(){ return (pbSession && pbSession.active) || (bbRotation && bbRotation.active); }
+function snapshotSession(){ return { sport:gdSport, presentIds:presentIds.slice(), pb:pbSession, bbRot:bbRotation, bbTimer:bbTimer }; }
 function newToken(){ return 'T'+Date.now()+Math.random().toString(36).slice(2,7); }
 
 function updateSessionBanner(){
@@ -3713,8 +3697,6 @@ function adoptSharedSession(row){
     sessionMeta={ startedBy: row.started_by||'a manager', startedAt: row.started_at ? new Date(row.started_at).toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'}) : '' };
     gdSport=s.sport||gdSport;
     presentIds=Array.isArray(s.presentIds)?s.presentIds.slice():[];
-    currentTeams=Array.isArray(s.teams)?s.teams:[];
-    currentMatches=Array.isArray(s.matches)?s.matches:[];
     pbSession=s.pb||null;
     bbRotation=(s.bbRot&&s.bbRot.active)?s.bbRot:null;
     if(s.bbTimer){ bbTimer=s.bbTimer; bbStartTick(); }
@@ -3737,13 +3719,6 @@ function adoptSharedSession(row){
       if(bbSetup) bbSetup.style.display='';
       if(bbAct) bbAct.style.display='none';
     }
-    if(currentTeams.length){
-      const ms=document.getElementById('matches-section'); if(ms) ms.style.display='';
-      renderTeams(); renderMatches();
-    } else {
-      const ms=document.getElementById('matches-section'); if(ms) ms.style.display='none';
-      const tg=document.getElementById('teams-grid'); if(tg) tg.innerHTML='';
-    }
     renderGameDay();
     updateSessionBanner();
   } finally { applyingRemote=false; }
@@ -3754,14 +3729,12 @@ function teardownLocalSession(){
   applyingRemote=true;
   try{
     pbStopTick();
-    pbSession=null; currentTeams=[]; currentMatches=[]; presentIds=[]; bbTimerStop();
+    pbSession=null; presentIds=[]; bbTimerStop();
     bbRotation=null;
     const bbSetup=document.getElementById('bb-setup'); if(bbSetup) bbSetup.style.display='';
     const bbAct=document.getElementById('bb-active'); if(bbAct) bbAct.style.display='none';
     const setup=document.getElementById('pball-setup'); if(setup) setup.style.display='';
     const act=document.getElementById('pball-active'); if(act) act.style.display='none';
-    const ms=document.getElementById('matches-section'); if(ms) ms.style.display='none';
-    const tg=document.getElementById('teams-grid'); if(tg) tg.innerHTML='';
     document.querySelectorAll('[data-pid]').forEach(e=>e.className='chip');
     sessionId=null; sessionToken=null; sessionMeta=null;
     updateSessionBanner(); renderGameDay();
@@ -3795,20 +3768,18 @@ function startSessionPoller(){
 // and writes nothing to game_history.
 async function discardLiveSession(){
   const isPb = pbSession && pbSession.active;
-  const isBb = (currentTeams && currentTeams.length>0) || (bbRotation && bbRotation.active);
+  const isBb = bbRotation && bbRotation.active;
   if(!isPb && !isBb){ toast('No live session to discard','er'); return; }
   if(!confirm('Discard this session without saving?\n\nNothing will be archived to history — use this only for a misclick or a test run. Match wins already recorded stay on player records.')) return;
   await endSharedSession();
   pbStopTick();
-  pbSession=null; currentTeams=[]; currentMatches=[]; presentIds=[]; bbTimerStop();
+  pbSession=null; presentIds=[]; bbTimerStop();
   bbRotation=null;
   document.querySelectorAll('[data-pid]').forEach(e=>e.className='chip');
   const setup=document.getElementById('pball-setup'); if(setup) setup.style.display='';
   const act=document.getElementById('pball-active'); if(act) act.style.display='none';
   const bbSetup=document.getElementById('bb-setup'); if(bbSetup) bbSetup.style.display='';
   const bbAct=document.getElementById('bb-active'); if(bbAct) bbAct.style.display='none';
-  const ms=document.getElementById('matches-section'); if(ms) ms.style.display='none';
-  const tg=document.getElementById('teams-grid'); if(tg) tg.innerHTML='';
   renderGameDay();
   toast('Session discarded — nothing saved');
 }
@@ -4782,7 +4753,6 @@ function togglePresent(id){
   // When a live session is running, this chip becomes "add late arrival".
   if (pbSession && pbSession.active){ addLateToPickleball(id); return; }
   if (bbRotation && bbRotation.active){ addLateToBasketball(id); return; }
-  if (currentTeams.length > 0)      { addLateToBasketball(id); return; }
   // Otherwise — normal presence toggle (before any session starts).
   const i=presentIds.indexOf(id);
   if(i>-1)presentIds.splice(i,1);else presentIds.push(id);
@@ -4897,22 +4867,7 @@ function addLateToBasketball(pid){
     renderGameDay(); renderBbRotation();
     touchSharedSession();
     toast((p?p.firstName:'Player')+' added to bench — up next');
-    return;
   }
-  if (!currentTeams.length) return;
-  const p = LC.arr('players').find(x => x.id === pid);
-  const onTeam = currentTeams.find(t => t.players.includes(pid));
-  if (onTeam){
-    toast((p?p.firstName:'Player') + ' is already on ' + onTeam.name, 'in');
-    return;
-  }
-  // Late arrival → smallest team gets them.
-  const smallest = currentTeams.reduce((a, b) => a.players.length <= b.players.length ? a : b);
-  smallest.players.push(pid);
-  if (!presentIds.includes(pid)) presentIds.push(pid);
-  renderGameDay(); renderTeams();
-  touchSharedSession();
-  toast((p?p.firstName:'Player') + ' → ' + smallest.name);
 }
 
 // ── REMOVE A PLAYER FROM A LIVE SESSION ───────────────────────
@@ -4938,14 +4893,6 @@ function removeFromLiveSession(pid){
     if (qi > -1){ pbSession.queue.splice(qi, 1); if (!removedFrom) removedFrom = 'queue'; }
   }
 
-  // Basketball — teams.
-  if (currentTeams.length){
-    for (const t of currentTeams){
-      const i = t.players.indexOf(pid);
-      if (i > -1){ t.players.splice(i, 1); removedFrom = t.name; }
-    }
-  }
-
   // Basketball rotation — teams + bench.
   if (bbRotation && bbRotation.active){
     ['teamA','teamB','bench'].forEach(k=>{ const i=bbRotation[k].indexOf(pid); if(i>-1){ bbRotation[k].splice(i,1); removedFrom='session'; } });
@@ -4958,14 +4905,13 @@ function removeFromLiveSession(pid){
 
   renderGameDay();
   if (pbSession && pbSession.active) renderPballSession();
-  if (currentTeams.length)           renderTeams();
   if (bbRotation && bbRotation.active) renderBbRotation();
   touchSharedSession();
 
   toast(name + ' removed' + (removedFrom ? ' from ' + removedFrom : ''));
 }
 function selectAll(){
-  if ((pbSession && pbSession.active) || currentTeams.length || (bbRotation && bbRotation.active)){
+  if ((pbSession && pbSession.active) || (bbRotation && bbRotation.active)){
     toast('A session is running — tap individual players to add them','er');
     return;
   }
@@ -4974,7 +4920,7 @@ function selectAll(){
   toast(presentIds.length+' players selected');
 }
 function clearSel(){
-  if ((pbSession && pbSession.active) || currentTeams.length || (bbRotation && bbRotation.active)){
+  if ((pbSession && pbSession.active) || (bbRotation && bbRotation.active)){
     toast('A session is running — can\'t clear from here','er');
     return;
   }
@@ -5239,56 +5185,6 @@ async function bbEndSession(){
   renderGameDay();
 }
 
-function doRandomize(){
-  if(presentIds.length<4){toast('Need at least 4 players','er');return}
-  const count=parseInt(document.getElementById('team-count').value)||4;
-  const shuffled=[...presentIds].sort(()=>Math.random()-.5);
-  const per=Math.floor(shuffled.length/count);
-  currentTeams=Array.from({length:count},(_,i)=>({id:'T'+i,name:TEAMS[i]||'Team '+(i+1),color:COLORS[i%COLORS.length],players:shuffled.slice(i*per,(i+1)*per),wins:0}));
-  currentMatches=[];
-  for(let i=0;i<currentTeams.length;i++)
-    for(let j=i+1;j<currentTeams.length;j++)
-      currentMatches.push({id:'M'+i+'_'+j,teamA:currentTeams[i].id,teamB:currentTeams[j].id,winner:null,done:false});
-  renderTeams();renderMatches();
-  document.getElementById('matches-section').style.display='';
-  renderBbTimer(); bbStartTick();
-  startSharedSession();
-  toast(count+' teams · '+currentMatches.length+' matches');
-}
-function renderTeams(){
-  const players=LC.arr('players');
-  const opts=t0=>currentTeams.map(t=>`<option value="${t.id}" ${t.id===t0?'selected':''}>${t.name}</option>`).join('');
-  document.getElementById('teams-grid').innerHTML=currentTeams.map(t=>`
-    <div class="team-card">
-      <div class="team-hd" style="background:${t.color}20;border-bottom:3px solid ${t.color}">
-        <span style="font-family:'Bebas Neue';font-size:18px;letter-spacing:.5px;color:${t.color}">${t.name}</span>
-        <span style="background:${t.color}30;color:${t.color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${t.players.length}P · ${t.wins}W</span>
-    </div>
-      <div class="team-bd">${t.players.map(pid=>{
-        const p=players.find(x=>x.id===pid);
-        if(!p)return'';
-        return `<div class="t-row">
-          <div style="width:22px;height:22px;border-radius:50%;background:${t.color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:10px;color:#fff;flex-shrink:0">${ini(p.firstName,p.lastName)}</div>
-          <span style="flex:1">${p.firstName} ${p.lastName}</span>
-          <select onchange="movePlayer('${pid}',this.value)" style="background:var(--bg2);border:1px solid var(--b);border-radius:6px;color:var(--tx2);font-size:10px;font-family:'Outfit',sans-serif;padding:3px 4px;outline:none;cursor:pointer">${opts(t.id)}</select>
-      </div>`;
-      }).join('')}</div>
-  </div>`).join('');
-}
-function movePlayer(pid,newTeamId){
-  const from=currentTeams.find(t=>t.players.includes(pid));
-  const to=currentTeams.find(t=>t.id===newTeamId);
-  if(!from||!to||from.id===to.id){renderTeams();return}
-  if(currentMatches.some(m=>m.done)){
-    if(!confirm('Some match results are already recorded. Moving players now only affects matches not yet decided. Continue?')){renderTeams();return}
-  }
-  from.players=from.players.filter(x=>x!==pid);
-  to.players.push(pid);
-  const players=LC.arr('players');const p=players.find(x=>x.id===pid);
-  renderTeams();
-  touchSharedSession();
-  toast((p?p.firstName:'Player')+' → '+to.name);
-}
 // ── BASKETBALL SHARED TIMER ───────────────────────────────────
 function bbTimerRemainingMs(){
   if(bbTimer.running && bbTimer.endsAt) return Math.max(0, bbTimer.endsAt - Date.now());
@@ -5346,110 +5242,6 @@ function bbTimerStop(){
   if(bbTimerTick){ clearInterval(bbTimerTick); bbTimerTick=null; }
   bbTimer={minutes:12, running:false, endsAt:null, remainingMs:12*60*1000};
 }
-function addExtraMatch(){
-  if(currentTeams.length<2){ toast('Need at least 2 teams','er'); return; }
-  const a=currentTeams[0].id, b=currentTeams[1].id;
-  currentMatches.push({id:'MX'+Date.now(),teamA:a,teamB:b,winner:null,done:false,extra:true});
-  renderMatches(); touchSharedSession();
-  toast('Extra match added — pick the teams below');
-}
-function renderMatches(){
-  document.getElementById('matches-list').innerHTML=currentMatches.map((m,i)=>{
-    const ta=currentTeams.find(t=>t.id===m.teamA);
-    const tb=currentTeams.find(t=>t.id===m.teamB);
-    return `<div class="match-card" id="mc-${m.id}">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Match ${i+1} ${m.done?'<span style="color:var(--gr)">Done</span> <button type="button" class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;vertical-align:middle" onclick="undoWin(\''+m.id+'\')"><i class="ti ti-arrow-back-up"></i> Undo</button>':''}</div>
-      <div class="m-teams">
-        <button type="button" class="m-team ${m.winner===m.teamA?'win':''}" onclick="recordWin('${m.id}','${m.teamA}')" ${m.done&&m.winner!==m.teamA?'disabled style="opacity:.4"':''}>${ta?ta.name:'?'}${m.winner===m.teamA?'<div style="font-size:11px;color:var(--gr);margin-top:4px">Winner</div>':''}</button>
-        <div style="font-size:12px;font-weight:700;color:var(--tx3);flex-shrink:0">VS</div>
-        <button type="button" class="m-team ${m.winner===m.teamB?'win':''}" onclick="recordWin('${m.id}','${m.teamB}')" ${m.done&&m.winner!==m.teamB?'disabled style="opacity:.4"':''}>${tb?tb.name:'?'}${m.winner===m.teamB?'<div style="font-size:11px;color:var(--gr);margin-top:4px">Winner</div>':''}</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-async function undoWin(matchId){
-  const m=currentMatches.find(x=>x.id===matchId); if(!m||!m.done) return;
-  if(!confirm('Undo this match result? Win/loss counts already saved to player records will not be reversed automatically.')) return;
-  const wt=currentTeams.find(t=>t.id===m.winner);
-  const lt=currentTeams.find(t=>t.id===(m.winner===m.teamA?m.teamB:m.teamA));
-  const players=LC.arr('players');
-  if(wt){ wt.wins=Math.max(0,(wt.wins||1)-1); wt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p){p.wins=Math.max(0,(p.wins||1)-1);p.games=Math.max(0,(p.games||1)-1);}}); }
-  if(lt){ lt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p){p.games=Math.max(0,(p.games||1)-1);}}); }
-  LC.set('players',players);
-  m.winner=null; m.done=false;
-  renderMatches(); renderTeams();
-  touchSharedSession();
-  toast('Match result undone — re-select the winner','in');
-}
-async function recordWin(matchId,winnerId){
-  const m=currentMatches.find(x=>x.id===matchId);if(!m||m.done)return;
-  m.winner=winnerId;m.done=true;
-  const loserId=winnerId===m.teamA?m.teamB:m.teamA;
-  const wt=currentTeams.find(t=>t.id===winnerId);
-  const lt=currentTeams.find(t=>t.id===loserId);
-  if(wt)wt.wins++;
-  const players=LC.arr('players');
-  // Update local cache so leaderboards/UI tick up immediately.
-  if(wt) wt.players.forEach(pid=>{const p=players.find(x=>x.id===pid); if(p){ p.wins=(p.wins||0)+1; p.games=(p.games||0)+1; }});
-  if(lt) lt.players.forEach(pid=>{const p=players.find(x=>x.id===pid); if(p){ p.games=(p.games||0)+1; }});
-  LC.set('players',players);
-  // Persist to Supabase.
-  if (USE_NEW_AUTH){
-    await rpc('admin_record_match_result', {
-      p_my_phone:   AUTH.phone(),
-      p_my_pin:     AUTH.pin(),
-      p_winner_ids: wt ? wt.players : [],
-      p_loser_ids:  lt ? lt.players : []
-    });
-    await rpc('admin_apply_rating', {
-      p_my_phone:   AUTH.phone(),
-      p_my_pin:     AUTH.pin(),
-      p_sport:      (gdSport==='badminton'?'badminton':'pickleball'),
-      p_winner_ids: wt ? wt.players : [],
-      p_loser_ids:  lt ? lt.players : []
-    });
-  } else {
-    const saves=[];
-    if(wt)wt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p)saves.push(dbUpdate('players','id=eq.'+encodeURIComponent(p.id),{wins:p.wins,games_played:p.games}))});
-    if(lt)lt.players.forEach(pid=>{const p=players.find(x=>x.id===pid);if(p)saves.push(dbUpdate('players','id=eq.'+encodeURIComponent(p.id),{games_played:p.games}))});
-    await Promise.all(saves);
-  }
-  dbNotif('Match Result',(wt?wt.name:'?')+' defeated '+(lt?lt.name:'?'),'success');
-  renderMatches();renderTeams();
-  touchSharedSession();
-  const allDone=currentMatches.every(x=>x.done);
-  toast(allDone?'All matches done! Click End Game Day':(wt?wt.name:'Team')+' wins!');
-}
-async function endGameDay(){
-  if(!currentMatches.length){toast('No matches to archive','er');return}
-  if(!confirm('End Game Day? Teams and matches will be cleared.'))return;
-  const entry={
-    id:'H'+Date.now(),
-    game_date:new Date().toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}),
-    player_count:presentIds.length,
-    teams:currentTeams.map(t=>({name:t.name,wins:t.wins,players:t.players})),
-    matches:currentMatches.map(m=>{
-      const ta=currentTeams.find(x=>x.id===m.teamA);
-      const tb=currentTeams.find(x=>x.id===m.teamB);
-      const wt=currentTeams.find(x=>x.id===m.winner);
-      return{teamA:ta?ta.name:'?',teamB:tb?tb.name:'?',winner:wt?wt.name:'—'};
-    })
-  };
-  const ok=await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:'basketball'});
-  if(ok){
-    const hist=LC.arr('history');
-    hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
-    LC.set('history',hist);
-    await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:entry.game_date+' — '+entry.player_count+' players, '+entry.matches.length+' matches',p_type:'success'});
-    toast('Game Day archived!');
-  } else toast('Archive failed — check Supabase','er');
-  await endSharedSession();
-  currentTeams=[];currentMatches=[];presentIds=[];bbTimerStop();
-  document.getElementById('teams-grid').innerHTML='';
-  document.getElementById('matches-section').style.display='none';
-  renderGameDay();
-}
-
 // ── TOURNAMENTS ───────────────────────────────────────────────
 let _tEditId    = null;
 let _tTeams     = [];
