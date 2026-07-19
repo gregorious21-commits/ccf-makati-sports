@@ -8079,6 +8079,21 @@ async function toggleDraftPause(draftId) {
 let gsShared = new Map();   // player_id (string) -> {date, sharedBy} — first time it happened
 let gsSegment = 'firsttimers'; // 'firsttimers' | 'all'
 let gsStatusFilter = 'notyet'; // 'notyet' | 'shared' | 'all'
+let gsScheduleFilter = ''; // '' = all schedules, else a specific game id
+const GS_SPORT_LABEL = { basketball: 'Basketball', pickleball: 'Pickleball', badminton: 'Badminton', dragonboat: 'Dragonboat', running: 'Running' };
+function gsGameLabel(g) {
+  const dateLabel = g.date ? new Date(g.date + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : g.label;
+  return (GS_SPORT_LABEL[g.sport] || g.sport || 'Game') + ' · ' + dateLabel;
+}
+// Non-cancelled registrations for one schedule, split into everyone vs the
+// ones specifically tagged first-timer for that game.
+function gsRegsForSchedule(gameId) {
+  const regs = LC.arr('regs').filter(r => r.gameId === gameId && (r.status || '').toLowerCase() !== 'cancelled');
+  return {
+    registeredIds: new Set(regs.map(r => String(r.playerId))),
+    firstTimerIds: new Set(regs.filter(r => r.isFirstTimer).map(r => String(r.playerId)))
+  };
+}
 
 async function gsLoadAllShared() {
   const rows = await dbGet('gospel_shares', 'select=player_id,date,shared_by&order=date.asc');
@@ -8121,12 +8136,19 @@ function gsRenderToolbar() {
   if (!el) return;
   const seg = (val, label) => `<button type="button" class="fin-pill${gsSegment === val ? ' on' : ''}" onclick="gsSetSegment('${val}')">${label}</button>`;
   const stat = (val, label) => `<button type="button" class="fin-pill${gsStatusFilter === val ? ' on' : ''}" onclick="gsSetStatus('${val}')">${label}</button>`;
+  const games = LC.arr('games').slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const gameOpts = games.map(g => `<option value="${g.id}"${gsScheduleFilter === g.id ? ' selected' : ''}>${gsGameLabel(g)}</option>`).join('');
   el.innerHTML = `
     <div style="display:flex;gap:6px">${seg('firsttimers', 'First-Timers')}${seg('all', 'All Players')}</div>
-    <div style="display:flex;gap:6px">${stat('notyet', 'Not Yet')}${stat('shared', 'Shared')}${stat('all', 'All')}</div>`;
+    <div style="display:flex;gap:6px">${stat('notyet', 'Not Yet')}${stat('shared', 'Shared')}${stat('all', 'All')}</div>
+    <select class="fi" style="width:auto;min-width:210px" onchange="gsSetSchedule(this.value)">
+      <option value=""${gsScheduleFilter ? '' : ' selected'}>All Schedules</option>
+      ${gameOpts}
+    </select>`;
 }
 function gsSetSegment(seg) { gsSegment = seg; gsRenderList(); }
 function gsSetStatus(st) { gsStatusFilter = st; gsRenderList(); }
+function gsSetSchedule(gameId) { gsScheduleFilter = gameId; gsRenderList(); }
 
 // Fast, local re-render — no network call. Used for search/segment/status
 // changes and after optimistic mark/unmark updates.
@@ -8166,23 +8188,32 @@ function gsRenderList() {
       <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">D-Group (auto-shared)</span>
     </div>`;
 
-  let pool = gsSegment === 'firsttimers' ? firstTimers : eligible;
+  let pool, scheduleNote = '';
+  if (gsScheduleFilter) {
+    const game = LC.arr('games').find(g => g.id === gsScheduleFilter);
+    const { registeredIds, firstTimerIds } = gsRegsForSchedule(gsScheduleFilter);
+    pool = eligible.filter(p => registeredIds.has(String(p.id)));
+    if (gsSegment === 'firsttimers') pool = pool.filter(p => firstTimerIds.has(String(p.id)));
+    if (game) scheduleNote = `<div style="margin-bottom:10px;font-size:12px;color:var(--tx3)">Showing <strong style="color:var(--tx)">${gsGameLabel(game)}</strong> — ${registeredIds.size} registered, ${firstTimerIds.size} first-timer${firstTimerIds.size === 1 ? '' : 's'}</div>`;
+  } else {
+    pool = gsSegment === 'firsttimers' ? firstTimers : eligible;
+  }
   if (gsStatusFilter === 'notyet') pool = pool.filter(p => !gsIsShared(p));
   else if (gsStatusFilter === 'shared') pool = pool.filter(p => gsIsShared(p));
   if (query) pool = pool.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
 
-  pool = pool.slice().sort((a, b) => gsSegment === 'firsttimers'
+  pool = pool.slice().sort((a, b) => (gsSegment === 'firsttimers' && !gsScheduleFilter)
     ? (ftMap.get(String(b.id)) || '').localeCompare(ftMap.get(String(a.id)) || '')
     : (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
 
   if (!pool.length) {
-    listEl.innerHTML = '<div class="empty">' + (gsSegment === 'firsttimers' && gsStatusFilter === 'notyet'
+    listEl.innerHTML = scheduleNote + '<div class="empty">' + (gsSegment === 'firsttimers' && gsStatusFilter === 'notyet'
       ? 'No first-timers waiting — everyone’s been reached! 🎉'
       : 'No players match this filter.') + '</div>';
     return;
   }
 
-  listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding:4px 0">
+  listEl.innerHTML = scheduleNote + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding:4px 0">
     ${pool.map(p => {
       const sid = String(p.id);
       const on = gsIsShared(p);
@@ -8214,7 +8245,8 @@ async function gsMarkAllShown() {
   if (!confirm('Mark ' + toMark.length + ' player(s) as gospel shared?')) return;
 
   const today = new Date().toISOString().split('T')[0];
-  const label = gsSegment === 'firsttimers' ? 'First-Timers' : 'All Players';
+  const scheduleGame = gsScheduleFilter ? LC.arr('games').find(g => g.id === gsScheduleFilter) : null;
+  const label = (gsSegment === 'firsttimers' ? 'First-Timers' : 'All Players') + (scheduleGame ? ' @ ' + gsGameLabel(scheduleGame) : '');
   const rows = toMark.map(id => ({ player_id: id, date: today, shared_by: (AUTH.name() || 'Admin') + ' (bulk: ' + label + ')' }));
   const ok = await dbUpsert('gospel_shares', rows);
   if (ok) {
