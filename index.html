@@ -758,6 +758,8 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   #my-hist{display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-6)}
   #my-hist .hist-row:nth-last-child(-n+2){border-bottom:none}
   #my-hist .hist-row:last-child:nth-child(odd){grid-column:1/-1}
+  .lq-body-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start}
+  .lq-courts{margin-bottom:0}
 }
 .sec-h{
   display:flex;align-items:center;justify-content:space-between;
@@ -1600,6 +1602,15 @@ footer a:hover{color:var(--text-1)}
 .lq-you.playing{background:rgba(34,197,94,.14);color:#22C55E}
 .lq-you.next{background:rgba(253,184,39,.16);color:var(--gold);font-weight:700}
 .lq-courts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.lq-court:only-child{grid-column:1/-1}
+.lq-av{width:22px;height:22px;border-radius:50%;background-size:cover;background-position:center;
+  display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+.lq-chips{display:flex;flex-wrap:wrap;gap:8px}
+.lq-chip{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:20px;
+  background:var(--surface-2,rgba(255,255,255,.04));font-size:12.5px;color:var(--tx2)}
+.lq-chip.up{background:rgba(253,184,39,.10);color:var(--gold)}
+.lq-chip.mine{background:rgba(34,197,94,.14);color:#22C55E;font-weight:700}
+.lq-chip .lq-qn{width:16px;height:16px;font-size:9px;background:none;color:inherit;opacity:.7}
 @media(max-width:480px){.lq-courts{grid-template-columns:1fr}}
 .lq-court{border:1px solid var(--b,rgba(255,255,255,.08));border-radius:10px;padding:9px 11px}
 .lq-court.mine{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06)}
@@ -1607,8 +1618,9 @@ footer a:hover{color:var(--text-1)}
 .lq-court-h-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .lq-bb-clock{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;color:var(--tx);display:flex;align-items:center;gap:4px}
 .lq-bb-clock i{font-size:12px;color:var(--gold2,var(--gold))}
-.lq-teams{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--tx)}
-.lq-vs{font-size:10px;color:var(--tx3);text-transform:uppercase}
+.lq-teams{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--tx)}
+.lq-teams>span:not(.lq-vs){flex:1;min-width:0}
+.lq-vs{font-family:'Bebas Neue',sans-serif;font-size:12px;color:var(--tx3);text-transform:uppercase;flex-shrink:0}
 .lq-qhead{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--tx2);margin-bottom:6px}
 .lq-qrow{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--tx2)}
 .lq-qrow.up{background:rgba(253,184,39,.08)}
@@ -6490,6 +6502,13 @@ async function renderLiveQueue(){
   renderLivePickleball(card, live.pb);
   card.style.display='';
 }
+function lqAvatar(pid){
+  const p=LC.arr('roster').find(x=>x.id===pid);
+  const seed=pid?[...pid].reduce((s,c)=>s+c.charCodeAt(0),0):0;
+  const style=p&&p.avatarUrl ? `background-image:url('${p.avatarUrl.replace(/'/g,"\\'")}')` : `background:${lbCol(seed)}`;
+  const txt=p&&p.avatarUrl ? '' : (p?ini(p.firstName,p.lastName):'?');
+  return `<div class="lq-av" style="${style}">${txt}</div>`;
+}
 function renderLivePickleball(card, pb){
   if(!pb || !Array.isArray(pb.courts)){ card.style.display='none'; return; }
   const meId=ME?ME.id:null;
@@ -6512,11 +6531,11 @@ function renderLivePickleball(card, pb){
       <div class="lq-teams"><span>${a}</span><span class="lq-vs">vs</span><span>${b}</span></div>
     </div>`;
   }).join('');
-  const queueHtml=queue.length? queue.map((q,i)=>{
+  const queueHtml=queue.length? `<div class="lq-chips">` + queue.map((q,i)=>{
     const mine=meId&&q.pid===meId;
     const up=i<4;
-    return `<div class="lq-qrow${mine?' mine':''}${up?' up':''}"><span class="lq-qn">${i+1}</span><span>${lqName(q.pid)}${mine?' (You)':''}</span>${up?'<span class="lq-tag">up next</span>':''}</div>`;
-  }).join('') : '<div style="font-size:13px;color:var(--tx3);padding:6px">Queue is empty — everyone\'s on a court.</div>';
+    return `<div class="lq-chip${mine?' mine':up?' up':''}">${lqAvatar(q.pid)}<span class="lq-qn">${i+1}</span><span>${lqName(q.pid)}${mine?' (You)':''}</span></div>`;
+  }).join('') + `</div>` : '<div style="font-size:13px;color:var(--tx3);padding:6px">Queue is empty — everyone\'s on a court.</div>';
   // Recent match results (most recent first, latest 6)
   const log=Array.isArray(pb.log)?pb.log:[];
   let resultsHtml='';
@@ -6542,10 +6561,14 @@ function renderLivePickleball(card, pb){
   card.innerHTML=`
     <div class="sec-h" style="margin-bottom:10px"><div class="sec-t"><span class="spi spi-p"></span> Live Pickleball Queue</div><div class="lq-live">● LIVE</div></div>
     ${myStatus}
-    <div class="lq-courts">${courtsHtml}</div>
-    <div class="lq-qhead">Queue (${queue.length})</div>
-    ${queueHtml}
-    ${resultsHtml}
+    <div class="lq-body-grid">
+      <div class="lq-courts">${courtsHtml}</div>
+      <div>
+        <div class="lq-qhead">Queue (${queue.length})</div>
+        ${queueHtml}
+        ${resultsHtml}
+      </div>
+    </div>
     <div class="lq-foot">Updates automatically every few seconds · view only</div>`;
   card.style.display='';
 }
@@ -6602,10 +6625,10 @@ function renderLiveBasketball(card, bb, bbTimer){
     <div class="lq-teams"><span>${aNames}</span><span class="lq-vs">vs</span><span>${bNames}</span></div>
   </div>`;
 
-  const benchHtml=bench.length? bench.map(pid=>{
+  const benchHtml=bench.length? `<div class="lq-chips">` + bench.map(pid=>{
     const mine=meId&&pid===meId;
-    return `<div class="lq-qrow${mine?' mine':''}"><span>${lqName(pid)}${mine?' (You)':''}</span></div>`;
-  }).join('') : '<div style="font-size:13px;color:var(--tx3);padding:6px">Everyone present is playing.</div>';
+    return `<div class="lq-chip${mine?' mine':''}">${lqAvatar(pid)}<span>${lqName(pid)}${mine?' (You)':''}</span></div>`;
+  }).join('') + `</div>` : '<div style="font-size:13px;color:var(--tx3);padding:6px">Everyone present is playing.</div>';
 
   const log=Array.isArray(bb.log)?bb.log:[];
   let resultsHtml='';
@@ -6629,10 +6652,14 @@ function renderLiveBasketball(card, bb, bbTimer){
   card.innerHTML=`
     <div class="sec-h" style="margin-bottom:10px"><div class="sec-t"><span class="spi spi-b"></span> Live Basketball</div><div class="lq-live">● LIVE</div></div>
     ${myStatus}
-    <div class="lq-courts">${courtHtml}</div>
-    <div class="lq-qhead">Bench (${bench.length})</div>
-    ${benchHtml}
-    ${resultsHtml}
+    <div class="lq-body-grid">
+      <div class="lq-courts">${courtHtml}</div>
+      <div>
+        <div class="lq-qhead">Bench (${bench.length})</div>
+        ${benchHtml}
+        ${resultsHtml}
+      </div>
+    </div>
     <div class="lq-foot">Updates automatically every few seconds · view only</div>`;
   startBbClockTick();
 }
