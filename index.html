@@ -3938,7 +3938,7 @@ function renderWeekGames() {
     const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Venue</a>` : '';
     const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold)"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
     const wxLine = g.weatherNote ? `<div style="margin:0 20px 10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
-    const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id))];
+    const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id))];
     const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
     const shownAttendees = attendees.slice(0,5);
     const extraCount = attendees.length - shownAttendees.length;
@@ -4026,9 +4026,9 @@ function openGameDetail(gameId){
   const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold);margin-top:4px"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
   const wxLine = g.weatherNote ? `<div style="margin-top:10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
 
-  const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id))];
+  const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id))];
   const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
-  const attendeeRows = attendees.length ? attendees.map((p,i)=>{
+  const rosterRow = (p,i) => {
     const nm = (p.firstName+' '+(p.lastName||'')).trim() || 'Unnamed';
     const style = p.avatarUrl ? `background-image:url('${feedEsc(p.avatarUrl)}')` : `background:${lbCol(i)}`;
     const txt = p.avatarUrl ? '' : ini(p.firstName,p.lastName);
@@ -4036,7 +4036,16 @@ function openGameDetail(gameId){
       <div style="width:32px;height:32px;border-radius:50%;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;${style}">${txt}</div>
       <span style="font-size:13px;font-weight:600;color:var(--tx)">${feedEsc(nm)}</span>
     </div>`;
-  }).join('') : '<div class="empty" style="padding:16px 0">No one has signed up yet.</div>';
+  };
+  const attendeeRows = attendees.length ? attendees.map(rosterRow).join('') : '<div class="empty" style="padding:16px 0">No one has signed up yet.</div>';
+
+  const waitlistIds = regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort((a,b)=>(a.id||'').localeCompare(b.id||'')).map(r=>r.playerId);
+  const waitlistPlayers = waitlistIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
+  const waitlistSection = waitlistPlayers.length ? `
+    <div style="padding:0 20px 16px">
+      <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
+      <div style="max-height:200px;overflow-y:auto;margin-top:8px">${waitlistPlayers.map(rosterRow).join('')}</div>
+    </div>` : '';
 
   document.getElementById('game-detail-inner').innerHTML = `
     <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border)">
@@ -4055,6 +4064,7 @@ function openGameDetail(gameId){
       <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${spots<=0&&!myReg?'Game full':spots+' slots left'} · ${attendees.length} signed up</div>
       <div style="max-height:260px;overflow-y:auto;margin-top:8px">${attendeeRows}</div>
     </div>
+    ${waitlistSection}
     <div style="padding:14px 20px 20px">
       ${mySt==='pending' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Waiting for admin confirmation</div>' : ''}
       ${mySt==='waitlist' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">You\'ll be automatically confirmed if a slot opens up</div>' : ''}

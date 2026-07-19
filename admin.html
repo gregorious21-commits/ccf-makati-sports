@@ -1155,7 +1155,7 @@ select.fi{
           <option value="dragonboat">Dragonboat</option>
           <option value="running">Running</option>
       </select>
-        <select class="fi" id="r-sf" onchange="renderRegs()" style="width:130px"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="cancelled">Cancelled</option></select>
+        <select class="fi" id="r-sf" onchange="renderRegs()" style="width:130px"><option value="">All Status</option><option value="pending">Pending</option><option value="confirmed">Confirmed</option><option value="waitlist">Waitlist</option><option value="cancelled">Cancelled</option></select>
         <select class="fi" id="r-pf" onchange="renderRegs()" style="width:130px"><option value="">All Payments</option><option value="unpaid">Unpaid only</option><option value="paid">Paid only</option></select>
     </div>
       <div class="card tbl-wrap" style="padding:0">
@@ -2802,7 +2802,7 @@ function renderRegs(){
   if(!list.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No registrations found</div></td></tr>';return}
   tbody.innerHTML=list.map(r=>{
     const st=(r.status||'pending');
-    const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':'b-tbd';
+    const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':st==='waitlist'?'b-nv':'b-tbd';
     const sportIcon=spiTag(r.sport||'basketball');
     const payBadge = r.payType==='advance'
       ? '<span class="badge b-nv">Advance</span>'
@@ -2833,6 +2833,7 @@ function renderRegs(){
       <td data-label="Paid">${paidBadge}</td>
       <td data-label="Actions"><div style="display:flex;gap:5px;flex-wrap:wrap">
         ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')"><i class="ti ti-check"></i>${r.payType==='advance'?'Verify':'Approve'}</button>`:''}
+        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" title="Promote off the waitlist now instead of waiting for the next auto-check"><i class="ti ti-arrow-up"></i>Promote Now</button>`:''}
         ${togglePaidBtn}
         ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="cancelReg('${r.id}')" title="Cancel"><i class="ti ti-x"></i></button>`:''}
     </div></td>
@@ -7121,7 +7122,7 @@ function renderWeekly(){
   regs.sort((a,b)=>(a.status==='cancelled'?1:0)-(b.status==='cancelled'?1:0));
   tbody.innerHTML=regs.map((r,i)=>{
     const st=r.status||'pending';
-    const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':'b-tbd';
+    const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':st==='waitlist'?'b-nv':'b-tbd';
     const ftBtn=r.isFirstTimer
       ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleFirstTimer('${r.id}')"> First-Timer</button>`
       : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleFirstTimer('${r.id}')">Tag First-Timer</button>`;
@@ -7134,6 +7135,7 @@ function renderWeekly(){
       <td><span class="badge ${bc}">${st}</span></td>
       <td><div style="display:flex;gap:5px">
         ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')"><i class="ti ti-check"></i></button>`:''}
+        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" title="Promote off the waitlist now"><i class="ti ti-arrow-up"></i></button>`:''}
         ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="removeFromWeek('${r.id}')"><i class="ti ti-x"></i></button>`:''}
     </div></td>
   </tr>`;
