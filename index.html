@@ -4234,13 +4234,41 @@ async function joinWaitlist(g){
   toast("You're on the waitlist — you'll be confirmed automatically if a slot opens up.");
 }
 
-// Self-cancel. Approximates the "no cancellations within 4 hours" rule as
-// "not on the day of the game itself" since game times are stored as free
-// text (e.g. "6:00 PM - 9:00 PM") and aren't reliably parseable to the hour.
+// Parses game_time free text ("6:00 PM - 9:00 PM", "7:30 PM", "6:00-8:00PM",
+// "6:00 - 9:00PM" where AM/PM only appears once at the end but applies to
+// the whole thing) into a real start Date for `game.date`. Returns null if
+// it can't be parsed, so callers can fail safe.
+function parseGameStartDateTime(game){
+  if (!game || !game.date) return null;
+  const timeStr = (game.time||'').trim();
+  if (!timeStr) return null;
+  const startPart = timeStr.split('-')[0].trim();
+  const hm = startPart.match(/(\d{1,2}):(\d{2})/);
+  if (!hm) return null;
+  let hour = parseInt(hm[1],10);
+  const minute = parseInt(hm[2],10);
+  const ampmMatch = startPart.match(/AM|PM/i) || timeStr.match(/AM|PM/i);
+  const ampm = ampmMatch ? ampmMatch[0].toUpperCase() : null;
+  if (ampm==='PM' && hour<12) hour += 12;
+  if (ampm==='AM' && hour===12) hour = 0;
+  const dt = new Date(game.date+'T00:00:00');
+  dt.setHours(hour, minute, 0, 0);
+  return dt;
+}
+
+// Self-cancel, blocked within 5 hours of the game's actual start time. Falls
+// back to "not on the day of the game" if the time text can't be parsed, so
+// an unusual format never silently allows a too-late cancellation.
 async function cancelMyRegistration(regId, gameId){
   const g = LC.arr('games').find(x=>x.id===gameId);
-  const todayStr = new Date().toISOString().slice(0,10);
-  if (g && g.date===todayStr) {
+  const startDt = g ? parseGameStartDateTime(g) : null;
+  if (startDt) {
+    const hoursUntil = (startDt.getTime() - Date.now()) / (1000*60*60);
+    if (hoursUntil < 5) {
+      toast("Cancellations aren't allowed within 5 hours of the game start time — please contact an organizer directly.", 'er');
+      return;
+    }
+  } else if (g && g.date === new Date().toISOString().slice(0,10)) {
     toast("Cancellations aren't allowed on the day of the game — please contact an organizer directly.", 'er');
     return;
   }
