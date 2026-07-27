@@ -5158,10 +5158,15 @@ async function bbEndSession(){
     game_date:dateLabel,
     player_count:everyone.size,
     teams:[{name:'Attendance', color:'#3B82F6', players:[...everyone], wins:0}],
+    // Keep raw player-id arrays (not just display-name strings) so each
+    // player's match history can be looked up later, same as pickleball's
+    // archive shape — teamAName/teamBName stay as a display-only convenience.
     matches:bbRotation.log.map(m=>({
-      teamA:m.teamA.map(bbFirst).join(' & '),
-      teamB:m.teamB.map(bbFirst).join(' & '),
-      winner:(m.winner==='A'?m.teamA:m.teamB).map(bbFirst).join(' & ')
+      teamA:m.teamA.slice(),
+      teamB:m.teamB.slice(),
+      teamAName:m.teamA.map(bbFirst).join(' & '),
+      teamBName:m.teamB.map(bbFirst).join(' & '),
+      winner:m.winner
     }))
   };
   localStorage.setItem('ccf_bb_save_backup', JSON.stringify(entry));
@@ -6421,8 +6426,15 @@ function renderHist(){
         </div>`;
       }).join('') || '<div style="font-size:12px;color:var(--tx3)">No match detail recorded.</div>';
     } else {
-      // Basketball/other: teamA/teamB are team labels/ids, winner is a team name.
-      matchesHtml='<div style="display:flex;flex-wrap:wrap;gap:6px">'+(w.matches||[]).map(m=>`<div style="background:var(--bg2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--tx2)">${m.teamA} vs ${m.teamB} · <strong style="color:var(--gr)"> ${m.winner}</strong></div>`).join('')+'</div>';
+      // Basketball/other: teamA/teamB are player-id arrays and winner is
+      // 'A'/'B' (legacy entries saved before ids were preserved still have
+      // teamA/teamB/winner as ready-made display strings — fall back to those).
+      matchesHtml='<div style="display:flex;flex-wrap:wrap;gap:6px">'+(w.matches||[]).map(m=>{
+        const aName=Array.isArray(m.teamA)?m.teamA.map(histName).join(' & '):(m.teamAName||m.teamA);
+        const bName=Array.isArray(m.teamB)?m.teamB.map(histName).join(' & '):(m.teamBName||m.teamB);
+        const winName=m.winner==='A'?aName:m.winner==='B'?bName:m.winner;
+        return `<div style="background:var(--bg2);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--tx2)">${aName} vs ${bName} · <strong style="color:var(--gr)"> ${winName}</strong></div>`;
+      }).join('')+'</div>';
     }
     return `
     <div style="padding:14px;border-bottom:1px solid var(--b)">
@@ -7338,7 +7350,16 @@ function exportCSV(type){
   if(type==='history'){
     const h=LC.arr('history');if(!h.length){toast('No history','er');return}
     const rows=[['Date','Team A','Team B','Winner']];
-    h.forEach(w=>(w.matches||[]).forEach(m=>rows.push([w.date,m.teamA,m.teamB,m.winner])));
+    // teamA/teamB are player-id arrays for basketball/pickleball matches (or
+    // a legacy display-name string for basketball entries saved before ids
+    // were preserved) — resolve either shape to real names here.
+    const namesOf = ids => Array.isArray(ids) ? ids.map(_tpName).join(', ') : (ids||'');
+    h.forEach(w=>(w.matches||[]).forEach(m=>{
+      const aName = namesOf(m.teamA) || m.teamAName || '';
+      const bName = namesOf(m.teamB) || m.teamBName || '';
+      const winName = m.winner==='A' ? aName : m.winner==='B' ? bName : (m.winner||'');
+      rows.push([w.date,aName,bName,winName]);
+    }));
     dlCSV('history_'+today()+'.csv',rows);
     toast('History CSV exported');
   }

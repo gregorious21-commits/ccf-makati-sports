@@ -648,6 +648,13 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   transition:all 150ms var(--ease);-webkit-tap-highlight-color:transparent;
 }
 .sc-stab.on{background:rgba(253,184,39,.12);border-color:rgba(253,184,39,.4);color:var(--gold)}
+.sc-match-row{display:flex;align-items:center;gap:8px;padding:0 16px 10px;flex-shrink:0}
+.sc-match-select{
+  flex:1;min-height:36px;padding:0 10px;
+  background:var(--surface-1);border:1px solid var(--border);
+  border-radius:var(--r-sm);font-family:var(--font-ui);
+  font-size:13px;font-weight:600;color:var(--text-1);cursor:pointer;
+}
 .sc-pos-row{
   display:flex;align-items:center;gap:10px;
   padding:4px 16px 10px;flex-shrink:0;
@@ -1126,6 +1133,35 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   padding:var(--s-7) var(--s-5);
   color:var(--text-3);font-size:14px;font-weight:500;
 }
+
+/* ── SKELETON LOADERS ── */
+.skel{
+  background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
+  background-size:200% 100%;
+  animation:skel-shimmer 1.4s ease-in-out infinite;
+  border-radius:6px;
+}
+@keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skel{animation:none;background:var(--surface-2)}}
+.skel-card{
+  background:var(--surface-1);border:1px solid var(--border);border-radius:14px;
+  padding:var(--s-5);margin-bottom:var(--s-4);
+}
+.skel-row{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) 0}
+.skel-row:not(:last-child){border-bottom:1px solid var(--border)}
+.skel-avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0}
+.skel-line{height:12px;margin-bottom:8px}
+.skel-line:last-child{margin-bottom:0}
+
+/* Full-page boot splash — shown the instant the app opens, before we know
+   whether to render the landing page or the signed-in dashboard, so users
+   never hit a blank screen while the initial Supabase sync is in flight. */
+#boot-skel{
+  position:fixed;inset:0;z-index:99999;background:var(--bg);
+  padding:var(--s-6) var(--s-5);overflow:hidden;
+}
+#boot-skel .skel-logo{width:40px;height:40px;border-radius:10px}
+#boot-skel .skel-header{display:flex;align-items:center;gap:var(--s-3);margin-bottom:var(--s-8)}
 
 /* ── MODAL ── */
 .ovl{
@@ -1647,6 +1683,25 @@ footer a:hover{color:var(--text-1)}
 </head>
 <body>
 
+<!-- Boot splash — plain HTML/CSS, visible before any JS has run, so there's
+     never a blank screen while the initial Supabase sync is in flight. -->
+<div id="boot-skel">
+  <div class="skel-header">
+    <div class="skel skel-logo"></div>
+    <div class="skel skel-line" style="width:140px;height:16px;margin:0"></div>
+  </div>
+  <div class="skel-card">
+    <div class="skel skel-line" style="width:60%"></div>
+    <div class="skel skel-line" style="width:85%"></div>
+    <div class="skel skel-line" style="width:40%"></div>
+  </div>
+  <div class="skel-card">
+    <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:45%"></div></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:55%"></div><div class="skel skel-line" style="width:35%"></div></div></div>
+    <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
+  </div>
+</div>
+
 <div id="ann-wrap"></div>
 
 <!-- ════ LANDING ════ -->
@@ -1839,7 +1894,10 @@ footer a:hover{color:var(--text-1)}
         <button type="button" class="sport-pill" data-sport="badminton" onclick="setSportFilter('badminton')"><span class="spi spi-bd"></span><span class="pl">Badminton</span></button>
         <button type="button" class="sport-pill" data-sport="dragonboat" onclick="setSportFilter('dragonboat')"><span class="spi spi-db"></span><span class="pl">Dragonboat</span></button>
     </div>
-      <div id="week-games"><div class="card"><div class="empty">Loading games…</div></div></div>
+      <div id="week-games">
+        <div class="skel-card"><div class="skel skel-line" style="width:70%;height:16px"></div><div class="skel skel-line" style="width:50%"></div><div class="skel skel-line" style="width:35%;height:20px;border-radius:20px;margin-top:10px"></div></div>
+        <div class="skel-card"><div class="skel skel-line" style="width:65%;height:16px"></div><div class="skel skel-line" style="width:45%"></div><div class="skel skel-line" style="width:35%;height:20px;border-radius:20px;margin-top:10px"></div></div>
+      </div>
       <div id="pay-section" style="display:none">
         <div class="pay-card">
           <div class="pay-lbl">Reserve Your Slot</div>
@@ -1921,7 +1979,12 @@ footer a:hover{color:var(--text-1)}
       <!-- Live Now Tournament Banner -->
       <div id="live-now-banner" style="display:none;margin-bottom:14px"></div>
       <div class="sec-h"><div class="sec-t">Community Feed</div><div class="sec-link" onclick="switchTab('feed')">See all posts →</div></div>
-      <div id="feed-preview" style="margin-bottom:8px"><div class="empty">Loading…</div></div>
+      <div id="feed-preview" style="margin-bottom:8px">
+        <div class="skel-card" style="margin-bottom:0">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:45%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
+        </div>
+      </div>
   </div>
 
     <!-- ───── FEED TAB ───── -->
@@ -1940,7 +2003,13 @@ footer a:hover{color:var(--text-1)}
           <button type="button" class="btn btn-g" style="margin-top:0;width:auto;padding:9px 20px" id="fc-post" onclick="postMemberFeed()"><i class="ti ti-send"></i>Post</button>
         </div>
       </div>
-      <div id="feed-list" style="margin-bottom:8px"><div class="empty">Loading…</div></div>
+      <div id="feed-list" style="margin-bottom:8px">
+        <div class="skel-card" style="margin-bottom:0">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:80%"></div><div class="skel skel-line" style="width:50%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:35%"></div></div></div>
+        </div>
+      </div>
   </div>
 
     <!-- ───── PLAYERS TAB ───── -->
@@ -1968,7 +2037,14 @@ footer a:hover{color:var(--text-1)}
       <input class="dir-search" id="dir-search" placeholder="Search by name…" oninput="renderDirectory()" style="margin-bottom:12px">
 
       <!-- Board -->
-      <div id="dir-list"><div class="empty">Loading…</div></div>
+      <div id="dir-list">
+        <div class="skel-card">
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:55%"></div><div class="skel skel-line" style="width:30%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:35%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:50%"></div><div class="skel skel-line" style="width:30%"></div></div></div>
+          <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line" style="width:35%"></div></div></div>
+        </div>
+      </div>
     </div>
 
     <!-- ───── MY PROFILE TAB ───── -->
@@ -2007,7 +2083,9 @@ footer a:hover{color:var(--text-1)}
         <button type="button" onclick="openTournProposalForm()" style="background:none;border:1px solid var(--b);border-radius:8px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--tx2);cursor:pointer;display:flex;align-items:center;gap:5px"><i class="ti ti-plus"></i>Propose</button>
       </div>
       <div id="my-proposals-banner"></div>
-      <div id="tourn-list"><div class="empty" style="padding:24px;text-align:center">No tournaments yet.</div></div>
+      <div id="tourn-list">
+        <div class="skel-card"><div class="skel skel-line" style="width:55%;height:16px"></div><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:40%"></div></div>
+      </div>
       <!-- Tournament detail view (hidden by default) -->
       <div id="tourn-detail" style="display:none"></div>
     </div>
@@ -2116,6 +2194,7 @@ footer a:hover{color:var(--text-1)}
     </div>
     <div class="sc-mode-row">
       <button type="button" class="sc-mtab on" id="sct-o" onclick="scSetMode('overall')">Overall Stats</button>
+      <button type="button" class="sc-mtab" id="sct-m" onclick="scSetMode('match')">Match Result</button>
       <button type="button" class="sc-mtab" id="sct-t" onclick="scSetMode('tournament')">Tournament</button>
     </div>
     <div class="sc-theme-row">
@@ -2133,11 +2212,18 @@ footer a:hover{color:var(--text-1)}
       <button type="button" class="sc-ltab"    id="sll-list"  onclick="scSetLayout('list')">LIST</button>
     </div>
     <div class="sc-sport-row" id="sc-sport-row" style="display:none"></div>
+    <div class="sc-match-row" id="sc-match-row" style="display:none">
+      <span class="sc-pos-lbl">MATCH</span>
+      <select class="sc-match-select" id="sc-match-select" onchange="scSetMatchIndex(this.value)"></select>
+    </div>
     <div class="sc-canvas-area">
       <canvas id="sc-canvas" width="1080" height="1920"></canvas>
     </div>
     <div class="sc-no-tourn" id="sc-no-tourn" style="display:none">
       Not on a tournament team yet — check back once your captain sets the roster.
+    </div>
+    <div class="sc-no-tourn" id="sc-no-match" style="display:none">
+      Play a pickleball match at Game Day to unlock this — your results show up here right after.
     </div>
     <div class="sc-pos-row">
       <span class="sc-pos-lbl">POSITION</span>
@@ -2696,8 +2782,11 @@ async function doLogin() {
   loginSuccess(p);
 }
 
+function hideBootSkel(){ const b=document.getElementById('boot-skel'); if(b) b.remove(); }
+
 function loginSuccess(p) {
   ME=p; LC.set('session',p.id);
+  hideBootSkel();
   document.getElementById('view-landing').style.display='none';
   document.getElementById('view-dash').style.display='block';
   window.scrollTo(0,0);
@@ -3126,7 +3215,7 @@ const SC_THEMES = {
 };
 function scTh() { return SC_THEMES[SC.theme] || SC_THEMES.gold; }
 
-const SC = { mode:'overall', photo:null, av:null, logo:null, stats:null, tourn:null, sport:'basketball', contentY:56, theme:'gold', layout:'row' };
+const SC = { mode:'overall', photo:null, av:null, logo:null, stats:null, tourn:null, sport:'basketball', contentY:56, theme:'gold', layout:'row', matches:[], match:null };
 
 async function openStatCard() {
   if (!ME) return;
@@ -3135,8 +3224,12 @@ async function openStatCard() {
   document.body.style.overflow = 'hidden';
   SC.mode = 'overall';
   document.getElementById('sct-o').classList.add('on');
+  document.getElementById('sct-m').classList.remove('on');
   document.getElementById('sct-t').classList.remove('on');
   document.getElementById('sc-no-tourn').style.display = 'none';
+  document.getElementById('sc-no-match').style.display = 'none';
+  document.getElementById('sc-match-row').style.display = 'none';
+  SC.match = null; SC.matches = [];
 
   // Sport + position reset
   SC.sport = (ME.sports || 'basketball').split(',')[0].trim();
@@ -3181,26 +3274,32 @@ async function openStatCard() {
     scDraw();
   } catch(e) { /* rank stays null */ }
 
-  // Tournament data from cache + draft pick
+  // Tournament data from cache — team + real record/rank from played matches
   SC.tourn = null;
   const tourns = LC.arr('tournaments');
   outer: for (const t of tourns) {
     for (const team of (t.teams || [])) {
       if ((team.players || []).includes(ME.id)) {
-        let pick = null;
-        try {
-          const drafts = await dbGet('drafts', `tournament_id=eq.${t.id}&select=picks&limit=1`);
-          if (drafts && drafts[0]) {
-            const pk = (drafts[0].picks || []).find(p => p.player_id === ME.id);
-            if (pk) pick = pk.pick;
-          }
-        } catch(e) {}
+        const teams   = Array.isArray(t.teams)   ? t.teams   : [];
+        const matches = Array.isArray(t.matches) ? t.matches : [];
+        const standings = teams.map(tm => {
+          let w = 0, l = 0;
+          matches.forEach(m => {
+            if (!m.winner) return;
+            const isA = m.teamA === tm.id, isB = m.teamB === tm.id;
+            if (!isA && !isB) return;
+            if ((isA && m.winner === 'A') || (isB && m.winner === 'B')) w++; else l++;
+          });
+          return { id: tm.id, w, l };
+        }).sort((a, b) => b.w - a.w || a.l - b.l);
+        const myRow = standings.find(x => x.id === team.id);
+        const rank  = myRow ? standings.findIndex(x => x.id === team.id) + 1 : null;
         SC.tourn = {
-          name : t.name   || 'CCF Tournament',
-          team : team.name || 'My Team',
-          sport: t.sport  || 'Basketball',
-          pick,
-          size : (team.players || []).length,
+          name  : t.name  || 'CCF Tournament',
+          team  : team.name || 'My Team',
+          sport : t.sport || 'Basketball',
+          record: myRow ? { w: myRow.w, l: myRow.l } : null,
+          rank,
         };
         break outer;
       }
@@ -3229,9 +3328,49 @@ function scBgClose(e) { if (e.target.id === 'sc-ovl') closeStatCard(); }
 function scSetMode(m) {
   SC.mode = m;
   document.getElementById('sct-o').classList.toggle('on', m === 'overall');
+  document.getElementById('sct-m').classList.toggle('on', m === 'match');
   document.getElementById('sct-t').classList.toggle('on', m === 'tournament');
   document.getElementById('sc-no-tourn').style.display =
     (m === 'tournament' && !SC.tourn) ? 'block' : 'none';
+  if (m === 'match') scBuildMatchPicker();
+  else { document.getElementById('sc-match-row').style.display = 'none'; document.getElementById('sc-no-match').style.display = 'none'; }
+  scDraw();
+}
+
+// Populate the match picker with this player's own pickleball matches
+// (newest first) and select the most recent one by default.
+function scBuildMatchPicker() {
+  const row = document.getElementById('sc-match-row');
+  const none = document.getElementById('sc-no-match');
+  if (SC.sport !== 'pickleball') {
+    row.style.display = 'none';
+    none.style.display = 'block';
+    none.textContent = 'Switch to Pickleball above to share a match result.';
+    SC.match = null;
+    return;
+  }
+  SC.matches = playerMatches(ME.id);
+  if (!SC.matches.length) {
+    row.style.display = 'none';
+    none.style.display = 'block';
+    none.textContent = 'Play a pickleball match at Game Day to unlock this — your results show up here right after.';
+    SC.match = null;
+    return;
+  }
+  none.style.display = 'none';
+  row.style.display = '';
+  const sel = document.getElementById('sc-match-select');
+  sel.innerHTML = SC.matches.map((m, i) => {
+    const oppTxt = (m.opps || []).map(rosterName).join(' & ') || 'opponents';
+    const label = `${m.date || ''} · ${m.won ? 'WON' : 'LOST'} ${m.myScore}–${m.oppScore} vs ${oppTxt}`;
+    return `<option value="${i}">${label}</option>`;
+  }).join('');
+  sel.value = 0;
+  SC.match = SC.matches[0];
+}
+
+function scSetMatchIndex(idx) {
+  SC.match = SC.matches[Number(idx)] || null;
   scDraw();
 }
 
@@ -3343,6 +3482,8 @@ function scDraw() {
     else scDrawOverall(ctx, W, H, s);
   } else if (SC.mode === 'tournament' && SC.tourn) {
     scDrawTournament(ctx, W, H, s);
+  } else if (SC.mode === 'match' && SC.match) {
+    scDrawPickleballMatch(ctx, W, H, s);
   }
 
   // Brand footer — rule + community name + year + url
@@ -3419,23 +3560,83 @@ function scDrawTournament(ctx, W, H, s) {
   ctx.fillStyle = '#fff';
   ctx.fillText(T.team, 60*s, Y + (fs + 14)*s);
 
-  // Player + pick sub-line
-  const sub = (`${ME.firstName||''} ${ME.lastName||''}`).trim() + (T.pick ? '  ·  Draft pick #' + T.pick : '');
+  // Player sub-line
+  const sub = (`${ME.firstName||''} ${ME.lastName||''}`).trim();
   ctx.font = `500 ${28*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.48)';
   ctx.fillText(scClamp(ctx, sub, W - 120*s), 60*s, Y + (fs + 14)*s + 56*s);
 
   const divY = Y + (fs + 14)*s + 100*s;
   scHRule(ctx, 60*s, divY, W - 60*s, s);
 
+  const played = T.record && (T.record.w + T.record.l) > 0;
+  if (played) {
+    // Real season performance — only shown once games have actually been played
+    const sy = divY + 148*s, cw = (W - 120*s) / 3;
+    const stats = [
+      ['RECORD', `${T.record.w}-${T.record.l}`],
+      ['RANK', T.rank ? '#' + T.rank : '—'],
+      ['GAMES', String(T.record.w + T.record.l)],
+    ];
+    stats.forEach(([lbl, val], i) => {
+      const cx = 60*s + i*cw + cw/2;
+      ctx.textAlign = 'center';
+      ctx.font = `900 ${86*s}px "Bebas Neue"`; ctx.fillStyle = scTh().num; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(scClamp(ctx, val, cw-10*s), cx, sy);
+      ctx.font = `700 ${22*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.38)';
+      ctx.fillText(lbl, cx, sy + 52*s);
+      if (i < 2) scVLine(ctx, 60*s + (i+1)*cw, sy - 90*s, sy + 60*s, s);
+    });
+  } else {
+    // Pre-season — nothing played yet, so no stat row to fake
+    ctx.textAlign = 'left';
+    ctx.font = `700 ${24*s}px Inter`; ctx.fillStyle = scTh().accent;
+    ctx.fillText('ON THE ROSTER · SEASON STARTS SOON', 60*s, divY + 60*s);
+  }
+}
+
+function scDrawPickleballMatch(ctx, W, H, s) {
+  const m = SC.match;
+  if (!m) return;
+  const Y = H * (SC.contentY / 100);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+
+  // Court + date label
+  const topLabel = [(m.court||'').toUpperCase(), m.date||''].filter(Boolean).join(' · ');
+  ctx.font = `700 ${26*s}px Inter`; ctx.fillStyle = scTh().accent + 'A6';
+  ctx.fillText(topLabel || 'PICKLEBALL MATCH', 60*s, Y);
+
+  // WON / LOST — huge headline
+  const resultTxt = m.won ? 'WON' : 'LOST';
+  const resultColor = m.won ? '#4ADE80' : 'rgba(255,255,255,.55)';
+  ctx.font = `900 ${132*s}px "Bebas Neue"`;
+  ctx.fillStyle = resultColor;
+  ctx.fillText(resultTxt, 60*s, Y + 128*s);
+
+  // Score — big
+  ctx.font = `900 ${76*s}px "Bebas Neue"`; ctx.fillStyle = '#fff';
+  ctx.fillText(`${m.myScore}–${m.oppScore}`, 60*s, Y + 200*s);
+
+  // vs opponents / partner sub-line
+  const oppTxt = 'vs ' + ((m.opps||[]).map(rosterName).join(' & ') || 'opponents');
+  const partnerTxt = m.partner ? ('  ·  w/ ' + rosterName(m.partner)) : '';
+  ctx.font = `500 ${28*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.48)';
+  ctx.fillText(scClamp(ctx, oppTxt + partnerTxt, W - 120*s), 60*s, Y + 248*s);
+
+  const divY = Y + 292*s;
+  scHRule(ctx, 60*s, divY, W - 60*s, s);
+
+  // Secondary stat row — the match result "along with" the player's current
+  // skill rating, so the card reads as both a result and a stat snapshot.
   const sy = divY + 148*s, cw = (W - 120*s) / 3;
-  [['PLAYERS', String(T.size || '—')], ['SPORT', (T.sport||'').toUpperCase()], ['PICK', T.pick ? '#' + T.pick : '—']].forEach(([lbl, val], i) => {
+  const rating = ME.ratingPickleball!=null ? Number(ME.ratingPickleball).toFixed(2) : '—';
+  [['RATING', rating], ['MATCHES', String(ME.pickleballMatches||0)], ['SKILL', (ME.pickleballSkill||'—').toUpperCase()]].forEach(([lbl, val], i) => {
     const cx = 60*s + i*cw + cw/2;
     ctx.textAlign = 'center';
-    ctx.font = `900 ${100*s}px "Bebas Neue"`; ctx.fillStyle = scTh().num; ctx.textBaseline = 'alphabetic';
-    ctx.fillText(val, cx, sy);
+    ctx.font = `900 ${76*s}px "Bebas Neue"`; ctx.fillStyle = scTh().num; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(scClamp(ctx, val, cw-10*s), cx, sy);
     ctx.font = `700 ${22*s}px Inter`; ctx.fillStyle = 'rgba(255,255,255,.38)';
     ctx.fillText(lbl, cx, sy + 52*s);
-    if (i < 2) scVLine(ctx, 60*s + (i+1)*cw, sy - 90*s, sy + 60*s, s);
+    if (i < 2) scVLine(ctx, 60*s + (i+1)*cw, sy - 66*s, sy + 60*s, s);
   });
 }
 
@@ -3460,7 +3661,12 @@ function scBuildSportTabs() {
   ).join('');
 }
 
-function scSetSport(sp) { SC.sport = sp; scBuildSportTabs(); scDraw(); }
+function scSetSport(sp) {
+  SC.sport = sp;
+  scBuildSportTabs();
+  if (SC.mode === 'match') scBuildMatchPicker();
+  scDraw();
+}
 
 function scSetContentY(val) { SC.contentY = Number(val); scDraw(); }
 
@@ -4555,7 +4761,11 @@ async function renderFeed(){
   const el=document.getElementById('feed-list'); if(!el) return;
   const composer=document.getElementById('feed-composer');
   if(composer) composer.style.display = AUTH.isAuthed() ? '' : 'none';
-  el.innerHTML='<div class="empty">Loading…</div>';
+  el.innerHTML='<div class="skel-card" style="margin-bottom:0">'
+    +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:80%"></div><div class="skel skel-line" style="width:50%"></div></div></div>'
+    +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:40%"></div></div></div>'
+    +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:35%"></div></div></div>'
+    +'</div>';
   let posts=[];
   feedReax={}; feedComments={};
   if (AUTH.isAuthed()){
@@ -5305,6 +5515,63 @@ function toggleMatchHistory(pid){
   }
 }
 
+// Basketball match history, mirroring playerMatches()/matchHistoryHtml() above.
+// Only game_history entries archived after the teamA/teamB-as-player-ids fix
+// carry per-player match detail — older sessions saved teamA/teamB as
+// already-joined display-name strings and have no ids left to match against,
+// so they're silently skipped here rather than guessed at.
+function basketballMatches(pid){
+  const sessions=LC.arr('history').filter(h=>(h.sport||'basketball')==='basketball');
+  const out=[];
+  sessions.forEach(h=>{
+    (h.matches||[]).forEach(m=>{
+      if(!Array.isArray(m.teamA)||!Array.isArray(m.teamB)) return;
+      const onA=m.teamA.includes(pid), onB=m.teamB.includes(pid);
+      if(!onA&&!onB) return;
+      const won=(m.winner==='A'&&onA)||(m.winner==='B'&&onB);
+      const teammates=(onA?m.teamA:m.teamB).filter(x=>x!==pid);
+      const opps=onA?m.teamB:m.teamA;
+      out.push({won, teammates, opps, date:h.date});
+    });
+  });
+  return out;
+}
+function basketballMatchRecord(pid){
+  const ms=basketballMatches(pid);
+  const w=ms.filter(m=>m.won).length;
+  return {wins:w, losses:ms.length-w, total:ms.length};
+}
+function basketballMatchHistoryHtml(pid){
+  const ms=basketballMatches(pid);
+  if(!ms.length) return '<div class="empty" style="padding:14px">No match results yet.</div>';
+  return ms.map(m=>{
+    const teammateTxt=(m.teammates&&m.teammates.length)?('w/ '+m.teammates.map(rosterName).join(', ')):'';
+    const oppTxt=(m.opps||[]).map(rosterName).join(', ')||'—';
+    const resultColor=m.won?'#22C55E':'var(--tx3)';
+    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'}</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#f48c06;background:rgba(244,140,6,.14);padding:2px 8px;border-radius:20px"><span class="spi spi-b"></span> BASKETBALL</span>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt}${teammateTxt?' · '+teammateTxt:''}</div>
+      ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function toggleBasketballMatchHistory(pid){
+  const box=document.getElementById('pv-bb-match-history');
+  const btn=document.getElementById('pv-bb-match-btn');
+  if(!box) return;
+  if(box.style.display==='none'){
+    box.innerHTML=basketballMatchHistoryHtml(pid);
+    box.style.display='';
+    if(btn) btn.innerHTML='<i class="ti ti-chevron-up"></i>Hide Match Results';
+  } else {
+    box.style.display='none';
+    if(btn) btn.innerHTML='<i class="ti ti-list-details"></i>View Match Results';
+  }
+}
+
 // Full session results log (collapsible, member-facing). Newest session first.
 function sessionLogHtml(){
   const hist=LC.arr('history').filter(h=>(h.sport||'basketball')==='pickleball');
@@ -5368,6 +5635,15 @@ function viewPlayer(id){
       <div class="pv-stat"><div class="pv-stat-n">${pickleballGames(p.id)}</div><div class="pv-stat-l"><span class="spi spi-p"></span>Games</div></div>
   </div>
     ${p.bio?`<div class="pv-bio">${p.bio}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
+    ${(()=>{ const rec=basketballMatchRecord(id); return (p.sports&&p.sports.includes('basketball'))||rec.total>0 ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-b"></span> Basketball Record</div>
+          <div style="font-size:12px;color:var(--tx2)"><span style="color:#22C55E;font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
+        </div>
+        <button type="button" id="pv-bb-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleBasketballMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
+        <div id="pv-bb-match-history" style="display:none;margin-top:10px"></div>
+      </div>` : ''; })()}
     ${(()=>{ const rec=playerMatchRecord(id); return (p.sports&&p.sports.includes('pickleball'))||rec.total>0 ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -6822,6 +7098,7 @@ function startLiveQueuePoll(){
 }
 
 (async function init() {
+  try {
   console.log('[CCF] Connecting to Supabase…');
   await syncAll();
   console.log('[CCF] Sync done. Games:',LC.arr('games').length,'Registrations:',LC.arr('regs').length);
@@ -6861,8 +7138,16 @@ function startLiveQueuePoll(){
     if (p) { loginSuccess(p); return; }
     localStorage.removeItem('session');
   }
+  hideBootSkel();
   document.getElementById('view-landing').style.display='flex';
   renderHeroStatus(); renderAnn();
+  } catch (e) {
+    // Never leave the user staring at the boot skeleton forever — fall back
+    // to the landing page if sync/init throws for any reason.
+    console.error('[CCF] init failed:', e);
+    hideBootSkel();
+    document.getElementById('view-landing').style.display='flex';
+  }
 })();
 
 // ══════════════════════════════════════════════════════════════
