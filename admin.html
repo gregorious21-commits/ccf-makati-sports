@@ -1314,16 +1314,13 @@ select.fi{
             <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px">Game Day Manager</div>
             <div id="gd-subtitle" style="font-size:12px;color:var(--tx2)">Randomize teams · Record wins · Archive results</div>
         </div>
-          <div style="min-width:180px">
-            <label class="fl" style="margin-top:0">Sport</label>
-            <select class="fi" id="gd-sport" onchange="switchGdSport(this.value)">
-              <option value="basketball">Basketball</option>
-              <option value="pickleball">Pickleball</option>
-              <option value="badminton">Badminton</option>
-              <option value="dragonboat">Dragonboat</option>
-              <option value="running">Running</option>
-          </select>
-        </div>
+      </div>
+      <!-- Large, unmistakable sport picker — this drives which live session
+           a manager is actually running, so it needs to be impossible to
+           mistake for a minor form field. -->
+      <div style="margin-top:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Now Managing</div>
+        <div id="gd-sport-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
     </div>
       <div id="session-banner" style="display:none;align-items:center;gap:10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:12px;padding:11px 15px;margin-bottom:14px;font-size:12.5px;font-weight:600;color:var(--gold)"><i class="ti ti-broadcast" style="font-size:16px"></i><span id="session-banner-text"></span></div>
@@ -3531,8 +3528,7 @@ function renderGameDay(){
   if (!gdSport || (typeof window._gdSportInit==='undefined')){
     const nextAny = games.find(g=>g.status==='confirmed'||g.status==='tbd');
     gdSport = nextAny ? (nextAny.sport||'basketball') : 'basketball';
-    const sel = document.getElementById('gd-sport');
-    if (sel) sel.value = gdSport;
+    renderGdSportPills();
     const runInit = gdSport==='running'||gdSport==='dragonboat';
     document.getElementById('attendance-card').style.display = runInit ? 'none' : '';
     document.getElementById('bball-flow').style.display = gdSport==='basketball' ? '' : 'none';
@@ -3627,10 +3623,36 @@ async function toggleFirstTimerGd(regId, makeFirst){
   toast(makeFirst?'Marked as first-timer':'First-timer tag removed','in');
 }
 let gdSport = 'basketball';
+const GD_SPORT_META = {
+  basketball: { label:'Basketball', icon:'spi-b',  color:'#f48c06' },
+  pickleball: { label:'Pickleball', icon:'spi-p',  color:'#27ae60' },
+  badminton:  { label:'Badminton',  icon:'spi-bd', color:'#4d94ff' },
+  dragonboat: { label:'Dragonboat', icon:'spi-db', color:'#29b6f6' },
+  running:    { label:'Running',    icon:'spi-r',  color:'#ce93d8' },
+};
+// Large, color-coded pill row for picking which sport's Game Day a manager
+// is running — a plain <select> here was easy to miss and a wrong pick
+// means managing (and saving results for) the wrong session entirely.
+function renderGdSportPills(){
+  const el = document.getElementById('gd-sport-pills');
+  if (!el) return;
+  el.innerHTML = Object.keys(GD_SPORT_META).map(sp => {
+    const m = GD_SPORT_META[sp];
+    const on = sp === gdSport;
+    return `<button type="button" onclick="switchGdSport('${sp}')" style="
+      display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;cursor:pointer;
+      font-size:15px;font-weight:700;transition:background .15s,border-color .15s;
+      border:2px solid ${on ? m.color : 'var(--b)'};
+      background:${on ? m.color+'26' : 'var(--bg2)'};
+      color:${on ? m.color : 'var(--tx2)'};
+    "><span class="spi ${m.icon}"></span>${m.label}</button>`;
+  }).join('');
+}
 function switchGdSport(s){
   gdSport = s;
   const run = s==='running'||s==='dragonboat';
   const pballStyle = s==='pickleball'||s==='badminton';
+  renderGdSportPills();
   document.getElementById('attendance-card').style.display = run ? 'none' : '';
   document.getElementById('bball-flow').style.display = s==='basketball' ? '' : 'none';
   document.getElementById('pball-flow').style.display = pballStyle ? '' : 'none';
@@ -3708,7 +3730,7 @@ async function endSharedSession(){
 }
 
 function syncGdSportUI(sp){
-  const sel=document.getElementById('gd-sport'); if(sel) sel.value=sp;
+  renderGdSportPills();
   const bb=document.getElementById('bball-flow'); if(bb) bb.style.display=sp==='basketball'?'':'none';
   const pb=document.getElementById('pball-flow'); if(pb) pb.style.display=sp==='pickleball'?'':'none';
   const sub=document.getElementById('gd-subtitle'); if(sub) sub.textContent=sp==='pickleball'?'Open play · Multi-court session manager':'Randomize teams · Record wins · Archive results';
