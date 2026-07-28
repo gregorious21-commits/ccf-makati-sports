@@ -1477,6 +1477,13 @@ select.fi{
 
         <div id="pball-active" style="display:none">
           <div id="pball-courts-grid"></div>
+          <div style="margin-bottom:10px">
+            <label class="fl">Matchmaking Style</label>
+            <select class="fi" id="pb-style-live" onchange="pbSetStyleLive(this.value)">
+              <option value="balanced">Balanced · everyone rotates</option>
+              <option value="ladder">Winners vs Winners · ladder</option>
+            </select>
+          </div>
           <div style="display:flex;gap:8px;margin-bottom:14px">
             <button type="button" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="pbAddCourt()"><i class="ti ti-plus"></i>Add a Court</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-partners" style="flex:1;justify-content:center;display:none" onclick="pbOpenPairPickerMidSession()"><i class="ti ti-arrows-exchange"></i>Edit Partners</button>
@@ -4103,11 +4110,24 @@ function startPickleballSession(){
   toast(msg);
 }
 
+// Switch matchmaking style mid-session — no restart needed. Only affects
+// future court refills (pullNextFour reads pbSession.style fresh each
+// time); anyone already on court finishes their current match under the
+// old style.
+function pbSetStyleLive(newStyle){
+  if (!pbSession) return;
+  pbSession.style = newStyle;
+  touchSharedSession();
+  toast('Matchmaking style set to ' + (newStyle==='ladder' ? 'Winners vs Winners' : 'Balanced'));
+}
+
 function renderPballSession(){
   if (!pbSession) return;
   // Show/hide Edit Partners button based on mode
   const epBtn = document.getElementById('btn-edit-partners');
   if (epBtn) epBtn.style.display = pbSession.partnerMode==='fixed' ? '' : 'none';
+  const styleSel = document.getElementById('pb-style-live');
+  if (styleSel && styleSel.value !== pbSession.style) styleSel.value = pbSession.style || 'balanced';
   const grid = document.getElementById('pball-courts-grid');
   const fmtLabel = pbSession.format==='points'
     ? 'First to '+pbSession.formatValue+' pts'
