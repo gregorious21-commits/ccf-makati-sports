@@ -4573,6 +4573,14 @@ function pbSeedPlayed(pid){
   const vals = Object.values(pbSession.played);
   pbSession.played[pid] = vals.length ? Math.min(...vals) : 0;
 }
+// Ladder mode (winner-vs-winner) has no natural brake on its own — with a
+// small player pool and courts finishing at different times, a streaking
+// pair can keep getting re-tagged "won" and pulled back ahead of players
+// who are waiting longer or have played fewer games. This cap forces a
+// fair (least-played) pull instead of the ladder preference once the gap
+// gets this big, so nobody can fall more than this many games behind.
+const LADDER_FAIRNESS_CAP = 2;
+
 function pullNextFour(style, queue){
   if (queue.length < 4) return [];
   const fp = pbSession && pbSession.fixedPairs;
@@ -4598,14 +4606,25 @@ function pullNextFour(style, queue){
     if (availablePairs.length >= 2){
       let pairA, pairB;
       if (style === 'ladder'){
-        // Prefer pairs where both members just won; fall back to both lost; then any
+        // Prefer pairs where both members just won; fall back to both lost; then any.
+        // Tie-broken by fewest games played so a streaking pair isn't repicked
+        // ahead of others at the same ladder tier.
+        const played = pbSession.played || {};
+        const pairAvg = (pair) => pair.reduce((s,pid) => s + (played[pid]||0), 0) / pair.length;
         const score = (pair) => {
           const qa = queue.find(q=>q.pid===pair[0]); const qb = queue.find(q=>q.pid===pair[1]);
           if (qa && qb && qa.lastResult==='won'  && qb.lastResult==='won')  return 2;
           if (qa && qb && qa.lastResult==='lost' && qb.lastResult==='lost') return 1;
           return 0;
         };
-        const ranked = [...availablePairs].sort((a,b) => score(b) - score(a));
+        // Fairness guardrail: a pair already CAP+ games ahead of the least-
+        // played pair sits out of ladder selection entirely until the pack
+        // catches up — a preference-only check isn't enough, since a streaking
+        // pair can still get swept back in through the "any" fallback tier.
+        const globalMinPair = Math.min(...availablePairs.map(pairAvg));
+        const eligiblePairs = availablePairs.filter(p => pairAvg(p) <= globalMinPair + LADDER_FAIRNESS_CAP);
+        const pool = eligiblePairs.length >= 2 ? eligiblePairs : availablePairs;
+        const ranked = [...pool].sort((a,b) => score(b) - score(a) || pairAvg(a) - pairAvg(b));
         pairA = ranked[0]; pairB = ranked[1];
       } else {
         // Balanced: pick the two pairs whose members have played least
@@ -4630,20 +4649,27 @@ function pullNextFour(style, queue){
 
   // ── STANDARD (RANDOM PARTNER) MODE ───────────────────────────────────────
   if (style === 'ladder'){
-    // Winners vs winners: prefer 4 winners; if not enough, fall back to 4 losers; else FIFO
-    const wonIdx = [];
-    const lostIdx = [];
-    queue.forEach((item, i) => {
-      if (item.lastResult === 'won') wonIdx.push(i);
-      else if (item.lastResult === 'lost') lostIdx.push(i);
-    });
-    let picked = [];
-    if (wonIdx.length >= 4){
-      picked = wonIdx.slice(0,4);
-    } else if (lostIdx.length >= 4){
-      picked = lostIdx.slice(0,4);
-    } else {
-      picked = [0,1,2,3];
+    // Winners vs winners: prefer 4 winners; if not enough, fall back to 4 losers; else fairest 4.
+    const played = (pbSession && pbSession.played) || {};
+    const globalMin = Math.min(...queue.map(q => played[q.pid]||0));
+    // Fairness guardrail: anyone already CAP+ games ahead of the least-played
+    // person waiting sits out of ladder selection entirely until the pack
+    // catches up — this is what stops a streaking pair from being repicked
+    // match after match on a small player count / uneven court finishes.
+    const eligible = queue.map((q,i)=>i).filter(i => (played[queue[i].pid]||0) <= globalMin + LADDER_FAIRNESS_CAP);
+    const wonIdx = eligible.filter(i => queue[i].lastResult === 'won');
+    const lostIdx = eligible.filter(i => queue[i].lastResult === 'lost');
+    const byPlayed = (idxs) => idxs.slice().sort((a,b) => (played[queue[a].pid]||0) - (played[queue[b].pid]||0));
+    const wonSorted = byPlayed(wonIdx), lostSorted = byPlayed(lostIdx);
+    let picked;
+    if (wonSorted.length >= 4) picked = wonSorted.slice(0,4);
+    else if (lostSorted.length >= 4) picked = lostSorted.slice(0,4);
+    else {
+      // Not enough of one tag within the eligible pool — fill fairly from
+      // it; if the eligible pool itself is too small (almost everyone's
+      // capped out), relax and pull the fairest 4 from the whole queue.
+      const pool = eligible.length >= 4 ? eligible : queue.map((q,i)=>i);
+      picked = pool.map(i=>({i, n:played[queue[i].pid]||0})).sort((a,b)=>a.n-b.n).slice(0,4).map(x=>x.i);
     }
     const out = picked.map(i=>queue[i].pid);
     picked.slice().sort((a,b)=>b-a).forEach(i=>queue.splice(i,1));
