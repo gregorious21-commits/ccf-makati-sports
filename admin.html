@@ -1287,8 +1287,10 @@ select.fi{
             <button type="button" class="btn btn-rd btn-sm" onclick="setPublished('dev',false)"><i class="ti ti-eye-off"></i>Unpublish</button>
         </div>
       </div>
+        <label class="fl">Monthly Theme <span style="color:var(--tx3);font-weight:400">(optional — shown to readers above the weekly title)</span></label>
+        <input class="fi" id="dev-theme" placeholder="e.g. Walking in Faith">
         <label class="fl">Devotion Title</label>
-        <input class="fi" id="dev-title" placeholder="e.g. Walking in Faith">
+        <input class="fi" id="dev-title" placeholder="e.g. Trusting in Hard Seasons">
         <label class="fl">Featured Verse Reference</label>
         <input class="fi" id="dev-vref" placeholder="e.g. Romans 8:28 (NIV)">
         <label class="fl">Verse Text</label>
@@ -1304,6 +1306,14 @@ select.fi{
           <button type="button" class="btn btn-ghost" onclick="clearDevotion()" style="width:auto"><i class="ti ti-trash"></i>Clear</button>
       </div>
     </div>
+      <!-- ARCHIVE — a snapshot is saved here automatically each time a
+           devotion is published, so past weeks aren't lost when the next
+           one overwrites the live content above. -->
+      <div class="card">
+        <div class="card-h"><div class="card-t"><i class="ti ti-history"></i>Devotion Archive</div></div>
+        <div class="note">A copy of each devotion is saved here the moment you hit Publish, so you can look back at past weeks.</div>
+        <div id="dev-archive-list"><div class="empty">Loading…</div></div>
+      </div>
   </div>
 
     <!-- GAME DAY -->
@@ -2213,7 +2223,7 @@ const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM'
 const mapReg=r=>({id:r.id,playerId:r.player_id,playerName:r.player_name,phone:r.phone||'',email:r.email||'',gameId:r.game_id,gameLabel:r.game_label||'',gameTime:r.game_time||'',fee:r.fee!=null?r.fee:200,payType:r.pay_type||'cash',refNum:r.ref_num||'',hasProof:r.has_proof||false,proofUrl:r.proof_url||'',status:r.status||'pending',registered:r.registered||'',isFirstTimer:r.is_first_timer||false,sport:r.sport||'basketball',paid:r.paid===true,attended:r.attended===true,attendedAt:r.attended_at||''});
 const spiTag=s=>s==='pickleball'?'<span class="spi spi-p"></span>':s==='running'?'<span class="spi spi-r"></span>':s==='badminton'?'<span class="spi spi-bd"></span>':s==='dragonboat'?'<span class="spi spi-db"></span>':'<span class="spi spi-b"></span>';
 const payLabel=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'First Timer (Free)':'Cash request';
-const mapDev=d=>d?{votdRef:d.votd_ref||'',votdText:d.votd_text||'',votdPublished:d.votd_published||false,devotionTitle:d.devotion_title||'',verseRef:d.verse_ref||'',verseText:d.verse_text||'',q1:d.q1||'',q2:d.q2||'',devotionText:d.devotion_text||'',devPublished:d.dev_published||false}:null;
+const mapDev=d=>d?{votdRef:d.votd_ref||'',votdText:d.votd_text||'',votdPublished:d.votd_published||false,devotionTitle:d.devotion_title||'',verseRef:d.verse_ref||'',verseText:d.verse_text||'',q1:d.q1||'',q2:d.q2||'',devotionText:d.devotion_text||'',devPublished:d.dev_published||false,monthlyTheme:d.monthly_theme||''}:null;
 
 const COLORS=['#1B5E8C','#C0392B','#1A7A45','#7D3C98','#B7770D','#0E7490','#C05621','#1A3A5C'];
 const TEAMS=['Blazers','Raptors','Warriors','Celtics','Nets','Wolves','Bulls','Heat'];
@@ -2295,9 +2305,14 @@ async function doFullSync() {
   updatePendingBadge();
   if (Array.isArray(games) && Array.isArray(regs)) await promoteWaitlistedPlayers().catch(()=>{});
   setSyncing(false);
-  // Re-render active panel
+  // Re-render active panel — except Devotion, which holds free-text fields
+  // an admin may be actively typing into. Blindly re-rendering it here would
+  // stomp unsaved edits with whatever's still on the server every ~30s.
   const active=document.querySelector('.panel.on');
-  if(active) renderPanel(active.id.replace('panel-',''));
+  if(active){
+    const pid=active.id.replace('panel-','');
+    if(pid!=='devotion') renderPanel(pid);
+  }
 }
 
 // Waitlist auto-promotion. Runs every sync cycle (~30s while an admin has
@@ -3397,6 +3412,7 @@ async function loadDevotion(){
   if(d) LC.set('devotion',d);
   document.getElementById('votd-ref').value   =d.votdRef       ||'';
   document.getElementById('votd-txt').value   =d.votdText      ||'';
+  document.getElementById('dev-theme').value  =d.monthlyTheme  ||'';
   document.getElementById('dev-title').value  =d.devotionTitle ||'';
   document.getElementById('dev-vref').value   =d.verseRef      ||'';
   document.getElementById('dev-vtxt').value   =d.verseText     ||'';
@@ -3405,17 +3421,55 @@ async function loadDevotion(){
   document.getElementById('dev-body').value   =d.devotionText  ||'';
   updateDevBadge('votd',d.votdPublished||false);
   updateDevBadge('dev', d.devPublished ||false);
+  renderDevotionArchive();
+}
+let _devArchiveOpen = new Set();
+function toggleDevArchiveEntry(id){
+  if(_devArchiveOpen.has(id)) _devArchiveOpen.delete(id); else _devArchiveOpen.add(id);
+  renderDevotionArchive();
+}
+async function renderDevotionArchive(){
+  const el=document.getElementById('dev-archive-list'); if(!el) return;
+  const rows=await dbGet('devotion_history','select=*&order=published_at.desc&limit=50');
+  if(!Array.isArray(rows)||!rows.length){ el.innerHTML='<div class="empty">No past devotions archived yet — they\'ll show up here after you publish one.</div>'; return; }
+  el.innerHTML=rows.map(r=>{
+    const open=_devArchiveOpen.has(r.id);
+    const dateStr=r.published_at?new Date(r.published_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}):'';
+    return `<div style="padding:12px;border-bottom:1px solid var(--b)">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="toggleDevArchiveEntry('${r.id}')">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3);flex-shrink:0;transition:transform .15s;transform:${open?'rotate(90deg)':''}"></i>
+          <div style="min-width:0">${r.monthly_theme?`<div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${r.monthly_theme}</div>`:''}<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.devotion_title||'Untitled'}</div><div style="font-size:11px;color:var(--tx3)">${dateStr}</div></div>
+        </div>
+        <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delDevotionArchiveEntry('${r.id}')" title="Delete this archived copy"><i class="ti ti-trash"></i></button>
+      </div>
+      ${open?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b);font-size:13px;line-height:1.6">
+        ${r.verse_ref?`<div style="color:var(--gold);font-weight:700;margin-bottom:4px">${r.verse_ref}</div>`:''}
+        ${r.verse_text?`<div style="font-style:italic;color:var(--tx2);margin-bottom:10px">${r.verse_text}</div>`:''}
+        ${r.devotion_text?`<div style="white-space:pre-wrap;margin-bottom:10px">${r.devotion_text}</div>`:''}
+        ${r.q1?`<div style="margin-bottom:4px"><strong>Q1:</strong> ${r.q1}</div>`:''}
+        ${r.q2?`<div><strong>Q2:</strong> ${r.q2}</div>`:''}
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+async function delDevotionArchiveEntry(id){
+  if(!confirm('Delete this archived devotion? This cannot be undone.')) return;
+  const ok=await rpc('admin_delete_devotion_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:id});
+  if(ok){ toast('Archived entry deleted','in'); renderDevotionArchive(); }
+  else toast('Delete failed','er');
 }
 async function saveVOTD(){
   const d=LC.get('devotion')||{};
   d.votdRef =(document.getElementById('votd-ref').value||'').trim();
   d.votdText=(document.getElementById('votd-txt').value||'').trim();
   LC.set('devotion',d);
-  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:d.votdRef||'',p_votd_text:d.votdText||'',p_votd_published:d.votdPublished||false,p_devotion_title:'',p_verse_ref:'',p_verse_text:'',p_q1:'',p_q2:'',p_devotion_text:'',p_dev_published:d.devPublished||false});
+  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:d.votdRef||'',p_votd_text:d.votdText||'',p_votd_published:d.votdPublished||false,p_devotion_title:'',p_verse_ref:'',p_verse_text:'',p_q1:'',p_q2:'',p_devotion_text:'',p_dev_published:d.devPublished||false,p_monthly_theme:''});
   if(ok) toast('Verse of the Day saved'); else toast('Save failed','er');
 }
 async function saveDevotion(){
   const d=LC.get('devotion')||{};
+  d.monthlyTheme =(document.getElementById('dev-theme').value||'').trim();
   d.devotionTitle=(document.getElementById('dev-title').value||'').trim();
   d.verseRef     =(document.getElementById('dev-vref').value ||'').trim();
   d.verseText    =(document.getElementById('dev-vtxt').value||'').trim();
@@ -3423,7 +3477,7 @@ async function saveDevotion(){
   d.q2           =(document.getElementById('dev-q2').value  ||'').trim();
   d.devotionText =(document.getElementById('dev-body').value||'').trim();
   LC.set('devotion',d);
-  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:'',p_votd_text:'',p_votd_published:d.votdPublished||false,p_devotion_title:d.devotionTitle,p_verse_ref:d.verseRef,p_verse_text:d.verseText,p_q1:d.q1,p_q2:d.q2,p_devotion_text:d.devotionText,p_dev_published:d.devPublished||false});
+  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:'',p_votd_text:'',p_votd_published:d.votdPublished||false,p_devotion_title:d.devotionTitle,p_verse_ref:d.verseRef,p_verse_text:d.verseText,p_q1:d.q1,p_q2:d.q2,p_devotion_text:d.devotionText,p_dev_published:d.devPublished||false,p_monthly_theme:d.monthlyTheme});
   if(ok){toast('Devotion saved & synced');if(d.devPublished) await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:' Devotion Published',p_message:(d.devotionTitle||'Devotion')+' is now live',p_type:'info'})}
   else toast('Save failed','er');
 }
@@ -3432,10 +3486,17 @@ async function setPublished(type,val){
   if(type==='votd')d.votdPublished=val;
   if(type==='dev') d.devPublished =val;
   LC.set('devotion',d);
-  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:d.votdRef||'',p_votd_text:d.votdText||'',p_votd_published:d.votdPublished||false,p_devotion_title:d.devotionTitle||'',p_verse_ref:d.verseRef||'',p_verse_text:d.verseText||'',p_q1:d.q1||'',p_q2:d.q2||'',p_devotion_text:d.devotionText||'',p_dev_published:d.devPublished||false});
+  const ok=await rpc('admin_save_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_votd_ref:d.votdRef||'',p_votd_text:d.votdText||'',p_votd_published:d.votdPublished||false,p_devotion_title:d.devotionTitle||'',p_verse_ref:d.verseRef||'',p_verse_text:d.verseText||'',p_q1:d.q1||'',p_q2:d.q2||'',p_devotion_text:d.devotionText||'',p_dev_published:d.devPublished||false,p_monthly_theme:d.monthlyTheme||''});
   updateDevBadge(type,val);
   const lbl={votd:val?'Verse is LIVE!':'Verse unpublished',dev:val?'Devotion is LIVE!':'Devotion unpublished'};
   if(ok) toast(lbl[type]||'Updated',val?'ok':'in'); else toast('Save failed','er');
+  // Snapshot into the archive the moment a devotion goes live — this is the
+  // one point in the whole flow that reliably fires once per published week,
+  // without cluttering the archive with in-progress drafts/edits.
+  if(ok && type==='dev' && val){
+    await rpc('admin_archive_devotion',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_devotion_title:d.devotionTitle||'',p_verse_ref:d.verseRef||'',p_verse_text:d.verseText||'',p_q1:d.q1||'',p_q2:d.q2||'',p_devotion_text:d.devotionText||'',p_monthly_theme:d.monthlyTheme||''});
+    renderDevotionArchive();
+  }
 }
 function updateDevBadge(type,pub){
   const b=document.getElementById(type==='votd'?'votd-badge':'dev-badge');

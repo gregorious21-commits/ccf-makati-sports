@@ -866,6 +866,15 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   margin-bottom:var(--s-4);
   color:var(--text-1);
 }
+.dev-theme{
+  display:inline-block;
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold);
+  background:var(--gold-soft);
+  border:1px solid rgba(253,184,39,.3);
+  border-radius:var(--r-sm);
+  padding:4px var(--s-2);
+}
 .dev-vref{
   font-size:11px;font-weight:700;letter-spacing:.10em;
   text-transform:uppercase;color:var(--text-3);
@@ -1969,7 +1978,10 @@ footer a:hover{color:var(--text-1)}
     </div>
       <div id="dev-wrap" style="display:none">
         <div class="dev-card">
-          <div class="dev-badge">Devotion of the Week</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:var(--s-3)">
+            <div class="dev-badge" style="margin-bottom:0">Devotion of the Week</div>
+            <div class="dev-theme" id="dev-theme" style="display:none"></div>
+          </div>
           <div class="dev-title" id="dev-title"></div>
           <div id="dev-vwrap" style="display:none"><div class="dev-vref" id="dev-vref"></div><div class="dev-verse" id="dev-vtxt"></div></div>
           <div id="dev-qs"></div>
@@ -2552,7 +2564,8 @@ const mapGame = g => ({
 const mapDev = d => d ? {
   votdRef:d.votd_ref||'', votdText:d.votd_text||'', votdPublished:d.votd_published||false,
   devotionTitle:d.devotion_title||'', verseRef:d.verse_ref||'', verseText:d.verse_text||'',
-  q1:d.q1||'', q2:d.q2||'', devotionText:d.devotion_text||'', devPublished:d.dev_published||false
+  q1:d.q1||'', q2:d.q2||'', devotionText:d.devotion_text||'', devPublished:d.dev_published||false,
+  monthlyTheme:d.monthly_theme||''
 } : null;
 const mapReg = r => ({
   id:r.id, playerId:r.player_id, playerName:r.player_name,
@@ -4081,6 +4094,9 @@ function renderDevotion() {
   const wrap=document.getElementById('dev-wrap');
   if (!d||!d.devPublished) { wrap.style.display='none'; return; }
   wrap.style.display='';
+  const themeEl=document.getElementById('dev-theme');
+  if (d.monthlyTheme) { themeEl.style.display=''; themeEl.textContent=d.monthlyTheme; }
+  else themeEl.style.display='none';
   document.getElementById('dev-title').textContent=d.devotionTitle||'';
   const vw=document.getElementById('dev-vwrap');
   if (d.verseRef||d.verseText) { vw.style.display=''; document.getElementById('dev-vref').textContent=d.verseRef||''; document.getElementById('dev-vtxt').textContent=d.verseText||''; }
