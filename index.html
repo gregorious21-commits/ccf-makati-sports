@@ -4354,7 +4354,9 @@ function isBlockedForGame(playerId, game) {
   const priorGames = regs
     .filter(r => r.playerId===playerId && r.sport==='basketball' && r.status==='confirmed')
     .map(r => ({ reg:r, game: games.find(g=>g.id===r.gameId) }))
-    .filter(x => x.game && (x.game.date||'') < (game.date||''))
+    // A cancelled game never actually happened, so nobody "no-showed" it —
+    // skip it entirely rather than let it count as the deciding game.
+    .filter(x => x.game && x.game.status!=='cancelled' && (x.game.date||'') < (game.date||''))
     .sort((a,b) => (b.game.date||'').localeCompare(a.game.date||''));
   if (!priorGames.length) return false;
   const last = priorGames[0];
