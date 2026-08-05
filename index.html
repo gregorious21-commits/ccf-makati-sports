@@ -6041,7 +6041,7 @@ function renderTournDetail(id) {
       const nm=(p.firstName+' '+(p.lastName||'')).trim();
       const style=p.avatarUrl?`background-image:url('${feedEsc(p.avatarUrl)}')`:`background:${lbCol(i)}`;
       const txt=p.avatarUrl?'':ini(p.firstName,p.lastName);
-      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0">
+      return `<div onclick="viewPlayer('${p.id}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0;cursor:pointer">
         <div style="width:38px;height:38px;border-radius:50%;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;${style}" title="${feedEsc(nm)}">${txt}</div>
         <div style="font-size:10.5px;color:var(--tx2);line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${feedEsc(p.firstName)}</div>
       </div>`;
