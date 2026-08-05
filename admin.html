@@ -356,6 +356,41 @@ body{
   margin-top:var(--s-2);
 }
 
+/* ── TOOLTIPS ── */
+/* CSS-only tooltip for any element with data-tip="…" — used mainly on
+   icon-only buttons that have no visible label. Hover-only by nature, so
+   it's a desktop enhancement; touch devices simply won't trigger it. */
+[data-tip]{position:relative}
+[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;
+  bottom:calc(100% + 8px);
+  left:50%;
+  transform:translateX(-50%) translateY(3px);
+  background:var(--bg2);
+  color:var(--tx);
+  font-size:11px;font-weight:600;
+  line-height:1.3;
+  padding:5px 9px;
+  border-radius:6px;
+  border:1px solid var(--b);
+  max-width:220px;
+  white-space:normal;
+  text-align:center;
+  box-shadow:0 6px 16px rgba(0,0,0,.45);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+  z-index:3000;
+}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(-50%) translateY(0);
+  transition-delay:.25s;
+}
+
 /* ── BUTTONS ── */
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
@@ -1088,7 +1123,7 @@ select.fi{
 
 <div class="main">
   <div class="topbar">
-    <div class="tb-title"><button type="button" class="tb-burger" id="tb-burger" onclick="toggleNav()" aria-label="Menu"><i class="ti ti-menu-2"></i></button><span class="sync-dot" id="sdot"></span><span id="panel-title">Dashboard</span></div>
+    <div class="tb-title"><button type="button" class="tb-burger" id="tb-burger" onclick="toggleNav()" aria-label="Menu" data-tip="Menu"><i class="ti ti-menu-2"></i></button><span class="sync-dot" id="sdot"></span><span id="panel-title">Dashboard</span></div>
     <div class="tb-actions">
       <button type="button" class="btn btn-ghost btn-sm" onclick="doFullSync()"><i class="ti ti-refresh"></i>Sync</button>
       <button type="button" class="btn btn-w btn-sm" onclick="openModal('add-game')"><i class="ti ti-calendar-plus"></i>Schedule Game</button>
@@ -1725,7 +1760,7 @@ select.fi{
 
           <label class="fl" style="margin-top:16px">League Banner Image <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(optional — displayed in hero on member app)</span></label>
           <div id="tf-banner-preview" style="display:none;margin-bottom:8px;border-radius:10px;overflow:hidden;height:90px;background-size:cover;background-position:center;border:1px solid var(--b);position:relative">
-            <button type="button" onclick="document.getElementById('tf-banner-url').value='';document.getElementById('tf-banner-preview').style.display='none'" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1"><i class="ti ti-x"></i></button>
+            <button type="button" onclick="document.getElementById('tf-banner-url').value='';document.getElementById('tf-banner-preview').style.display='none'" data-tip="Remove banner" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;border-radius:50%;width:24px;height:24px;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1"><i class="ti ti-x"></i></button>
           </div>
           <input type="hidden" id="tf-banner-url">
           <label for="tf-banner-file" id="tf-banner-dropzone" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1.5px dashed var(--b);border-radius:10px;cursor:pointer;background:var(--b2);color:var(--tx3);font-size:13px;transition:border-color .15s">
@@ -1891,7 +1926,7 @@ select.fi{
 <!-- ADD GAME MODAL -->
 <div class="overlay" id="modal-add-game">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht" id="m-title">Schedule Game</div><button type="button" class="x-btn" onclick="closeModal('add-game')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht" id="m-title">Schedule Game</div><button type="button" class="x-btn" onclick="closeModal('add-game')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
       <label class="fl">Sport *</label>
       <select class="fi" id="m-sport" onchange="onModalSportChange()">
@@ -1936,7 +1971,7 @@ select.fi{
 <!-- VIEW PROOF MODAL -->
 <div class="overlay" id="modal-proof">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht" id="proof-title">Payment Proof</div><button type="button" class="x-btn" onclick="closeModal('proof')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht" id="proof-title">Payment Proof</div><button type="button" class="x-btn" onclick="closeModal('proof')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b" id="proof-body"></div>
     <div class="modal-f" id="proof-foot"></div>
 </div>
@@ -1945,7 +1980,7 @@ select.fi{
 <!-- RESET PLAYER PIN MODAL -->
 <div class="overlay" id="modal-rpin">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht">Reset Player PIN</div><button type="button" class="x-btn" onclick="closeModal('rpin')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht">Reset Player PIN</div><button type="button" class="x-btn" onclick="closeModal('rpin')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b"><div id="rpin-info" style="margin-bottom:12px;font-size:13px;color:var(--tx2)"></div><label class="fl">New PIN</label><input type="text" class="fi" id="new-ppin" maxlength="4" inputmode="numeric" placeholder="4 digits"></div>
     <div class="modal-f">
       <button type="button" class="btn btn-ghost" onclick="closeModal('rpin')">Cancel</button>
@@ -1957,7 +1992,7 @@ select.fi{
 <!-- EDIT PLAYER MODAL -->
 <div class="overlay" id="modal-edit-player">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht">Edit Player Profile</div><button type="button" class="x-btn" onclick="closeModal('edit-player')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht">Edit Player Profile</div><button type="button" class="x-btn" onclick="closeModal('edit-player')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
       <div class="g2">
         <div><label class="fl">First Name</label><input class="fi" id="e-fn"></div>
@@ -2033,7 +2068,7 @@ select.fi{
   <div class="modal">
     <div class="modal-h">
       <div class="modal-ht" id="ec-title">Edit Lineup</div>
-      <button type="button" class="x-btn" onclick="closeModal('edit-court')"><i class="ti ti-x"></i></button>
+      <button type="button" class="x-btn" onclick="closeModal('edit-court')" data-tip="Close"><i class="ti ti-x"></i></button>
   </div>
     <div class="modal-b">
       <div class="note" style="margin-bottom:14px">Pick who plays on this court. Moving a player from another court or the queue happens automatically.</div>
@@ -2075,7 +2110,7 @@ select.fi{
 <!-- ADD WALK-IN MODAL -->
 <div class="overlay" id="modal-late-partner">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht">Choose Partner</div><button type="button" class="x-btn" onclick="closeModal('late-partner')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht">Choose Partner</div><button type="button" class="x-btn" onclick="closeModal('late-partner')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
       <div id="late-partner-body"></div>
     </div>
@@ -2087,7 +2122,7 @@ select.fi{
 </div>
 <div class="overlay" id="modal-walkin">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht">Add Walk-in Player</div><button type="button" class="x-btn" onclick="closeModal('walkin')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht">Add Walk-in Player</div><button type="button" class="x-btn" onclick="closeModal('walkin')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
       <div class="note">Adds someone who showed up but didn't register. They become a tracked player and are auto-selected as present.</div>
       <div id="w-sport-tag" style="font-size:12px;font-weight:700;color:var(--gold2);margin-bottom:10px"></div>
@@ -2120,7 +2155,7 @@ select.fi{
 <!-- ADD PLAYER TO WEEK MODAL -->
 <div class="overlay" id="modal-addweek">
   <div class="modal">
-    <div class="modal-h"><div class="modal-ht">Add Player to Week</div><button type="button" class="x-btn" onclick="closeModal('addweek')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-h"><div class="modal-ht">Add Player to Week</div><button type="button" class="x-btn" onclick="closeModal('addweek')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
       <div class="note" id="aw-week-label">Adding to this week's run.</div>
       <label class="fl">Pick an existing player</label>
@@ -2537,8 +2572,8 @@ function renderDash(){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b)">
       <div><div style="font-weight:700;font-size:13px">${r.playerName||'—'}</div><div style="font-size:11px;color:var(--tx2)">${r.gameLabel||'—'}</div></div>
       <div style="display:flex;gap:5px">
-        ${r.hasProof&&r.proofUrl?`<button type="button" class="btn btn-blue btn-sm" onclick="viewProof('${r.id}')"><i class="ti ti-photo"></i></button>`:''}
-        <button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')"><i class="ti ti-check"></i></button>
+        ${r.hasProof&&r.proofUrl?`<button type="button" class="btn btn-blue btn-sm" onclick="viewProof('${r.id}')" data-tip="View payment proof"><i class="ti ti-photo"></i></button>`:''}
+        <button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Approve"><i class="ti ti-check"></i></button>
     </div>
   </div>`).join(''):'<div class="empty">All caught up!</div>';
   renderUnpaidThisWeek();
@@ -2752,13 +2787,13 @@ function gameCardHtml(g, regs, isCompleted){
       ${g.cancelReason?`<div style="font-size:11px;color:var(--rd);margin-top:4px">Reason: ${g.cancelReason}</div>`:''}
       ${completeHint}
       ${isCompleted
-        ? `<div class="st-btns"><button type="button" class="btn btn-ghost btn-sm" onclick="openEditGame('${g.id}')"><i class="ti ti-edit"></i>Edit</button><button type="button" class="btn btn-ghost btn-sm" onclick="reopenGame('${g.id}')"><i class="ti ti-rotate"></i>Reopen</button><button type="button" class="btn btn-rd btn-sm" onclick="delGame('${g.id}')"><i class="ti ti-trash"></i></button></div>`
+        ? `<div class="st-btns"><button type="button" class="btn btn-ghost btn-sm" onclick="openEditGame('${g.id}')"><i class="ti ti-edit"></i>Edit</button><button type="button" class="btn btn-ghost btn-sm" onclick="reopenGame('${g.id}')"><i class="ti ti-rotate"></i>Reopen</button><button type="button" class="btn btn-rd btn-sm" onclick="delGame('${g.id}')" data-tip="Delete game"><i class="ti ti-trash"></i></button></div>`
         : `<div class="st-btns">
           <button type="button" class="st-btn ${g.status==='confirmed'?'sel-on':''}" onclick="setGameStatus('${g.id}','confirmed')"> Confirmed</button>
           <button type="button" class="st-btn ${g.status==='tbd'?'sel-tbd':''}" onclick="setGameStatus('${g.id}','tbd')">TBD</button>
           <button type="button" class="st-btn ${g.status==='cancelled'?'sel-off':''}" onclick="setGameStatus('${g.id}','cancelled')"> Cancelled</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="openEditGame('${g.id}')"><i class="ti ti-edit"></i>Edit</button>
-          <button type="button" class="btn btn-rd btn-sm" onclick="delGame('${g.id}')"><i class="ti ti-trash"></i></button>
+          <button type="button" class="btn btn-rd btn-sm" onclick="delGame('${g.id}')" data-tip="Delete game"><i class="ti ti-trash"></i></button>
       </div>`}
   </div>`;
 }
@@ -2851,7 +2886,7 @@ function renderRegs(){
     // Mark Paid is only useful once the slot is confirmed and there's a fee.
     const togglePaidBtn = (st==='confirmed' && r.payType!=='free' && r.payType!=='firsttimer')
       ? (r.paid
-          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="togglePaid('${r.id}',false)" title="Mark unpaid"><i class="ti ti-receipt-off"></i></button>`
+          ? `<button type="button" class="btn btn-ghost btn-sm" onclick="togglePaid('${r.id}',false)" data-tip="Mark unpaid"><i class="ti ti-receipt-off"></i></button>`
           : `<button type="button" class="btn btn-gr btn-sm" onclick="togglePaid('${r.id}',true)"><i class="ti ti-cash"></i>Mark Paid</button>`)
       : '';
     return `<tr>
@@ -2863,9 +2898,9 @@ function renderRegs(){
       <td data-label="Paid">${paidBadge}</td>
       <td data-label="Actions"><div style="display:flex;gap:5px;flex-wrap:wrap">
         ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')"><i class="ti ti-check"></i>${r.payType==='advance'?'Verify':'Approve'}</button>`:''}
-        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" title="Promote off the waitlist now instead of waiting for the next auto-check"><i class="ti ti-arrow-up"></i>Promote Now</button>`:''}
+        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Promote off the waitlist now instead of waiting for the next auto-check"><i class="ti ti-arrow-up"></i>Promote Now</button>`:''}
         ${togglePaidBtn}
-        ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="cancelReg('${r.id}')" title="Cancel"><i class="ti ti-x"></i></button>`:''}
+        ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="cancelReg('${r.id}')" data-tip="Cancel"><i class="ti ti-x"></i></button>`:''}
     </div></td>
   </tr>`;
   }).join('');
@@ -2979,8 +3014,8 @@ function renderPlayers(){
     <td><div style="display:flex;gap:5px;flex-wrap:wrap">
       <button type="button" class="btn btn-blue btn-sm" onclick="openEditPlayer('${p.id}')"><i class="ti ti-edit"></i>Edit</button>
       <button type="button" class="btn btn-am btn-sm" onclick="openResetPin('${p.id}')"><i class="ti ti-key"></i>PIN</button>
-      <button type="button" class="btn ${p.isActive?'btn-ghost':'btn-gr'} btn-sm" onclick="togglePlayerActive('${p.id}',${!p.isActive})" title="${p.isActive?'Disable account':'Re-enable account'}"><i class="ti ti-${p.isActive?'user-off':'user-check'}"></i>${p.isActive?'Disable':'Enable'}</button>
-      <button type="button" class="btn btn-rd btn-sm" onclick="if(confirm('Remove player?'))delPlayer('${p.id}')"><i class="ti ti-trash"></i></button>
+      <button type="button" class="btn ${p.isActive?'btn-ghost':'btn-gr'} btn-sm" onclick="togglePlayerActive('${p.id}',${!p.isActive})" data-tip="${p.isActive?'Disable account':'Re-enable account'}"><i class="ti ti-${p.isActive?'user-off':'user-check'}"></i>${p.isActive?'Disable':'Enable'}</button>
+      <button type="button" class="btn btn-rd btn-sm" onclick="if(confirm('Remove player?'))delPlayer('${p.id}')" data-tip="Remove player"><i class="ti ti-trash"></i></button>
   </div></td>
 </tr>`;
   }).join('');
@@ -3383,7 +3418,7 @@ async function renderFeedAdmin(){
     <div style="padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:10px;border:1px solid var(--b)">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
         <div style="font-size:11px;color:var(--tx3)">${feedEsc(p.author_name||'Admin')} · ${feedTime(p.created_at)}${p.pinned?' · <span style="color:var(--gold2);font-weight:700">PINNED</span>':''}${p.is_public?' · <span style="color:var(--tx2)">Public</span>':''}</div>
-        <button type="button" class="btn btn-rd btn-sm" onclick="delFeedPost('${p.id}')"><i class="ti ti-trash"></i></button>
+        <button type="button" class="btn btn-rd btn-sm" onclick="delFeedPost('${p.id}')" data-tip="Delete post"><i class="ti ti-trash"></i></button>
       </div>
       ${p.body?`<div style="font-size:14px;margin-top:6px;white-space:pre-wrap;line-height:1.5">${feedEsc(p.body)}</div>`:''}
       ${p.image_url?`<img src="${feedEsc(p.image_url)}" loading="lazy" style="width:100%;max-height:300px;object-fit:cover;border-radius:8px;margin-top:8px;display:block" alt="">`:''}
@@ -3441,7 +3476,7 @@ async function renderDevotionArchive(){
           <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3);flex-shrink:0;transition:transform .15s;transform:${open?'rotate(90deg)':''}"></i>
           <div style="min-width:0">${r.monthly_theme?`<div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${r.monthly_theme}</div>`:''}<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.devotion_title||'Untitled'}</div><div style="font-size:11px;color:var(--tx3)">${dateStr}</div></div>
         </div>
-        <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delDevotionArchiveEntry('${r.id}')" title="Delete this archived copy"><i class="ti ti-trash"></i></button>
+        <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delDevotionArchiveEntry('${r.id}')" data-tip="Delete this archived copy"><i class="ti ti-trash"></i></button>
       </div>
       ${open?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--b);font-size:13px;line-height:1.6">
         ${r.verse_ref?`<div style="color:var(--gold);font-weight:700;margin-bottom:4px">${r.verse_ref}</div>`:''}
@@ -3535,9 +3570,9 @@ function renderRunAttendance(){
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b);border-radius:10px;margin-bottom:8px">
       <div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.playerName||'Runner'}</div><div style="font-size:11px;color:var(--tx3)">${r.phone||''}</div></div>
       <div style="display:flex;gap:6px;flex:none">
-        <button type="button" class="chip-ft ${r.isFirstTimer?'ft-on':''}" onclick="toggleFirstTimerGd('${r.id}',${!r.isFirstTimer})" title="${r.isFirstTimer?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${r.isFirstTimer?'-filled':''}"></i>${r.isFirstTimer?' 1st':''}</button>
+        <button type="button" class="chip-ft ${r.isFirstTimer?'ft-on':''}" onclick="toggleFirstTimerGd('${r.id}',${!r.isFirstTimer})" data-tip="${r.isFirstTimer?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${r.isFirstTimer?'-filled':''}"></i>${r.isFirstTimer?' 1st':''}</button>
         <button type="button" class="st-btn ${on?'sel-on':''}" onclick="toggleRunAttended('${r.id}',${on?'false':'true'})">${on?'<i class="ti ti-check"></i> Present':'Mark present'}</button>
-        <button type="button" class="btn btn-rd btn-sm" onclick="removeRunReg('${r.id}','${r.playerName||'Runner'}')" title="Remove from this session"><i class="ti ti-x"></i></button>
+        <button type="button" class="btn btn-rd btn-sm" onclick="removeRunReg('${r.id}','${r.playerName||'Runner'}')" data-tip="Remove from this session"><i class="ti ti-x"></i></button>
       </div>
     </div>`;
   }).join('');
@@ -3656,11 +3691,11 @@ function renderGameDay(){
     const ftReg = next ? regs.find(r=>r.gameId===next.id&&r.playerId===p.id&&r.status!=='cancelled') : null;
     const ftOn  = ftReg && ftReg.isFirstTimer;
     const ftBtn = ftReg
-      ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" title="${ftOn?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
+      ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" data-tip="${ftOn?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
       : '';
     return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')">${ini(p.firstName,p.lastName)} ${p.firstName} ${p.lastName}${skTag}${statusTag}${ftBtn}${
       (sessionLive || teamsLive) && (cssClass.indexOf(' on') > -1)
-        ? `<button type="button" class="chip-x" onclick="event.stopPropagation(); removeFromLiveSession('${p.id}')" title="Remove from session">×</button>`
+        ? `<button type="button" class="chip-x" onclick="event.stopPropagation(); removeFromLiveSession('${p.id}')" data-tip="Remove from session">×</button>`
         : ''
     }</div>`;
   };
@@ -3989,7 +4024,7 @@ function pbRenderPairPicker(){
       <div style="flex:1;font-size:14px;font-weight:600">${pbName(a)}</div>
       <div style="font-size:11px;color:var(--tx3)">+</div>
       <div style="flex:1;font-size:14px;font-weight:600">${pbName(b)}</div>
-      <button type="button" class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="pbUnpair('${a}','${b}')"><i class="ti ti-x"></i></button>
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="pbUnpair('${a}','${b}')" data-tip="Unpair"><i class="ti ti-x"></i></button>
     </div>`;
   });
 
@@ -4004,7 +4039,7 @@ function pbRenderPairPicker(){
         <select class="fi" id="pp-a" style="flex:1">${opts}</select>
         <span style="color:var(--tx3);font-size:13px">+</span>
         <select class="fi" id="pp-b" style="flex:1">${opts}</select>
-        <button type="button" class="btn btn-g btn-sm" onclick="pbAddPair()"><i class="ti ti-check"></i></button>
+        <button type="button" class="btn btn-g btn-sm" onclick="pbAddPair()" data-tip="Add pair"><i class="ti ti-check"></i></button>
       </div>
     </div>`;
   } else if (unpaired.length === 1){
@@ -4330,7 +4365,7 @@ function renderPballSession(){
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
         <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
-        <button type="button" title="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
+        <button type="button" data-tip="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
       </div>`;
     }).join('');
   }
@@ -4375,7 +4410,7 @@ function renderCourtFoot(c, progress){
       <button type="button" class="wm-preset" onclick="pbStartWarmup('${c.id}',300)">5m</button>
       <input type="number" class="wm-custom" id="wu-${c.id}" min="1" max="30" placeholder="min" inputmode="numeric">
       <button type="button" class="wm-go" onclick="pbStartCustomWarmup('${c.id}')">Start</button>
-      <button type="button" class="wm-cancel" onclick="pbHideWarmupPicker('${c.id}')" aria-label="Cancel"><i class="ti ti-x"></i></button>
+      <button type="button" class="wm-cancel" onclick="pbHideWarmupPicker('${c.id}')" aria-label="Cancel" data-tip="Cancel"><i class="ti ti-x"></i></button>
   </div>`;
   }
   // 3. Default — normal court actions
@@ -5193,7 +5228,7 @@ function bbRosterHtml(pids, teamKey, color, title){
       <div style="width:22px;height:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:10px;color:#fff;flex-shrink:0">${ini(p?p.firstName:'?',p?p.lastName:'')}</div>
       <span style="flex:1">${nm} <span style="font-size:10px;color:var(--tx3)">· ${played} played</span></span>
       <select onchange="bbMovePlayer('${pid}',this.value)" style="background:var(--bg2);border:1px solid var(--b);border-radius:6px;color:var(--tx2);font-size:10px;padding:3px 4px;outline:none;cursor:pointer">${moveOpts(curOf(teamKey))}</select>
-      <button type="button" class="chip-x" style="position:static;color:var(--danger)" onclick="bbRemovePlayer('${pid}')" title="Remove from session">×</button>
+      <button type="button" class="chip-x" style="position:static;color:var(--danger)" onclick="bbRemovePlayer('${pid}')" data-tip="Remove from session">×</button>
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--tx3);padding:8px 0">— empty —</div>';
   return `<div class="team-card">
@@ -6319,7 +6354,7 @@ function renderTournFeesForm() {
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
       <input type="text" class="inp" style="flex:2;padding:6px 10px;font-size:13px" value="${f.label}" placeholder="e.g. Jersey, Referee" oninput="_tFees[${i}].label=this.value">
       <input type="number" class="inp" style="flex:1;padding:6px 10px;font-size:13px" value="${f.amount||''}" placeholder="0" oninput="_tFees[${i}].amount=Number(this.value)||0;updateFeeTotals()">
-      <button type="button" onclick="_tFees.splice(${i},1);renderTournFeesForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px"><i class="ti ti-x"></i></button>
+      <button type="button" onclick="_tFees.splice(${i},1);renderTournFeesForm()" style="background:none;border:none;color:var(--tx3);cursor:pointer;font-size:18px;padding:4px" data-tip="Remove fee"><i class="ti ti-x"></i></button>
     </div>`).join('');
   updateFeeTotals();
 }
@@ -6360,7 +6395,7 @@ function renderTournTeamsForm() {
     return `<div style="background:var(--surface-1,var(--b2));border:1px solid var(--border-1,rgba(255,255,255,.08));border-radius:12px;padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <input type="text" class="fi" style="flex:1;font-size:14px;font-weight:600" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
-        <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
+        <button type="button" onclick="_tTeams.splice(${i},1);renderTournTeamsForm()" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;padding:4px;line-height:1" data-tip="Remove team"><i class="ti ti-x"></i></button>
       </div>
       <label class="fl" style="margin-top:0">Team Owner <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(pays on behalf of team)</span></label>
       <select class="fi" style="margin-bottom:12px" onchange="_tTeams[${i}].owner=this.value||null;renderTournTeamsForm()">${ownerOpts}</select>
@@ -6628,7 +6663,7 @@ function renderHist(){
         <div style="display:flex;align-items:center;gap:8px">
           <span class="badge b-nv">${w.playerCount||'?'} players</span>
           <span class="badge b-nv">${(w.matches||[]).length} ${(w.matches||[]).length===1?'match':'matches'}</span>
-          <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delHistory('${w.id}')" title="Delete this record"><i class="ti ti-trash"></i></button>
+          <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delHistory('${w.id}')" data-tip="Delete this record"><i class="ti ti-trash"></i></button>
         </div>
       </div>
       <div id="hist-m-${w.id}" style="display:${isOpen?'':'none'}">${matchesHtml}</div>
@@ -7168,9 +7203,9 @@ function renderWeekly(){
       <td>${ftBtn}</td>
       <td><span class="badge ${bc}">${st}</span></td>
       <td><div style="display:flex;gap:5px">
-        ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')"><i class="ti ti-check"></i></button>`:''}
-        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" title="Promote off the waitlist now"><i class="ti ti-arrow-up"></i></button>`:''}
-        ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="removeFromWeek('${r.id}')"><i class="ti ti-x"></i></button>`:''}
+        ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Approve"><i class="ti ti-check"></i></button>`:''}
+        ${st==='waitlist'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Promote off the waitlist now"><i class="ti ti-arrow-up"></i></button>`:''}
+        ${st!=='cancelled'?`<button type="button" class="btn btn-rd btn-sm" onclick="removeFromWeek('${r.id}')" data-tip="Remove from this week"><i class="ti ti-x"></i></button>`:''}
     </div></td>
   </tr>`;
   }).join('');
@@ -7319,9 +7354,9 @@ function renderPaymentMethods(){
         <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;color:var(--gold2)">${m.account_num}</div>
         <div style="font-size:11px;color:var(--tx3)">${m.account_name||''}</div>
     </div>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="editPaymentMethod(${m.id},'${(m.label||'').replace(/'/g,'\\\'')}','${(m.account_num||'').replace(/'/g,'\\\'')}','${(m.account_name||'').replace(/'/g,'\\\'')}')" title="Edit"><i class="ti ti-edit"></i></button>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="togglePmActive(${m.id}, ${!active})" title="${active?'Hide from players':'Show to players'}"><i class="ti ${active?'ti-eye':'ti-eye-off'}"></i>${active?'Active':'Hidden'}</button>
-      <button type="button" class="btn btn-rd btn-sm" onclick="deletePm(${m.id})"><i class="ti ti-trash"></i></button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="editPaymentMethod(${m.id},'${(m.label||'').replace(/'/g,'\\\'')}','${(m.account_num||'').replace(/'/g,'\\\'')}','${(m.account_name||'').replace(/'/g,'\\\'')}')" data-tip="Edit"><i class="ti ti-edit"></i></button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="togglePmActive(${m.id}, ${!active})" data-tip="${active?'Hide from players':'Show to players'}"><i class="ti ${active?'ti-eye':'ti-eye-off'}"></i>${active?'Active':'Hidden'}</button>
+      <button type="button" class="btn btn-rd btn-sm" onclick="deletePm(${m.id})" data-tip="Delete payment method"><i class="ti ti-trash"></i></button>
   </div>`;
   }).join('');
 }
@@ -7641,7 +7676,7 @@ function _renderTournPool() {
         <div style="font-size:11px;color:var(--tx3)">Joined ${joinedDate}${fullPlayer?.phone?' · '+fullPlayer.phone:''}</div>
       </div>
       ${posBadge(p.position)}
-      <button type="button" onclick="removeFromPool('${p.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px"><i class="ti ti-x"></i></button>
+      <button type="button" onclick="removeFromPool('${p.id}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px" data-tip="Remove from pool"><i class="ti ti-x"></i></button>
     </div>`;
   }).join('') : '<div class="empty" style="padding:20px 0">No players in the pool yet.</div>';
 
