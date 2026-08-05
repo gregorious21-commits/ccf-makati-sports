@@ -6034,14 +6034,24 @@ function renderTournDetail(id) {
 
   // ── team roster cards ─────────────────────────────────────────
   const rosterCards = teams.map(tm => {
-    const names = (tm.players||[]).map(pid => _tpName(pid));
+    const roster = LC.arr('roster'), playersAll = LC.arr('players');
+    const members = (tm.players||[]).map(pid => roster.find(x=>x.id===pid) || playersAll.find(x=>x.id===pid) || {id:pid, firstName:'Player', lastName:''});
     const ownerName = tm.owner ? _tpName(tm.owner) : null;
+    const grid = members.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:10px 6px;margin-top:4px">${members.map((p,i)=>{
+      const nm=(p.firstName+' '+(p.lastName||'')).trim();
+      const style=p.avatarUrl?`background-image:url('${feedEsc(p.avatarUrl)}')`:`background:${lbCol(i)}`;
+      const txt=p.avatarUrl?'':ini(p.firstName,p.lastName);
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;min-width:0">
+        <div style="width:38px;height:38px;border-radius:50%;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;${style}" title="${feedEsc(nm)}">${txt}</div>
+        <div style="font-size:10.5px;color:var(--tx2);line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${feedEsc(p.firstName)}</div>
+      </div>`;
+    }).join('')}</div>` : '<div class="empty" style="padding:8px 0">No players assigned</div>';
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div style="font-weight:700">${tm.name}</div>
         ${ownerName?`<span style="font-size:11px;color:var(--tx3)">Owner: ${ownerName}</span>`:''}
       </div>
-      <div style="font-size:13px;color:var(--tx2);line-height:1.8">${names.join(' · ')||'No players assigned'}</div>
+      ${grid}
     </div>`;
   }).join('');
 
