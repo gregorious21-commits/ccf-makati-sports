@@ -1574,8 +1574,13 @@ select.fi{
         <button type="button" class="btn btn-w" onclick="openAddToWeek()" style="white-space:nowrap"><i class="ti ti-user-plus"></i>Add Player</button>
     </div>
       <div id="wk-summary" style="font-size:11px;color:var(--tx3);margin-bottom:10px;letter-spacing:.3px"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px">
+        <div style="flex:1"><label class="fl" style="margin-top:0">Remarks <span style="color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0">(optional note for this week, e.g. "rained out")</span></label>
+        <input class="fi" id="wk-remarks" placeholder="Notes for this week…"></div>
+        <button type="button" class="btn btn-w" onclick="saveWeekRemarks()"><i class="ti ti-check"></i>Save</button>
+      </div>
       <div class="card tbl-wrap" style="padding:0">
-        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>First-Timer</th><th>Status</th><th>Actions</th></tr></thead>
+        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>First-Timer</th><th>Volunteer</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="weekly-tbody"></tbody></table>
     </div>
   </div>
@@ -1928,6 +1933,9 @@ select.fi{
   <div class="modal">
     <div class="modal-h"><div class="modal-ht" id="m-title">Schedule Game</div><button type="button" class="x-btn" onclick="closeModal('add-game')" data-tip="Close"><i class="ti ti-x"></i></button></div>
     <div class="modal-b">
+      <div id="m-devotion-info" style="display:none;background:rgba(253,184,39,.08);border:1px solid rgba(253,184,39,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--gold);line-height:1.5">
+        <i class="ti ti-book"></i> <span id="m-devotion-text"></span>
+      </div>
       <label class="fl">Sport *</label>
       <select class="fi" id="m-sport" onchange="onModalSportChange()">
         <option value="basketball">Basketball</option>
@@ -2254,8 +2262,8 @@ let resetPinId=null, syncInterval=null, syncing=false;
 const LC={get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),arr:k=>LC.get(k)||[]};
 
 // ── MAPPERS ───────────────────────────────────────────────────
-const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM',venue:g.venue||'',venueUrl:g.venue_url||'',route:g.route||'',weatherNote:g.weather_note||'',spots:g.spots||20,fee:g.fee||200,status:g.status||'tbd',cancelReason:g.cancel_reason||'',sport:g.sport||'basketball',courtCost:g.court_cost||0,startAt:g.start_at||null});
-const mapReg=r=>({id:r.id,playerId:r.player_id,playerName:r.player_name,phone:r.phone||'',email:r.email||'',gameId:r.game_id,gameLabel:r.game_label||'',gameTime:r.game_time||'',fee:r.fee!=null?r.fee:200,payType:r.pay_type||'cash',refNum:r.ref_num||'',hasProof:r.has_proof||false,proofUrl:r.proof_url||'',status:r.status||'pending',registered:r.registered||'',isFirstTimer:r.is_first_timer||false,sport:r.sport||'basketball',paid:r.paid===true,attended:r.attended===true,attendedAt:r.attended_at||''});
+const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM',venue:g.venue||'',venueUrl:g.venue_url||'',route:g.route||'',weatherNote:g.weather_note||'',spots:g.spots||20,fee:g.fee||200,status:g.status||'tbd',cancelReason:g.cancel_reason||'',sport:g.sport||'basketball',courtCost:g.court_cost||0,startAt:g.start_at||null,remarks:g.remarks||''});
+const mapReg=r=>({id:r.id,playerId:r.player_id,playerName:r.player_name,phone:r.phone||'',email:r.email||'',gameId:r.game_id,gameLabel:r.game_label||'',gameTime:r.game_time||'',fee:r.fee!=null?r.fee:200,payType:r.pay_type||'cash',refNum:r.ref_num||'',hasProof:r.has_proof||false,proofUrl:r.proof_url||'',status:r.status||'pending',registered:r.registered||'',isFirstTimer:r.is_first_timer||false,sport:r.sport||'basketball',paid:r.paid===true,attended:r.attended===true,attendedAt:r.attended_at||'',isVolunteer:r.is_volunteer===true});
 const spiTag=s=>s==='pickleball'?'<span class="spi spi-p"></span>':s==='running'?'<span class="spi spi-r"></span>':s==='badminton'?'<span class="spi spi-bd"></span>':s==='dragonboat'?'<span class="spi spi-db"></span>':'<span class="spi spi-b"></span>';
 const payLabel=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'First Timer (Free)':'Cash request';
 const mapDev=d=>d?{votdRef:d.votd_ref||'',votdText:d.votd_text||'',votdPublished:d.votd_published||false,devotionTitle:d.devotion_title||'',verseRef:d.verse_ref||'',verseText:d.verse_text||'',q1:d.q1||'',q2:d.q2||'',devotionText:d.devotion_text||'',devPublished:d.dev_published||false,monthlyTheme:d.monthly_theme||''}:null;
@@ -2515,6 +2523,19 @@ document.querySelectorAll('.nav-item').forEach(item=>{item.addEventListener('cli
 // ── MODALS ────────────────────────────────────────────────────
 function openModal(id){
   if(id==='add-game'){
+    // Surface the currently drafted/published devotion here too — admins
+    // often prep the week's devotion ahead of scheduling the game, and
+    // having it visible while filling out this form saves a tab-switch.
+    const dv = LC.get('devotion') || {};
+    const devInfo = document.getElementById('m-devotion-info');
+    if (dv.devotionTitle) {
+      const theme = dv.monthlyTheme ? dv.monthlyTheme + ' — ' : '';
+      const status = dv.devPublished ? '' : ' (draft, not yet published)';
+      document.getElementById('m-devotion-text').textContent = 'Current devotion: ' + theme + dv.devotionTitle + status;
+      devInfo.style.display = '';
+    } else {
+      devInfo.style.display = 'none';
+    }
     document.getElementById('m-sport').value ='basketball';
     document.getElementById('m-date').value  =nextSun();
     document.getElementById('m-time').value  =localStorage.getItem('def_time')||'7:00 AM';
@@ -7177,16 +7198,28 @@ function renderWeekly(){
   const active=regs.filter(r=>r.status!=='cancelled');
   const cap=game?game.spots||20:20;
   const ft=active.filter(r=>r.isFirstTimer).length;
+  // CCF-member / Dgroup-placement counts — pulled from each registrant's
+  // player record (attendedCCF / hasDgroup), same fields already used by
+  // the Discipleship tracking section, so this needs no new schema.
+  const playersAll=LC.arr('players');
+  const playerFor=r=>playersAll.find(p=>p.id===r.playerId);
+  const ccfCount=active.filter(r=>{const p=playerFor(r);return p&&p.attendedCCF;}).length;
+  const dgroupCount=active.filter(r=>{const p=playerFor(r);return p&&p.hasDgroup;}).length;
+  const dgroupPct=active.length?Math.round(dgroupCount/active.length*100):0;
+  const volCount=active.filter(r=>r.isVolunteer).length;
   const sum=document.getElementById('wk-summary');
   if(sum){
     const over=active.length>cap;
     sum.innerHTML=game
       ? `<strong style="color:${over?'var(--am)':'var(--tx2)'}">${active.length}</strong> players this week · cap ${cap}${over?' <span style="color:var(--am)">(over by '+(active.length-cap)+')</span>':''} · <strong style="color:var(--gold2)">${ft}</strong> first-timer${ft===1?'':'s'}`
+        +`<br><strong style="color:var(--tx2)">${ccfCount}</strong> CCF member${ccfCount===1?'':'s'} · <strong style="color:var(--tx2)">${dgroupCount}</strong> placed in Dgroup <span style="color:var(--tx3)">(${dgroupPct}%)</span> · <strong style="color:var(--tx2)">${volCount}</strong> volunteer${volCount===1?'':'s'}`
       : 'Select a week above.';
   }
+  const remarksEl=document.getElementById('wk-remarks');
+  if(remarksEl) remarksEl.value = game ? (game.remarks||'') : '';
   const tbody=document.getElementById('weekly-tbody');
   if(!tbody) return;
-  if(!regs.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty">No players on this week\u2019s roster yet. Use <strong>Add Player</strong> to build it.</div></td></tr>';return}
+  if(!regs.length){tbody.innerHTML='<tr><td colspan="8"><div class="empty">No players on this week\u2019s roster yet. Use <strong>Add Player</strong> to build it.</div></td></tr>';return}
   // active first, cancelled last
   regs.sort((a,b)=>(a.status==='cancelled'?1:0)-(b.status==='cancelled'?1:0));
   tbody.innerHTML=regs.map((r,i)=>{
@@ -7195,12 +7228,16 @@ function renderWeekly(){
     const ftBtn=r.isFirstTimer
       ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleFirstTimer('${r.id}')"> First-Timer</button>`
       : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleFirstTimer('${r.id}')">Tag First-Timer</button>`;
+    const volBtn=r.isVolunteer
+      ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleVolunteer('${r.id}')"> Volunteer</button>`
+      : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleVolunteer('${r.id}')">Tag Volunteer</button>`;
     return `<tr style="${st==='cancelled'?'opacity:.5':''}">
       <td><div style="width:30px;height:30px;border-radius:50%;background:${col(i)};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:#fff">${ini((r.playerName||'?').split(' ')[0],(r.playerName||'? ?').split(' ')[1]||'')}</div></td>
       <td><strong>${r.playerName||'—'}</strong></td>
       <td>${r.phone||'—'}</td>
       <td><span class="badge ${r.payType==='advance'?'b-nv':'b-gd'}">${r.payType==='advance'?'Advance':r.payType==='walkin'?'Walk-in':'Cash'}</span></td>
       <td>${ftBtn}</td>
+      <td>${volBtn}</td>
       <td><span class="badge ${bc}">${st}</span></td>
       <td><div style="display:flex;gap:5px">
         ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Approve"><i class="ti ti-check"></i></button>`:''}
@@ -7218,6 +7255,23 @@ async function toggleFirstTimer(regId){
   const ok=await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:regId,p_status:r.status||'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
   if(ok) toast(r.isFirstTimer?'Tagged as first-timer':'First-timer tag removed','in');
   else toast('Saved locally, sync failed','er');
+}
+async function toggleVolunteer(regId){
+  const regs=LC.arr('regs');const r=regs.find(x=>x.id===regId);if(!r)return;
+  r.isVolunteer=!r.isVolunteer;LC.set('regs',regs);
+  renderWeekly();
+  const ok=await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:regId,p_status:r.status||'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer||false,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||'',p_is_volunteer:r.isVolunteer});
+  if(ok) toast(r.isVolunteer?'Tagged as volunteer':'Volunteer tag removed','in');
+  else toast('Saved locally, sync failed','er');
+}
+async function saveWeekRemarks(){
+  const game=LC.arr('games').find(g=>g.id===weekGameId);
+  if(!game){toast('Select a week first','er');return}
+  const val=(document.getElementById('wk-remarks').value||'').trim();
+  const games=LC.arr('games');
+  const g=games.find(x=>x.id===weekGameId); if(g){ g.remarks=val; LC.set('games',games); }
+  const ok=await rpc('admin_update_game_remarks',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_game_id:weekGameId,p_remarks:val});
+  if(ok) toast('Remarks saved'); else toast('Save failed','er');
 }
 async function removeFromWeek(regId){
   const regs=LC.arr('regs');const r=regs.find(x=>x.id===regId);if(!r)return;
