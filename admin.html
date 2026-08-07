@@ -1689,6 +1689,8 @@ select.fi{
           <button type="button" class="fin-pill" data-period="all" onclick="setSummaryPeriod('all')">All Time</button>
         </div>
         <div id="sum-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
+        <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">Ministry Report — Overall <span style="font-size:12px;color:var(--tx3);font-weight:400;letter-spacing:0">(summed across every game in the selected range)</span></div>
+        <div id="sum-ministry-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
         <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">By Sport</div>
         <div id="sum-sports" style="margin-bottom:20px"></div>
         <div style="font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">Top Attendees</div>
@@ -6925,6 +6927,7 @@ function renderSummary(){
   const topEl=document.getElementById('sum-top');
   if(!games.length){
     statsEl.innerHTML='';
+    const mEl0=document.getElementById('sum-ministry-stats'); if(mEl0) mEl0.innerHTML='';
     sportsEl.innerHTML='<div class="empty">No games in '+label+'.</div>';
     topEl.innerHTML='';
     return;
@@ -6940,6 +6943,40 @@ function renderSummary(){
     perSport[sp].games++; perSport[sp].att+=att;
   });
   const avg=games.length?Math.round(totalAttendance/games.length):0;
+  // Ministry report totals — same "who counts as attended" rule as Total
+  // Attendance above (confirmed, or the attended flag for running/dragonboat),
+  // summed across every game in range so someone attending multiple weeks
+  // counts each time, same convention as Total Attendance. De-duped by
+  // player within each individual game so a lingering duplicate
+  // registration (like the Edilberto case) can't double-count anyone.
+  (function(){
+    const playersAll2=LC.arr('players');
+    const playerFor2=pid=>playersAll2.find(p=>p.id===pid);
+    const allRegs=LC.arr('regs');
+    let mCcf=0,mFt=0,mVol=0,mDgroup=0;
+    games.forEach(g=>{
+      const sp=g.sport||'basketball';
+      const qualifying=(sp==='running'||sp==='dragonboat')
+        ? allRegs.filter(r=>r.gameId===g.id && (r.status||'').toLowerCase()!=='cancelled' && r.attended===true)
+        : allRegs.filter(r=>r.gameId===g.id && r.status==='confirmed');
+      const seen=new Set();
+      qualifying.forEach(r=>{
+        const key=r.playerId||r.id;
+        if(seen.has(key)) return;
+        seen.add(key);
+        const p=playerFor2(r.playerId);
+        if(p&&p.attendedCCF) mCcf++;
+        if(p&&p.hasDgroup) mDgroup++;
+        if(r.isFirstTimer) mFt++;
+        if(r.isVolunteer) mVol++;
+      });
+    });
+    const mPct=totalAttendance?Math.round(mDgroup/totalAttendance*100):0;
+    const mEl=document.getElementById('sum-ministry-stats');
+    if(mEl) mEl.innerHTML=[
+      ['CCF Member',mCcf],['First Timer',mFt],['Volunteers',mVol],['Placed in Dgroup',mDgroup],['% Placement',mPct+'%'],
+    ].map(([lbl,val])=>`<div class="fin-stat"><div class="n">${val}</div><div class="l">${lbl}</div></div>`).join('');
+  })();
   statsEl.innerHTML=`
     <div class="fin-stat"><div class="n" style="color:var(--gold)">${games.length}</div><div class="l">${label} · Games</div></div>
     <div class="fin-stat"><div class="n" style="color:var(--gr)">${totalAttendance}</div><div class="l">Total Attendance</div></div>
