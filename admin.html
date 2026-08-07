@@ -1573,7 +1573,8 @@ select.fi{
         <select class="fi" id="wk-game" onchange="onWeekSelect()" style="flex:1"></select>
         <button type="button" class="btn btn-w" onclick="openAddToWeek()" style="white-space:nowrap"><i class="ti ti-user-plus"></i>Add Player</button>
     </div>
-      <div id="wk-summary" style="font-size:11px;color:var(--tx3);margin-bottom:10px;letter-spacing:.3px"></div>
+      <div id="wk-cap-note" style="font-size:11px;color:var(--tx3);margin-bottom:8px;letter-spacing:.3px"></div>
+      <div id="wk-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px"></div>
       <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:14px">
         <div style="flex:1"><label class="fl" style="margin-top:0">Remarks <span style="color:var(--tx3);font-weight:400;text-transform:none;letter-spacing:0">(optional note for this week, e.g. "rained out")</span></label>
         <input class="fi" id="wk-remarks" placeholder="Notes for this week…"></div>
@@ -7207,13 +7208,26 @@ function renderWeekly(){
   const dgroupCount=active.filter(r=>{const p=playerFor(r);return p&&p.hasDgroup;}).length;
   const dgroupPct=active.length?Math.round(dgroupCount/active.length*100):0;
   const volCount=active.filter(r=>r.isVolunteer).length;
-  const sum=document.getElementById('wk-summary');
-  if(sum){
+  const capNote=document.getElementById('wk-cap-note');
+  if(capNote){
     const over=active.length>cap;
-    sum.innerHTML=game
-      ? `<strong style="color:${over?'var(--am)':'var(--tx2)'}">${active.length}</strong> players this week · cap ${cap}${over?' <span style="color:var(--am)">(over by '+(active.length-cap)+')</span>':''} · <strong style="color:var(--gold2)">${ft}</strong> first-timer${ft===1?'':'s'}`
-        +`<br><strong style="color:var(--tx2)">${ccfCount}</strong> CCF member${ccfCount===1?'':'s'} · <strong style="color:var(--tx2)">${dgroupCount}</strong> placed in Dgroup <span style="color:var(--tx3)">(${dgroupPct}%)</span> · <strong style="color:var(--tx2)">${volCount}</strong> volunteer${volCount===1?'':'s'}`
+    capNote.innerHTML=game
+      ? `Cap ${cap}${over?' · <span style="color:var(--am)">over by '+(active.length-cap)+'</span>':''}`
       : 'Select a week above.';
+  }
+  // Numeric stat tiles matching the church's ministry report format —
+  // same values as before, just shown as real counted columns instead of
+  // a sentence.
+  const statsEl=document.getElementById('wk-stats');
+  if(statsEl){
+    statsEl.innerHTML = !game ? '' : [
+      ['Total', active.length, 'var(--tx)'],
+      ['CCF Member', ccfCount, 'var(--tx)'],
+      ['First Timer', ft, 'var(--gold2)'],
+      ['Volunteers', volCount, 'var(--tx)'],
+      ['Placed in Dgroup', dgroupCount, 'var(--tx)'],
+      ['% Placement', dgroupPct+'%', 'var(--tx)'],
+    ].map(([lbl,val,color])=>`<div class="fin-stat"><div class="n" style="color:${color}">${val}</div><div class="l">${lbl}</div></div>`).join('');
   }
   const remarksEl=document.getElementById('wk-remarks');
   if(remarksEl) remarksEl.value = game ? (game.remarks||'') : '';

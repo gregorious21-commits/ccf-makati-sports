@@ -4547,31 +4547,42 @@ document.getElementById('proof-file').addEventListener('change', async function(
 });
 
 // Online submit (with proof)
-document.getElementById('btn-submit-join').addEventListener('click', async () => {
-  if (!uploadedFile) { toast('Upload your payment screenshot','er'); return; }
-  const g=LC.arr('games').find(x=>x.id===joinGameId);
-  if (!g) { toast('Game not found','er'); return; }
-  if (!uploadedUrl) {
-    toast('Uploading screenshot…','in');
-    uploadedUrl=await uploadProof(uploadedFile,'proof-'+ME.id+'-'+joinGameId);
-    if (!uploadedUrl) { toast('Upload failed. Check connection.','er'); return; }
-  }
-  const players=LC.arr('players');
-  const idx=players.findIndex(x=>x.id===ME.id);
-  if (idx>-1) { players[idx].isFirstGame=false; LC.set('players',players); ME=players[idx]; }
-  submitReg(g,'advance',true,uploadedUrl,(document.getElementById('ref-num').value||'').trim());
+document.getElementById('btn-submit-join').addEventListener('click', async function(){
+  if (this.disabled) return; // ignore rapid double-taps while a submit is in flight
+  this.disabled = true;
+  try {
+    if (!uploadedFile) { toast('Upload your payment screenshot','er'); return; }
+    const g=LC.arr('games').find(x=>x.id===joinGameId);
+    if (!g) { toast('Game not found','er'); return; }
+    if (!uploadedUrl) {
+      toast('Uploading screenshot…','in');
+      uploadedUrl=await uploadProof(uploadedFile,'proof-'+ME.id+'-'+joinGameId);
+      if (!uploadedUrl) { toast('Upload failed. Check connection.','er'); return; }
+    }
+    const players=LC.arr('players');
+    const idx=players.findIndex(x=>x.id===ME.id);
+    if (idx>-1) { players[idx].isFirstGame=false; LC.set('players',players); ME=players[idx]; }
+    await submitReg(g,'advance',true,uploadedUrl,(document.getElementById('ref-num').value||'').trim());
+  } finally { this.disabled = false; }
 });
 
 // Cash request submit (no proof)
-document.getElementById('btn-submit-cash').addEventListener('click', async () => {
-  const g=LC.arr('games').find(x=>x.id===joinGameId);
-  if (!g) { toast('Game not found','er'); return; }
-  const note=(document.getElementById('cash-note').value||'').trim();
-  submitReg(g,'cash',false,'',note);
+document.getElementById('btn-submit-cash').addEventListener('click', async function(){
+  if (this.disabled) return; // ignore rapid double-taps while a submit is in flight
+  this.disabled = true;
+  try {
+    const g=LC.arr('games').find(x=>x.id===joinGameId);
+    if (!g) { toast('Game not found','er'); return; }
+    const note=(document.getElementById('cash-note').value||'').trim();
+    await submitReg(g,'cash',false,'',note);
+  } finally { this.disabled = false; }
 });
 
 // First-timer free submit (no payment)
-document.getElementById('btn-submit-first').addEventListener('click', async () => {
+document.getElementById('btn-submit-first').addEventListener('click', async function(){
+  if (this.disabled) return; // ignore rapid double-taps while a submit is in flight
+  this.disabled = true;
+  try {
   const g=LC.arr('games').find(x=>x.id===joinGameId);
   if (!g) { toast('Game not found','er'); return; }
   // Hard block, not just a flag for admin review — first-timer pricing is a
@@ -4608,9 +4619,13 @@ document.getElementById('btn-submit-first').addEventListener('click', async () =
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast('First-game claim submitted! An organizer will confirm your free slot.');
+  } finally { this.disabled = false; }
 });
 
-document.getElementById('btn-submit-reclub').addEventListener('click', async () => {
+document.getElementById('btn-submit-reclub').addEventListener('click', async function(){
+  if (this.disabled) return; // ignore rapid double-taps while a submit is in flight
+  this.disabled = true;
+  try {
   const g=LC.arr('games').find(x=>x.id===joinGameId);
   if(!g){ toast('Game not found','er'); return; }
   const sport=g.sport||'basketball';
@@ -4631,6 +4646,7 @@ document.getElementById('btn-submit-reclub').addEventListener('click', async () 
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast('Submitted! A manager will verify your Reclub registration.');
+  } finally { this.disabled = false; }
 });
 
 async function submitReg(game, payTypeArg, hasProof, proofUrl, refNumOrNote) {
