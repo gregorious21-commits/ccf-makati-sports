@@ -1538,6 +1538,11 @@ select.fi{
             <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-partners" style="flex:1;justify-content:center;display:none" onclick="pbOpenPairPickerMidSession()"><i class="ti ti-arrows-exchange"></i>Edit Partners</button>
           </div>
           <div class="card">
+            <div class="card-h"><div class="card-t"><i class="ti ti-pin"></i>Pinned Pairs</div></div>
+            <div class="note" style="margin-bottom:8px">Keep specific players partnered together — everyone else keeps rotating normally.</div>
+            <div id="pb-pinned-list"></div>
+          </div>
+          <div class="card">
             <div class="card-h"><div class="card-t"><i class="ti ti-clock-pause"></i>Waiting Queue</div><div id="pb-queue-count" style="font-size:11px;color:var(--tx3);letter-spacing:.3px"></div></div>
             <div id="pball-queue"></div>
         </div>
@@ -4177,6 +4182,76 @@ function pbRemoveFromSession(pid){
   toast(name+' removed from session');
 }
 
+// ── PINNED PAIRS ──────────────────────────────────────────────────────────
+// Independent of Partner Mode (random/fixed). Any number of 2-person pairs
+// can be pinned; whenever both members of a pinned pair are waiting in the
+// queue at the same time, pullNextFour keeps them on the same team. Everyone
+// else keeps rotating by the normal balanced/ladder rules.
+function pbPinnedRoster(){
+  // Everyone currently in the session (on a court or in queue), sorted by name.
+  if (!pbSession) return [];
+  const ids = new Set();
+  pbSession.courts.forEach(c=>{ c.teamA.forEach(p=>p&&ids.add(p)); c.teamB.forEach(p=>p&&ids.add(p)); });
+  pbSession.queue.forEach(q=>ids.add(q.pid));
+  return [...ids].sort((a,b)=>pbName(a).localeCompare(pbName(b)));
+}
+
+function pbRenderPinnedPairs(){
+  const el = document.getElementById('pb-pinned-list');
+  if (!el || !pbSession) return;
+  const pinned = pbSession.pinnedPairs || [];
+  const pinnedPids = new Set(pinned.flat());
+  const roster = pbPinnedRoster();
+  const chips = pinned.length
+    ? pinned.map((pair,i)=>`<div class="queue-chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0">
+        <span>${pbName(pair[0])} &amp; ${pbName(pair[1])}</span>
+        <button type="button" onclick="pbUnpinPair(${i})" data-tip="Unpin pair" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:0;font-size:13px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>`).join('')
+    : '<div class="empty" style="padding:8px 0">No pinned pairs yet.</div>';
+  const pickable = roster.filter(pid=>!pinnedPids.has(pid));
+  const opts = pid => pickable.map(p=>`<option value="${p}"${p===pid?' selected':''}>${pbName(p)}</option>`).join('');
+  el.innerHTML = `
+    <div>${chips}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+      <select class="fi" id="pb-pin-a" style="flex:1"><option value="">Player 1</option>${opts()}</select>
+      <select class="fi" id="pb-pin-b" style="flex:1"><option value="">Player 2</option>${opts()}</select>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="pbPinPair()"><i class="ti ti-pin"></i>Pin</button>
+    </div>`;
+}
+
+function pbPinPair(){
+  if (!pbSession) return;
+  const a = document.getElementById('pb-pin-a').value;
+  const b = document.getElementById('pb-pin-b').value;
+  if (!a || !b){ toast('Pick two players to pin','er'); return; }
+  if (a === b){ toast('Pick two different players','er'); return; }
+  if (!pbSession.pinnedPairs) pbSession.pinnedPairs = [];
+  pbSession.pinnedPairs.push([a,b]);
+  touchSharedSession();
+  pbRenderPinnedPairs();
+  toast(pbName(a)+' & '+pbName(b)+' pinned as partners');
+}
+
+function pbUnpinPair(i){
+  if (!pbSession || !pbSession.pinnedPairs) return;
+  pbSession.pinnedPairs.splice(i,1);
+  touchSharedSession();
+  pbRenderPinnedPairs();
+}
+
+// Move a queued player up/down the waiting order — only matters as a
+// tiebreaker among players tied on games-played, but lets an admin nudge
+// who goes in next without waiting on the automatic fairness sort.
+function pbMoveQueue(pid, dir){
+  if (!pbSession) return;
+  const i = pbSession.queue.findIndex(q=>q.pid===pid);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= pbSession.queue.length) return;
+  [pbSession.queue[i], pbSession.queue[j]] = [pbSession.queue[j], pbSession.queue[i]];
+  touchSharedSession();
+  renderPballSession();
+}
+
 function startPickleballSession(){
   if (presentIds.length < 4){
     toast('Need at least 4 players to start','er'); return;
@@ -4259,6 +4334,7 @@ function startPickleballSession(){
     active:true,
     style, format:fmtType, formatValue:parseInt(fmtVal),
     partnerMode, fixedPairs,
+    pinnedPairs: [],
     courts, queue, log:[], played,
     startedAt: Date.now()
   };
@@ -4373,6 +4449,8 @@ function renderPballSession(){
       ${renderCourtFoot(c, progress)}
   </div>`;
   }).join('');
+  // Pinned pairs
+  pbRenderPinnedPairs();
   // Queue
   const q = document.getElementById('pball-queue');
   document.getElementById('pb-queue-count').textContent = pbSession.queue.length+' waiting';
@@ -4381,6 +4459,7 @@ function renderPballSession(){
   } else {
     const courtsCount = pbSession.courts.length;
     const upNextCount = courtsCount * 2; // next 4 players fill the next round
+    const lastIdx = pbSession.queue.length - 1;
     q.innerHTML = pbSession.queue.map((item,i)=>{
       const sk=pbSkill(item.pid);
       const upNext = i < upNextCount;
@@ -4389,6 +4468,8 @@ function renderPballSession(){
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
         <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
+        <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${i===0?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
+        <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${i===lastIdx?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
         <button type="button" data-tip="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
       </div>`;
     }).join('');
@@ -4856,6 +4937,18 @@ function pullNextFour(style, queue){
     return fallback;
   }
 
+  // ── PINNED PAIRS (works alongside random partner mode) ─────────────────
+  // Independent of Partner Mode. A pinned pair is treated as a single unit
+  // — using the pair's average games-played — so it competes fairly for a
+  // court slot against solo players, but is never split across two courts
+  // or two teams once picked. If no complete pinned pair is currently
+  // waiting, this is a no-op and standard selection below runs unchanged.
+  const pinned = pbSession && pbSession.pinnedPairs;
+  if (pinned && pinned.length){
+    const picked = pullWithPinnedPairs(style, queue, pinned);
+    if (picked) return picked;
+  }
+
   // ── STANDARD (RANDOM PARTNER) MODE ───────────────────────────────────────
   if (style === 'ladder'){
     // Winners vs winners: prefer 4 winners; if not enough, fall back to 4 losers; else fairest 4.
@@ -4892,6 +4985,73 @@ function pullNextFour(style, queue){
   const out  = pick.map(x=>x.pid);
   pick.map(x=>x.i).sort((a,b)=>b-a).forEach(i=>queue.splice(i,1));
   return out;
+}
+
+// Selects a foursome that may include one or more pinned pairs, treating
+// each complete pinned pair (both members currently queued) as a single
+// 2-slot unit ranked by average games-played (or won/lost tag for ladder),
+// same fairness rules as solo players. Pairs are never split across teams;
+// if a foursome can't be completed without splitting one, returns null so
+// the caller falls back to standard (unpinned) selection for this pull.
+function pullWithPinnedPairs(style, queue, pinned){
+  const played = (pbSession && pbSession.played) || {};
+  const inQueue = new Set(queue.map(q=>q.pid));
+  const claimed = new Set();
+  const units = [];
+  pinned.forEach(pair => {
+    const [a,b] = pair;
+    if (claimed.has(a) || claimed.has(b)) return; // a player can only be in one active pinned pair
+    if (!inQueue.has(a) || !inQueue.has(b)) return; // both must be waiting right now
+    claimed.add(a); claimed.add(b);
+    const qa = queue.find(q=>q.pid===a), qb = queue.find(q=>q.pid===b);
+    units.push({
+      pids:[a,b],
+      n: ((played[a]||0)+(played[b]||0))/2,
+      i: Math.min(queue.indexOf(qa), queue.indexOf(qb)),
+      score: (qa.lastResult==='won' && qb.lastResult==='won') ? 2 : (qa.lastResult==='lost' && qb.lastResult==='lost') ? 1 : 0
+    });
+  });
+  if (!units.length) return null; // no complete pinned pair waiting — nothing to do here
+
+  queue.forEach((item,i) => {
+    if (claimed.has(item.pid)) return;
+    units.push({ pids:[item.pid], n: played[item.pid]||0, i, score: item.lastResult==='won' ? 2 : item.lastResult==='lost' ? 1 : 0 });
+  });
+
+  const ranked = style === 'ladder'
+    ? (() => {
+        const globalMin = Math.min(...units.map(u=>u.n));
+        const eligible = units.filter(u => u.n <= globalMin + LADDER_FAIRNESS_CAP);
+        const pool = eligible.length ? eligible : units;
+        return [...pool].sort((a,b) => b.score-a.score || a.n-b.n || a.i-b.i);
+      })()
+    : [...units].sort((a,b) => a.n-b.n || a.i-b.i);
+
+  // Greedily fill 4 slots, skipping any unit that would split across the boundary.
+  const chosen = [];
+  let slots = 4;
+  for (const u of ranked){
+    if (u.pids.length > slots) continue;
+    chosen.push(u);
+    slots -= u.pids.length;
+    if (slots === 0) break;
+  }
+  if (slots !== 0) return null; // couldn't complete a foursome without splitting a pinned pair
+
+  // Assign pair units first — each claims a fully-empty team — then fill
+  // remaining slots with solo units. Doing this in one pass (in ranked
+  // order) can let a solo land on a team before its pinned pair is placed,
+  // overflowing that team to 3 players and silently dropping someone.
+  const teamA = [], teamB = [];
+  chosen.filter(u=>u.pids.length===2).forEach(u=>{
+    (teamA.length === 0 ? teamA : teamB).push(...u.pids);
+  });
+  chosen.filter(u=>u.pids.length===1).forEach(u=>{
+    (teamA.length <= teamB.length ? teamA : teamB).push(u.pids[0]);
+  });
+  const chosenPids = new Set(chosen.flatMap(u=>u.pids));
+  for (let i=queue.length-1;i>=0;i--){ if (chosenPids.has(queue[i].pid)) queue.splice(i,1); }
+  return [teamA[0], teamA[1], teamB[0], teamB[1]];
 }
 
 async function checkPbSaveBackup(){
