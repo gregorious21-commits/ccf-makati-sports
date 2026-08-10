@@ -836,6 +836,18 @@ select.fi{
   min-width:40px;text-align:center;
   font-variant-numeric:tabular-nums;
 }
+.score-val-input{
+  font-family:'Bebas Neue', sans-serif;
+  font-size:32px;line-height:1;
+  letter-spacing:.02em;
+  width:52px;text-align:center;
+  font-variant-numeric:tabular-nums;
+  background:transparent;border:none;color:inherit;
+  -moz-appearance:textfield;
+}
+.score-val-input::-webkit-outer-spin-button,
+.score-val-input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+.score-val-input:focus{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
 .court-foot{
   padding:var(--s-3) var(--s-4);
   background:var(--surface-2);
@@ -4384,6 +4396,24 @@ function pbSetPartnerModeLive(newMode){
   }
 }
 
+// Simulates the next N selections pullNextFour would actually make — on a
+// cloned queue, so nothing real is mutated — so the "UP NEXT" tag reflects
+// who's really about to be picked. Selection is driven by fewest-games-
+// played (or ladder win/loss streak), not raw queue position, so this can
+// (and often does) differ from "the first 4 rows".
+function pbPreviewUpNext(){
+  if (!pbSession) return new Set();
+  const clone = pbSession.queue.map(q=>({...q}));
+  const upNext = new Set();
+  for (let i=0; i<pbSession.courts.length; i++){
+    if (clone.length < 4) break;
+    const picked = pullNextFour(pbSession.style, clone);
+    if (!picked || picked.length < 4) break;
+    picked.forEach(pid => pid && upNext.add(pid));
+  }
+  return upNext;
+}
+
 function renderPballSession(){
   if (!pbSession) return;
   // Show/hide Edit Partners button based on mode
@@ -4430,7 +4460,7 @@ function renderPballSession(){
         </div>
           <div class="team-score-row">
             <button type="button" class="score-btn" onclick="pbScore('${c.id}','A',-1)">−</button>
-            <div class="score-val">${c.scoreA}</div>
+            <input type="number" inputmode="numeric" class="score-val-input" value="${c.scoreA}" onfocus="this.select()" onchange="pbSetScore('${c.id}','A',this.value)" data-tip="Type the score directly">
             <button type="button" class="score-btn" onclick="pbScore('${c.id}','A',1)">+</button>
         </div>
       </div>
@@ -4441,7 +4471,7 @@ function renderPballSession(){
         </div>
           <div class="team-score-row">
             <button type="button" class="score-btn" onclick="pbScore('${c.id}','B',-1)">−</button>
-            <div class="score-val">${c.scoreB}</div>
+            <input type="number" inputmode="numeric" class="score-val-input" value="${c.scoreB}" onfocus="this.select()" onchange="pbSetScore('${c.id}','B',this.value)" data-tip="Type the score directly">
             <button type="button" class="score-btn" onclick="pbScore('${c.id}','B',1)">+</button>
         </div>
       </div>
@@ -4457,12 +4487,11 @@ function renderPballSession(){
   if(!pbSession.queue.length){
     q.innerHTML='<div class="empty" style="padding:14px">No one in the queue.</div>';
   } else {
-    const courtsCount = pbSession.courts.length;
-    const upNextCount = courtsCount * 2; // next 4 players fill the next round
     const lastIdx = pbSession.queue.length - 1;
+    const upNextSet = pbPreviewUpNext();
     q.innerHTML = pbSession.queue.map((item,i)=>{
       const sk=pbSkill(item.pid);
-      const upNext = i < upNextCount;
+      const upNext = upNextSet.has(item.pid);
       const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
@@ -4639,6 +4668,15 @@ function pbScore(courtId, team, delta){
   const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
   if (team==='A') c.scoreA = Math.max(0, c.scoreA + delta);
   else            c.scoreB = Math.max(0, c.scoreB + delta);
+  renderPballSession();
+  touchSharedSession();
+}
+
+function pbSetScore(courtId, team, value){
+  if (!pbSession) return;
+  const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
+  const n = Math.max(0, parseInt(value,10) || 0);
+  if (team==='A') c.scoreA = n; else c.scoreB = n;
   renderPballSession();
   touchSharedSession();
 }
