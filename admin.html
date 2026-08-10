@@ -1555,6 +1555,11 @@ select.fi{
             <div id="pb-pinned-list"></div>
           </div>
           <div class="card">
+            <div class="card-h"><div class="card-t"><i class="ti ti-swords"></i>Rematch Requests</div></div>
+            <div class="note" style="margin-bottom:8px">They'll face off once it's naturally their turn — this never skips them ahead of anyone waiting.</div>
+            <div id="pb-rematch-list"></div>
+          </div>
+          <div class="card">
             <div class="card-h"><div class="card-t"><i class="ti ti-clock-pause"></i>Waiting Queue</div><div id="pb-queue-count" style="font-size:11px;color:var(--tx3);letter-spacing:.3px"></div></div>
             <div id="pball-queue"></div>
         </div>
@@ -3972,6 +3977,7 @@ async function discardLiveSession(){
 
 // ── PICKLEBALL SESSION MANAGER ──────────────────────────────────
 const SKILL_RANK = { newbie:1, intermediate:2, expert:3 };
+const SKILL_LABEL = { newbie:'Beginner', intermediate:'Intermediate', expert:'Expert' };
 let pbSession = null;  // { active, courts, queue, log, format, style, gameId, startedAt }
 
 function pbPlayer(pid){
@@ -4254,14 +4260,123 @@ function pbUnpinPair(i){
 // Move a queued player up/down the waiting order — only matters as a
 // tiebreaker among players tied on games-played, but lets an admin nudge
 // who goes in next without waiting on the automatic fairness sort.
+// Skill tiers actually assigned to at least one court right now — drives
+// whether the Waiting Queue displays as one list or grouped pools.
+function pbQueueGroupTiers(){
+  if (!pbSession) return [];
+  return [...new Set(pbSession.courts.map(c=>c.skillTier).filter(Boolean))];
+}
+// Which display group a player belongs to: their own skill tier if a court
+// is actually restricted to it, otherwise a shared "unmatched" bucket.
+function pbQueueGroupKey(pid, tiers){
+  const sk = pbSkill(pid);
+  return tiers.includes(sk) ? sk : '__other__';
+}
+
 function pbMoveQueue(pid, dir){
   if (!pbSession) return;
   const i = pbSession.queue.findIndex(q=>q.pid===pid);
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= pbSession.queue.length) return;
-  [pbSession.queue[i], pbSession.queue[j]] = [pbSession.queue[j], pbSession.queue[i]];
+  if (i < 0) return;
+  const tiers = pbQueueGroupTiers();
+  if (!tiers.length){
+    // No grouping in effect — plain adjacent swap, same as before.
+    const j = i + dir;
+    if (j < 0 || j >= pbSession.queue.length) return;
+    [pbSession.queue[i], pbSession.queue[j]] = [pbSession.queue[j], pbSession.queue[i]];
+  } else {
+    // Grouped display — move within this player's own pool by walking past
+    // any other-group rows in between, so the swap matches what's visible.
+    const myGroup = pbQueueGroupKey(pid, tiers);
+    let j = i + dir;
+    while (j >= 0 && j < pbSession.queue.length && pbQueueGroupKey(pbSession.queue[j].pid, tiers) !== myGroup) j += dir;
+    if (j < 0 || j >= pbSession.queue.length) return;
+    [pbSession.queue[i], pbSession.queue[j]] = [pbSession.queue[j], pbSession.queue[i]];
+  }
   touchSharedSession();
   renderPballSession();
+}
+
+// ── REMATCH REQUESTS ─────────────────────────────────────────────────────
+// Two specific players who want to face off again — but fairly. This never
+// changes WHO gets pulled next (the normal balanced/ladder fairness pick is
+// untouched, so they still wait their turn same as anyone else) — it only
+// steps in once both happen to land in the same foursome naturally, and
+// arranges them onto opposing teams instead of leaving it to chance. Once
+// that actually happens, the request is fulfilled and auto-clears.
+function pbRenderRematchRequests(){
+  const el = document.getElementById('pb-rematch-list');
+  if (!el || !pbSession) return;
+  const reqs = pbSession.rematchRequests || [];
+  const reqPids = new Set(reqs.flat());
+  const roster = pbPinnedRoster();
+  const chips = reqs.length
+    ? reqs.map((pair,i)=>`<div class="queue-chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0">
+        <span>${pbName(pair[0])} vs ${pbName(pair[1])}</span>
+        <button type="button" onclick="pbCancelRematch(${i})" data-tip="Cancel request" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:0;font-size:13px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>`).join('')
+    : '<div class="empty" style="padding:8px 0">No rematch requests.</div>';
+  const pickable = roster.filter(pid=>!reqPids.has(pid));
+  const opts = pickable.map(p=>`<option value="${p}">${pbName(p)}</option>`).join('');
+  el.innerHTML = `
+    <div>${chips}</div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+      <select class="fi" id="pb-rematch-a" style="flex:1"><option value="">Player 1</option>${opts}</select>
+      <select class="fi" id="pb-rematch-b" style="flex:1"><option value="">Player 2</option>${opts}</select>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="pbRequestRematch()"><i class="ti ti-swords"></i>Request</button>
+    </div>`;
+}
+
+function pbRequestRematch(){
+  if (!pbSession) return;
+  const a = document.getElementById('pb-rematch-a').value;
+  const b = document.getElementById('pb-rematch-b').value;
+  if (!a || !b){ toast('Pick two players','er'); return; }
+  if (a === b){ toast('Pick two different players','er'); return; }
+  if (!pbSession.rematchRequests) pbSession.rematchRequests = [];
+  pbSession.rematchRequests.push([a,b]);
+  touchSharedSession();
+  pbRenderRematchRequests();
+  toast(pbName(a)+' vs '+pbName(b)+' — they\'ll face off once it\'s their fair turn');
+}
+
+function pbCancelRematch(i){
+  if (!pbSession || !pbSession.rematchRequests) return;
+  pbSession.rematchRequests.splice(i,1);
+  touchSharedSession();
+  pbRenderRematchRequests();
+}
+
+// If both members of a pending rematch request happen to land in the same
+// foursome via the normal fairness pull, arrange them onto opposing teams
+// instead of leaving it to chance. Never changes who was pulled or their
+// order — only which side of the net they land on once already drawn.
+function pbApplyRematchSplit(next){
+  if (!pbSession || !next || next.length !== 4) return next;
+  const reqs = pbSession.rematchRequests || [];
+  const pinned = pbSession.pinnedPairs || [];
+  reqs.forEach(([a,b]) => {
+    const ia = next.indexOf(a), ib = next.indexOf(b);
+    if (ia===-1 || ib===-1) return; // not both drawn this round
+    if ((ia<2) !== (ib<2)) return; // already opposing — nothing to do
+    if (pinned.some(p=>p.includes(a)||p.includes(b))) return; // don't break a pinned-partner bond
+    const swapWith = ia<2 ? 2 : 0;
+    if (swapWith === ib) return;
+    [next[ib], next[swapWith]] = [next[swapWith], next[ib]];
+  });
+  return next;
+}
+
+// Once a pending request's two players actually end up facing off on
+// opposite teams of a real match (auto-pulled or manually placed via Edit
+// Court), the request is fulfilled — clear it so it stops steering future
+// matches after tonight's ask has already been granted.
+function pbClearFulfilledRematches(court){
+  if (!pbSession || !pbSession.rematchRequests || !pbSession.rematchRequests.length) return;
+  pbSession.rematchRequests = pbSession.rematchRequests.filter(([a,b]) => {
+    const aTeam = court.teamA.includes(a) ? 'A' : court.teamB.includes(a) ? 'B' : null;
+    const bTeam = court.teamA.includes(b) ? 'A' : court.teamB.includes(b) ? 'B' : null;
+    return !(aTeam && bTeam && aTeam !== bTeam); // false = fulfilled here, drop it
+  });
 }
 
 function startPickleballSession(){
@@ -4284,7 +4399,7 @@ function startPickleballSession(){
     // Manual: every court starts empty, every player goes in the queue.
     courts = [];
     for (let i = 0; i < courtCount; i++){
-      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false });
+      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:'' });
     }
     queue = presentIds.map(pid => ({ pid, lastResult: null }));
   } else if (partnerMode === 'fixed' && Object.keys(fixedPairs).length >= 4){
@@ -4318,11 +4433,11 @@ function startPickleballSession(){
     courts = courtPairs.map(([pA, pB], i) => ({
       id:'C'+(i+1), name:'Court '+(i+1),
       teamA: pA.slice(0,2), teamB: pB.slice(0,2),
-      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false
+      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:''
     }));
     // Pad courts up to courtCount if fewer pairs filled them
     while (courts.length < courtCount)
-      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false });
+      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:'' });
     queue = queuePairs.flat().map(pid => ({ pid, lastResult: null }));
   } else {
     // Auto-seed (random or by skill)
@@ -4333,7 +4448,7 @@ function startPickleballSession(){
       teamA:g.slice(0,2), teamB:g.slice(2,4),
       scoreA:0, scoreB:0,
       startedAt: Date.now(),
-      warmupEndsAt: null, pickingWarmup: false
+      warmupEndsAt: null, pickingWarmup: false, skillTier:''
     }));
     const overflow = groups.slice(courtCount).flat();
     queue = [...overflow, ...rest].map(pid=>({pid, lastResult:null}));
@@ -4347,6 +4462,7 @@ function startPickleballSession(){
     style, format:fmtType, formatValue:parseInt(fmtVal),
     partnerMode, fixedPairs,
     pinnedPairs: [],
+    rematchRequests: [],
     courts, queue, log:[], played,
     startedAt: Date.now()
   };
@@ -4403,14 +4519,23 @@ function pbSetPartnerModeLive(newMode){
 // (and often does) differ from "the first 4 rows".
 function pbPreviewUpNext(){
   if (!pbSession) return new Set();
-  const clone = pbSession.queue.map(q=>({...q}));
+  // Simulate per actual court (not just a court count) so a skill-tiered
+  // court only draws from a matching-tier slice of the pool — same rule
+  // pbPullForCourt applies for real. Each court's picks are removed from
+  // a shared "remaining" clone before the next court is simulated, so
+  // nobody is double-counted as up-next for two different courts.
+  let remaining = pbSession.queue.map(q=>({...q}));
   const upNext = new Set();
-  for (let i=0; i<pbSession.courts.length; i++){
-    if (clone.length < 4) break;
-    const picked = pullNextFour(pbSession.style, clone);
-    if (!picked || picked.length < 4) break;
+  pbSession.courts.forEach(c => {
+    const tier = c.skillTier;
+    const pool = (tier ? remaining.filter(q=>pbSkill(q.pid)===tier) : remaining.slice());
+    if (pool.length < 4) return;
+    const picked = pullNextFour(pbSession.style, pool);
+    if (!picked || picked.length < 4) return;
     picked.forEach(pid => pid && upNext.add(pid));
-  }
+    const chosen = new Set(picked);
+    remaining = remaining.filter(q => !chosen.has(q.pid));
+  });
   return upNext;
 }
 
@@ -4447,11 +4572,17 @@ function renderPballSession(){
     const fixedBadge = (pbSession.partnerMode === 'fixed')
       ? ' <span style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.04em;text-transform:uppercase">Fixed Pairs</span>'
       : '';
+    const tierOpts = ['',...Object.keys(SKILL_LABEL)].map(t=>
+      `<option value="${t}"${(c.skillTier||'')===t?' selected':''}>${t?SKILL_LABEL[t]+' only':'Open — any skill'}</option>`
+    ).join('');
     return `<div class="court-card">
       <div class="court-hd">
         <div class="court-name">${c.name}${fixedBadge}</div>
         <div class="court-format">${fmtLabel}</div>
     </div>
+      <div style="padding:0 var(--s-4);margin-top:-4px">
+        <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="Changes only affect who's auto-pulled next — anyone already on this court stays put" onchange="pbSetCourtSkill('${c.id}',this.value)">${tierOpts}</select>
+      </div>
       <div class="court-body">
         <div class="team-line">
           <div class="team-roster">
@@ -4481,27 +4612,50 @@ function renderPballSession(){
   }).join('');
   // Pinned pairs
   pbRenderPinnedPairs();
+  // Rematch requests
+  pbRenderRematchRequests();
   // Queue
   const q = document.getElementById('pball-queue');
   document.getElementById('pb-queue-count').textContent = pbSession.queue.length+' waiting';
+  const tierOrder = ['newbie','intermediate','expert'].filter(t=>pbQueueGroupTiers().includes(t));
   if(!pbSession.queue.length){
     q.innerHTML='<div class="empty" style="padding:14px">No one in the queue.</div>';
   } else {
-    const lastIdx = pbSession.queue.length - 1;
     const upNextSet = pbPreviewUpNext();
-    q.innerHTML = pbSession.queue.map((item,i)=>{
-      const sk=pbSkill(item.pid);
+    const renderRow = (item, posLabel, disableUp, disableDown) => {
+      const sk = pbSkill(item.pid);
       const upNext = upNextSet.has(item.pid);
       const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
-        <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${i+1}</span>
+        <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${posLabel}</span>
         <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
-        <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${i===0?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
-        <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${i===lastIdx?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
+        <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${disableUp?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
+        <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${disableDown?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
         <button type="button" data-tip="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
       </div>`;
-    }).join('');
+    };
+    if (!tierOrder.length){
+      // No skill-tiered courts — single combined list, same as always.
+      const lastIdx = pbSession.queue.length - 1;
+      q.innerHTML = pbSession.queue.map((item,i)=>renderRow(item, i+1, i===0, i===lastIdx)).join('');
+    } else {
+      // At least one court is skill-tiered — group the waiting list to match,
+      // so it reads like separate pools even though it's still one queue
+      // underneath (pbMoveQueue moves within a player's own group to match).
+      const groups = tierOrder.map(t=>({ tier:t, label:SKILL_LABEL[t]+' Pool', items:[] }));
+      const other = { tier:null, label:'Other / Unassigned', items:[] };
+      pbSession.queue.forEach(item => {
+        const g = groups.find(g=>g.tier===pbSkill(item.pid));
+        (g||other).items.push(item);
+      });
+      const allGroups = other.items.length ? [...groups, other] : groups;
+      q.innerHTML = allGroups.map(g => {
+        const hd = `<div style="margin:10px 0 6px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
+        const rows = g.items.map((item,gi)=>renderRow(item, gi+1, gi===0, gi===g.items.length-1)).join('');
+        return hd + rows;
+      }).join('');
+    }
   }
   // Log
   const logEl = document.getElementById('pball-log');
@@ -4681,6 +4835,34 @@ function pbSetScore(courtId, team, value){
   touchSharedSession();
 }
 
+// Pull the next 4 for a specific court, respecting its skill-tier filter
+// (Open/blank = no restriction). Runs pullNextFour against a filtered
+// clone of the queue — so pinned pairs / balanced / ladder logic all still
+// apply unchanged, just scoped to matching players — then removes exactly
+// the chosen players from the real queue. Everyone waiting for a different
+// tier is left untouched, still in place, still able to fill their own court.
+function pbPullForCourt(court){
+  const tier = court && court.skillTier;
+  const pool = (tier ? pbSession.queue.filter(q => pbSkill(q.pid) === tier) : pbSession.queue)
+    .map(q => ({...q}));
+  const next = pullNextFour(pbSession.style, pool);
+  if (next.length === 4){
+    const chosen = new Set(next);
+    pbSession.queue = pbSession.queue.filter(q => !chosen.has(q.pid));
+  }
+  return next;
+}
+
+function pbSetCourtSkill(courtId, tier){
+  if (!pbSession) return;
+  const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
+  c.skillTier = tier || '';
+  // Only affects future automatic pulls — anyone already on this court stays put.
+  renderPballSession();
+  touchSharedSession();
+  toast(c.name + ' set to ' + (c.skillTier ? SKILL_LABEL[c.skillTier] : 'Open — any skill'));
+}
+
 // ── ADD / REMOVE COURT MID-SESSION ───────────────────────────────
 // Fill any fully-empty court from the queue (least-played first). Returns
 // how many courts were filled. Called whenever the queue grows so empty
@@ -4691,11 +4873,12 @@ function pbFillEmptyCourts(){
   pbSession.courts.forEach(c => {
     const isEmpty = (c.teamA.length + c.teamB.length) === 0;
     if (isEmpty && pbSession.queue.length >= 4){
-      const next = pullNextFour(pbSession.style, pbSession.queue);
+      const next = pbApplyRematchSplit(pbPullForCourt(c));
       if (next.length === 4){
         c.teamA = [next[0], next[1]];
         c.teamB = [next[2], next[3]];
         c.scoreA = 0; c.scoreB = 0; c.startedAt = Date.now();
+        pbClearFulfilledRematches(c);
         filled++;
       }
     }
@@ -4709,7 +4892,7 @@ function pbAddCourt(){
     id:'C'+Date.now().toString(36),
     name:'Court '+(pbSession.courts.length+1),
     teamA:[], teamB:[], scoreA:0, scoreB:0,
-    startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false
+    startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:''
   });
   const filled = pbFillEmptyCourts();
   renderPballSession();
@@ -4773,11 +4956,12 @@ function pbFinishMatch(courtId){
   // Push back to queue with result tags
   winners.forEach(pid=>pbSession.queue.push({pid, lastResult:'won'}));
   losers.forEach(pid=>pbSession.queue.push({pid, lastResult:'lost'}));
-  // Pull next 4 from queue based on style
-  const next = pullNextFour(pbSession.style, pbSession.queue);
+  // Pull next 4 from queue based on style (respecting this court's skill tier)
+  const next = pbApplyRematchSplit(pbPullForCourt(c));
   if (next.length === 4){
     c.teamA = [next[0], next[1]];
     c.teamB = [next[2], next[3]];
+    pbClearFulfilledRematches(c);
   } else {
     // Not enough players to fill this court — leave empty until queue grows
     c.teamA = [];
@@ -4885,6 +5069,7 @@ function saveCourtEdit(){
   if (document.getElementById('ec-reset').checked){
     c.scoreA = 0; c.scoreB = 0; c.startedAt = Date.now();
   }
+  pbClearFulfilledRematches(c); // manually placing a requested rematch counts too
   closeModal('edit-court');
   pbFillEmptyCourts();
   renderPballSession();
