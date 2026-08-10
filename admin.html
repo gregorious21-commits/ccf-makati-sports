@@ -938,6 +938,13 @@ select.fi{
   font-size:9px;color:var(--text-3);
   text-transform:uppercase;letter-spacing:.04em;
 }
+.sk-select{
+  font-size:9px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.04em;
+  background:transparent;border:1px solid var(--border);border-radius:4px;
+  padding:1px 3px;cursor:pointer;
+}
+.sk-select:hover{color:var(--text-1);border-color:var(--border-strong)}
 .queue-chip.won{border-color:rgba(34,197,94,.30);background:rgba(34,197,94,.06)}
 .queue-chip.lost{border-color:rgba(239,68,68,.20);background:rgba(239,68,68,.04)}
 .log-row{
@@ -1454,7 +1461,7 @@ select.fi{
             <div class="g2">
               <div>
                 <label class="fl" style="margin-top:0">Number of Courts</label>
-                <select class="fi" id="pb-courts">
+                <select class="fi" id="pb-courts" onchange="pbRenderCourtTierSetup()">
                   <option value="1">1 court</option>
                   <option value="2" selected>2 courts</option>
                   <option value="3">3 courts</option>
@@ -1503,6 +1510,10 @@ select.fi{
             <div class="note" style="margin-top:10px">
               <strong>Doubles (2 vs 2).</strong> Each court fits 4 players. Pick the present players above, then start the session.
           </div>
+            <div style="margin-top:14px">
+              <label class="fl" style="margin-top:0">Court Skill Assignment <span style="font-weight:400;color:var(--tx3);text-transform:none;letter-spacing:0">(optional — can also be changed live once the session starts)</span></label>
+              <div id="pb-court-tier-setup"></div>
+            </div>
             <button type="button" class="btn btn-w" style="width:100%;justify-content:center;margin-top:12px" onclick="pbMaybePair()"><i class="ti ti-player-play"></i>Start Session</button>
         </div>
       </div>
@@ -3683,6 +3694,7 @@ function renderGameDay(){
         : 'Randomize teams · Record wins · Archive results';
     window._gdSportInit = true;
   }
+  if ((gdSport==='pickleball'||gdSport==='badminton') && (!pbSession || !pbSession.active)) pbRenderCourtTierSetup();
   if (gdSport==='running'||gdSport==='dragonboat'){ renderRunAttendance(); return; }
   // Find the next game OF THE SELECTED SPORT (so attendance card matches)
   const next = games.find(g=>(g.sport||'basketball')===gdSport && (g.status==='confirmed'||g.status==='tbd'));
@@ -3978,6 +3990,27 @@ async function discardLiveSession(){
 // ── PICKLEBALL SESSION MANAGER ──────────────────────────────────
 const SKILL_RANK = { newbie:1, intermediate:2, expert:3 };
 const SKILL_LABEL = { newbie:'Beginner', intermediate:'Intermediate', expert:'Expert' };
+
+// Per-court skill tier chosen in Session Setup, before the session exists —
+// consumed once by startPickleballSession, then each court's live dropdown
+// takes over. Index i = Court (i+1).
+let _pbSetupTiers = [];
+function pbRenderCourtTierSetup(){
+  const el = document.getElementById('pb-court-tier-setup');
+  const countSel = document.getElementById('pb-courts');
+  if (!el || !countSel) return;
+  const count = parseInt(countSel.value) || 2;
+  el.innerHTML = Array.from({length:count}, (_,i) => {
+    const val = _pbSetupTiers[i] || '';
+    const opts = ['',...Object.keys(SKILL_LABEL)].map(t=>
+      `<option value="${t}"${val===t?' selected':''}>${t?SKILL_LABEL[t]+' only':'Open — any skill'}</option>`
+    ).join('');
+    return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+      <span style="font-size:12px;color:var(--tx2);min-width:60px">Court ${i+1}</span>
+      <select class="fi" style="flex:1;font-size:12px;padding:6px 8px" onchange="_pbSetupTiers[${i}]=this.value">${opts}</select>
+    </div>`;
+  }).join('');
+}
 let pbSession = null;  // { active, courts, queue, log, format, style, gameId, startedAt }
 
 function pbPlayer(pid){
@@ -3990,6 +4023,38 @@ function pbName(pid){
 function pbSkill(pid){
   const p = pbPlayer(pid);
   return (p && p.pickleballSkill) || '';
+}
+
+// Quick skill re-tag from inside the live session (e.g. a queue row) —
+// saves straight to the player's profile via the same RPC the full Edit
+// Player form uses, carrying through their other current fields unchanged.
+// Skill is read live everywhere it matters (pbSkill), so a change here
+// takes effect on the very next automatic pull — no session restart needed.
+async function pbSetPlayerSkill(pid, skill){
+  const p = pbPlayer(pid);
+  if (!p) return;
+  const prev = p.pickleballSkill || '';
+  if (prev === skill) return;
+  p.pickleballSkill = skill;
+  LC.set('players', LC.arr('players'));
+  renderPballSession();
+  touchSharedSession();
+  const ok = await rpc('admin_update_player', {
+    p_my_phone: AUTH.phone(), p_my_pin: AUTH.pin(),
+    p_target_id: p.id,
+    p_first_name: p.firstName, p_last_name: p.lastName, p_phone: p.phone, p_email: p.email||'',
+    p_new_position: p.position||'', p_sports: p.sports||'', p_pickleball_skill: skill,
+    p_has_dgroup: !!p.hasDgroup, p_dgroup_leader: p.dgroupLeader||'',
+    p_attended_ccf: !!p.attendedCCF, p_wins: p.wins||0, p_games_played: p.games||0
+  });
+  if (ok !== true){
+    p.pickleballSkill = prev;
+    LC.set('players', LC.arr('players'));
+    renderPballSession();
+    toast('Could not save skill change — reverted','er');
+  } else {
+    toast(p.firstName+' set to '+(SKILL_LABEL[skill]||'no skill level set'));
+  }
 }
 function shuffle(arr){
   const a=[...arr];
@@ -4399,7 +4464,7 @@ function startPickleballSession(){
     // Manual: every court starts empty, every player goes in the queue.
     courts = [];
     for (let i = 0; i < courtCount; i++){
-      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:'' });
+      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||'' });
     }
     queue = presentIds.map(pid => ({ pid, lastResult: null }));
   } else if (partnerMode === 'fixed' && Object.keys(fixedPairs).length >= 4){
@@ -4433,11 +4498,11 @@ function startPickleballSession(){
     courts = courtPairs.map(([pA, pB], i) => ({
       id:'C'+(i+1), name:'Court '+(i+1),
       teamA: pA.slice(0,2), teamB: pB.slice(0,2),
-      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:''
+      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||''
     }));
     // Pad courts up to courtCount if fewer pairs filled them
     while (courts.length < courtCount)
-      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:'' });
+      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[courts.length]||'' });
     queue = queuePairs.flat().map(pid => ({ pid, lastResult: null }));
   } else {
     // Auto-seed (random or by skill)
@@ -4448,7 +4513,7 @@ function startPickleballSession(){
       teamA:g.slice(0,2), teamB:g.slice(2,4),
       scoreA:0, scoreB:0,
       startedAt: Date.now(),
-      warmupEndsAt: null, pickingWarmup: false, skillTier:''
+      warmupEndsAt: null, pickingWarmup: false, skillTier:_pbSetupTiers[i]||''
     }));
     const overflow = groups.slice(courtCount).flat();
     queue = [...overflow, ...rest].map(pid=>({pid, lastResult:null}));
@@ -4626,9 +4691,15 @@ function renderPballSession(){
       const sk = pbSkill(item.pid);
       const upNext = upNextSet.has(item.pid);
       const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
+      const skillPicker = `<select class="sk-select" data-tip="Change skill level" onchange="pbSetPlayerSkill('${item.pid}',this.value)">
+        <option value=""${!sk?' selected':''}>—</option>
+        <option value="newbie"${sk==='newbie'?' selected':''}>NEW</option>
+        <option value="intermediate"${sk==='intermediate'?' selected':''}>INT</option>
+        <option value="expert"${sk==='expert'?' selected':''}>EXP</option>
+      </select>`;
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${posLabel}</span>
-        <span class="${cls}" style="flex:1">${pbName(item.pid)}${sk?` <span class="sk-tag">${sk.slice(0,3)}</span>`:''}</span>
+        <span class="${cls}" style="flex:1">${pbName(item.pid)} ${skillPicker}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
         <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${disableUp?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
         <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${disableDown?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
