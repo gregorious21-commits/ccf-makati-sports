@@ -4078,6 +4078,35 @@ function seedPlayers(presentPids, style){
   return shuffle(presentPids);
 }
 
+// Initial court seeding that respects each court's assigned skill tier
+// (from Session Setup): tiered courts only draw from matching-skill
+// players first, filling one shared pool per distinct tier so multiple
+// courts sharing a tier (e.g. two Intermediate courts) split it fairly.
+// Anyone left over — including tiered players with no room on their tier's
+// court(s) — flows into whatever Open courts remain, same as today's
+// behavior when no tiers are set at all. Returns courtSeed[i] = a 4-pid
+// array or null (not enough matching players yet — court starts empty,
+// same as the existing "leave empty until queue grows" pattern).
+function pbSeedCourtsByTier(presentIdsList, courtCount, seedMode){
+  const tiers = Array.from({length:courtCount}, (_,i)=>_pbSetupTiers[i]||'');
+  let pool = [...presentIdsList];
+  const courtSeed = new Array(courtCount).fill(null);
+  const take = (pids) => pids.forEach(pid => { const idx=pool.indexOf(pid); if (idx>-1) pool.splice(idx,1); });
+
+  [...new Set(tiers.filter(Boolean))].forEach(tier => {
+    const courtIdxs = tiers.map((t,i)=>t===tier?i:-1).filter(i=>i>=0);
+    const matching = pool.filter(pid => pbSkill(pid)===tier);
+    const { groups } = chunk4(seedPlayers(matching, seedMode));
+    courtIdxs.forEach((ci,gi) => { if (groups[gi]){ courtSeed[ci]=groups[gi]; take(groups[gi]); } });
+  });
+
+  const openIdxs = tiers.map((t,i)=>t?-1:i).filter(i=>i>=0);
+  const { groups: openGroups } = chunk4(seedPlayers(pool, seedMode));
+  openIdxs.forEach((ci,gi) => { if (openGroups[gi]){ courtSeed[ci]=openGroups[gi]; take(openGroups[gi]); } });
+
+  return { courtSeed, tiers };
+}
+
 // ── FIXED-PARTNER PAIRING FLOW ───────────────────────────────────────────────
 // pbPairs: { [pid]: partnerPid } — set during pairing, used all session.
 let pbPairs = {};
@@ -4505,18 +4534,20 @@ function startPickleballSession(){
       courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[courts.length]||'' });
     queue = queuePairs.flat().map(pid => ({ pid, lastResult: null }));
   } else {
-    // Auto-seed (random or by skill)
-    const seeded = seedPlayers(presentIds, seedMode);
-    const { groups, rest } = chunk4(seeded);
-    courts = groups.slice(0, courtCount).map((g,i)=>({
+    // Auto-seed (random or by skill) — respects each court's assigned tier
+    // (set in Session Setup) so the very first foursome on a Beginner court
+    // is already all-beginner, not just future auto-pulls after it rotates.
+    const { courtSeed, tiers } = pbSeedCourtsByTier(presentIds, courtCount, seedMode);
+    courts = courtSeed.map((seed,i) => ({
       id:'C'+(i+1), name:'Court '+(i+1),
-      teamA:g.slice(0,2), teamB:g.slice(2,4),
+      teamA: seed ? seed.slice(0,2) : [],
+      teamB: seed ? seed.slice(2,4) : [],
       scoreA:0, scoreB:0,
       startedAt: Date.now(),
-      warmupEndsAt: null, pickingWarmup: false, skillTier:_pbSetupTiers[i]||''
+      warmupEndsAt: null, pickingWarmup: false, skillTier: tiers[i]
     }));
-    const overflow = groups.slice(courtCount).flat();
-    queue = [...overflow, ...rest].map(pid=>({pid, lastResult:null}));
+    const placed = new Set(courtSeed.filter(Boolean).flat());
+    queue = presentIds.filter(pid => !placed.has(pid)).map(pid=>({pid, lastResult:null}));
   }
   // Track games played per player so the queue can equalize play time
   // (the least-played rotate in first, like the basketball engine).
