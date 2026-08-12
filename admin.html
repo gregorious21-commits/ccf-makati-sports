@@ -1405,10 +1405,19 @@ select.fi{
         <div class="card" id="bb-setup">
           <div class="card-h"><div class="card-t"><i class="ti ti-dice"></i>Start Rotation</div></div>
           <div class="note">Two teams play each match. After every game the teams re-shuffle and whoever has played the fewest matches rotates in first — so teammates keep changing and everyone plays an even number of games.</div>
-          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-            <div><label class="fl" style="margin-top:0">Players per team</label><input type="number" class="fi" id="bb-team-size" value="5" min="2" max="6" style="width:110px"></div>
-            <button type="button" class="btn btn-w" onclick="bbStart()"><i class="ti ti-player-play"></i>Start First Match</button>
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+            <div><label class="fl" style="margin-top:0">Players per team</label><input type="number" class="fi" id="bb-team-size" value="5" min="2" max="6" style="width:110px" onchange="bbRenderModeSetup()"></div>
+            <div>
+              <label class="fl" style="margin-top:0">Team Mode</label>
+              <select class="fi" id="bb-mode" style="min-width:240px" onchange="bbRenderModeSetup()">
+                <option value="mixed">Mixed — everyone rotates &amp; reshuffles</option>
+                <option value="squad">One Locked Squad — 5 stick together, rest mixes</option>
+                <option value="fixedTeams">Fixed Teams — everyone locked all night (mini-tournament)</option>
+              </select>
+            </div>
           </div>
+          <div id="bb-mode-setup"></div>
+          <button type="button" class="btn btn-w" style="margin-top:14px" onclick="bbStart()"><i class="ti ti-player-play"></i>Start First Match</button>
         </div>
 
         <!-- ACTIVE ROTATION -->
@@ -1429,6 +1438,7 @@ select.fi{
               </div>
             </div>
           </div>
+          <div id="bb-standings"></div>
           <div class="card">
             <div class="card-h">
               <div class="card-t"><i class="ti ti-tournament"></i>Match <span id="bb-match-num">1</span></div>
@@ -3695,6 +3705,7 @@ function renderGameDay(){
     window._gdSportInit = true;
   }
   if ((gdSport==='pickleball'||gdSport==='badminton') && (!pbSession || !pbSession.active)) pbRenderCourtTierSetup();
+  if (gdSport==='basketball' && (!bbRotation || !bbRotation.active)) bbRenderModeSetup();
   if (gdSport==='running'||gdSport==='dragonboat'){ renderRunAttendance(); return; }
   // Find the next game OF THE SELECTED SPORT (so attendance card matches)
   const next = games.find(g=>(g.sport||'basketball')===gdSport && (g.status==='confirmed'||g.status==='tbd'));
@@ -4023,6 +4034,26 @@ function pbName(pid){
 function pbSkill(pid){
   const p = pbPlayer(pid);
   return (p && p.pickleballSkill) || '';
+}
+
+// Skill used for tier-matching purposes (court auto-pull, queue grouping).
+// A session-only override — e.g. an Expert with no Expert court, routed
+// into the Intermediate pool for tonight — takes priority over their real
+// profile skill, without ever touching that profile. Everywhere else
+// (identity, court-card tags) should keep using pbSkill directly.
+function pbEffectiveSkill(pid){
+  if (pbSession && pbSession.skillOverrides && pbSession.skillOverrides[pid]) return pbSession.skillOverrides[pid];
+  return pbSkill(pid);
+}
+
+function pbSetSkillOverride(pid, tier){
+  if (!pbSession) return;
+  if (!pbSession.skillOverrides) pbSession.skillOverrides = {};
+  if (tier) pbSession.skillOverrides[pid] = tier;
+  else delete pbSession.skillOverrides[pid];
+  touchSharedSession();
+  renderPballSession();
+  toast(tier ? pbName(pid)+' playing as '+SKILL_LABEL[tier]+' for this session' : pbName(pid)+' back to their own pool');
 }
 
 // Quick skill re-tag from inside the live session (e.g. a queue row) —
@@ -4363,7 +4394,7 @@ function pbQueueGroupTiers(){
 // Which display group a player belongs to: their own skill tier if a court
 // is actually restricted to it, otherwise a shared "unmatched" bucket.
 function pbQueueGroupKey(pid, tiers){
-  const sk = pbSkill(pid);
+  const sk = pbEffectiveSkill(pid);
   return tiers.includes(sk) ? sk : '__other__';
 }
 
@@ -4559,6 +4590,7 @@ function startPickleballSession(){
     partnerMode, fixedPairs,
     pinnedPairs: [],
     rematchRequests: [],
+    skillOverrides: {},
     courts, queue, log:[], played,
     startedAt: Date.now()
   };
@@ -4624,7 +4656,7 @@ function pbPreviewUpNext(){
   const upNext = new Set();
   pbSession.courts.forEach(c => {
     const tier = c.skillTier;
-    const pool = (tier ? remaining.filter(q=>pbSkill(q.pid)===tier) : remaining.slice());
+    const pool = (tier ? remaining.filter(q=>pbEffectiveSkill(q.pid)===tier) : remaining.slice());
     if (pool.length < 4) return;
     const picked = pullNextFour(pbSession.style, pool);
     if (!picked || picked.length < 4) return;
@@ -4722,15 +4754,22 @@ function renderPballSession(){
       const sk = pbSkill(item.pid);
       const upNext = upNextSet.has(item.pid);
       const cls = item.lastResult==='won' ? 'queue-chip won' : item.lastResult==='lost' ? 'queue-chip lost' : 'queue-chip';
-      const skillPicker = `<select class="sk-select" data-tip="Change skill level" onchange="pbSetPlayerSkill('${item.pid}',this.value)">
+      const skillPicker = `<select class="sk-select" data-tip="Change their real skill level (permanent)" onchange="pbSetPlayerSkill('${item.pid}',this.value)">
         <option value=""${!sk?' selected':''}>—</option>
         <option value="newbie"${sk==='newbie'?' selected':''}>NEW</option>
         <option value="intermediate"${sk==='intermediate'?' selected':''}>INT</option>
         <option value="expert"${sk==='expert'?' selected':''}>EXP</option>
       </select>`;
+      const ov = (pbSession.skillOverrides && pbSession.skillOverrides[item.pid]) || '';
+      const overridePicker = tierOrder.length ? `<select class="sk-select" data-tip="Session-only: route them into a different pool for tonight without changing their real skill level" style="${ov?'border-color:var(--gold);color:var(--gold)':''}" onchange="pbSetSkillOverride('${item.pid}',this.value)">
+        <option value=""${!ov?' selected':''}>Own pool</option>
+        <option value="newbie"${ov==='newbie'?' selected':''}>As NEW</option>
+        <option value="intermediate"${ov==='intermediate'?' selected':''}>As INT</option>
+        <option value="expert"${ov==='expert'?' selected':''}>As EXP</option>
+      </select>` : '';
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${posLabel}</span>
-        <span class="${cls}" style="flex:1">${pbName(item.pid)} ${skillPicker}</span>
+        <span class="${cls}" style="flex:1">${pbName(item.pid)} ${skillPicker}${overridePicker}</span>
         ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
         <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${disableUp?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
         <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${disableDown?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
@@ -4945,7 +4984,7 @@ function pbSetScore(courtId, team, value){
 // tier is left untouched, still in place, still able to fill their own court.
 function pbPullForCourt(court){
   const tier = court && court.skillTier;
-  const pool = (tier ? pbSession.queue.filter(q => pbSkill(q.pid) === tier) : pbSession.queue)
+  const pool = (tier ? pbSession.queue.filter(q => pbEffectiveSkill(q.pid) === tier) : pbSession.queue)
     .map(q => ({...q}));
   const next = pullNextFour(pbSession.style, pool);
   if (next.length === 4){
@@ -5655,12 +5694,94 @@ let bbRotation = null;
 function bbName(pid){ const p=LC.arr('players').find(x=>x.id===pid); return p?(p.firstName+' '+p.lastName):'?'; }
 function bbFirst(pid){ const p=LC.arr('players').find(x=>x.id===pid); return p?p.firstName:'?'; }
 
+// ── PRE-SESSION MODE SETUP (Locked Squad / Fixed Teams) ─────────────────
+// _bbSquadSetup: pids picked for the locked squad, before starting.
+// _bbTeamAssign: pid -> team index (0-based) or null, for Fixed Teams.
+let _bbSquadSetup = [];
+let _bbTeamAssign = {};
+
+function bbRenderModeSetup(){
+  const el = document.getElementById('bb-mode-setup');
+  const modeSel = document.getElementById('bb-mode');
+  if (!el || !modeSel) return;
+  const mode = modeSel.value || 'mixed';
+  const size = Math.max(2, Math.min(6, parseInt((document.getElementById('bb-team-size')||{}).value)||5));
+  if (mode === 'squad'){
+    _bbSquadSetup = _bbSquadSetup.filter(pid=>presentIds.includes(pid));
+    const rows = presentIds.map(pid=>{
+      const checked = _bbSquadSetup.includes(pid);
+      const disabled = !checked && _bbSquadSetup.length>=size;
+      return `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?.5:1}">
+        <input type="checkbox" ${checked?'checked':''} ${disabled?'disabled':''} onchange="bbToggleSquadSetup('${pid}',this.checked,${size})">
+        ${bbName(pid)}
+      </label>`;
+    }).join('') || '<div class="empty">No players selected as present yet.</div>';
+    el.innerHTML = `<div class="note" style="margin-bottom:8px">Pick exactly ${size} players to lock together as one team. They still rotate on/off the bench fairly like everyone else — whenever it's their turn, all ${size} play as one team; the opposing side is drawn fresh each match.</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">${_bbSquadSetup.length}/${size} selected</div>
+      <div style="max-height:220px;overflow-y:auto">${rows}</div>`;
+  } else if (mode === 'fixedTeams'){
+    const teamCount = Math.floor(presentIds.length / size);
+    const unassignedCount = presentIds.length - teamCount*size;
+    Object.keys(_bbTeamAssign).forEach(pid=>{ if(!presentIds.includes(pid)) delete _bbTeamAssign[pid]; });
+    const teamOpts = cur => {
+      let o = `<option value=""${cur==null?' selected':''}>— Unassigned —</option>`;
+      for(let t=0;t<teamCount;t++) o += `<option value="${t}"${cur===t?' selected':''}>Team ${t+1}</option>`;
+      return o;
+    };
+    const rows = presentIds.map(pid=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span style="flex:1;font-size:13px">${bbName(pid)}</span>
+      <select class="fi" style="font-size:12px;padding:5px 8px;width:150px" onchange="_bbTeamAssign['${pid}']=this.value===''?null:parseInt(this.value)">${teamOpts(_bbTeamAssign[pid])}</select>
+    </div>`).join('') || '<div class="empty">No players selected as present yet.</div>';
+    el.innerHTML = `<div class="note" style="margin-bottom:8px">${presentIds.length} present ÷ ${size} per team = <strong>${teamCount} team${teamCount===1?'':'s'}</strong>${unassignedCount?' · '+unassignedCount+" won't have a team tonight unless assignments change":''}. Teams stay locked all session — matches pair whichever two teams have played fewest games, with a running standings board.</div>
+      <button type="button" class="btn btn-ghost btn-sm" style="margin-bottom:10px" onclick="bbShuffleTeamSetup(${size})"><i class="ti ti-dice"></i>Shuffle All</button>
+      <div style="max-height:260px;overflow-y:auto">${rows}</div>`;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function bbToggleSquadSetup(pid, checked, size){
+  if (checked){ if (!_bbSquadSetup.includes(pid) && _bbSquadSetup.length<size) _bbSquadSetup.push(pid); }
+  else { const i=_bbSquadSetup.indexOf(pid); if(i>-1) _bbSquadSetup.splice(i,1); }
+  bbRenderModeSetup();
+}
+
+function bbShuffleTeamSetup(size){
+  const teamCount = Math.floor(presentIds.length / size);
+  const shuffled = shuffle(presentIds);
+  _bbTeamAssign = {};
+  shuffled.forEach((pid,i)=>{ _bbTeamAssign[pid] = i < teamCount*size ? Math.floor(i/size) : null; });
+  bbRenderModeSetup();
+}
+
 function bbStart(){
   if(presentIds.length<4){ toast('Need at least 4 players present','er'); return; }
   const size=Math.max(2,Math.min(6,parseInt(document.getElementById('bb-team-size').value)||5));
-  bbRotation={ active:true, teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{} };
-  presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
-  bbFormMatch();
+  const mode=(document.getElementById('bb-mode')||{}).value || 'mixed';
+
+  if (mode === 'squad'){
+    if (_bbSquadSetup.length !== size){ toast('Pick exactly '+size+' players for the locked squad','er'); return; }
+    bbRotation={ active:true, mode:'squad', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, lockedSquad:_bbSquadSetup.slice() };
+    presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
+    bbFormMatch();
+  } else if (mode === 'fixedTeams'){
+    const teamCount = Math.floor(presentIds.length / size);
+    if (teamCount < 2){ toast('Need at least 2 full teams of '+size+' to run Fixed Teams','er'); return; }
+    const teams = [];
+    for (let t=0; t<teamCount; t++){
+      const players = presentIds.filter(pid=>_bbTeamAssign[pid]===t);
+      if (players.length !== size){ toast('Team '+(t+1)+' needs exactly '+size+' players — check assignments','er'); return; }
+      teams.push({ id:'T'+(t+1), name:'Team '+(t+1), players, wins:0, losses:0, played:0 });
+    }
+    bbRotation={ active:true, mode:'fixedTeams', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, teams, currentTeamIds:[] };
+    presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
+    bbFormTeamMatch();
+  } else {
+    bbRotation={ active:true, mode:'mixed', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{} };
+    presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
+    bbFormMatch();
+  }
+
   document.getElementById('bb-setup').style.display='none';
   document.getElementById('bb-active').style.display='';
   renderBbRotation();
@@ -5670,12 +5791,50 @@ function bbStart(){
 }
 
 // Build the next match: least-played players get on court, teammates randomized.
+// If a Locked Squad is set and fully present, it's treated as one 5-slot unit
+// competing on the same fewest-played fairness rule as everyone else — when
+// it's their turn, all 5 go on together as Team A and the opponent side is
+// drawn fresh from the rest; when it's not their turn, they sit out as a
+// block, same as any individual would.
 function bbFormMatch(){
   if(!bbRotation) return;
   const size=bbRotation.teamSize, need=size*2;
   // make sure every present player has a play count (covers late arrivals)
   presentIds.forEach(pid=>{ if(bbRotation.played[pid]==null) bbRotation.played[pid]=0; });
-  // only consider players who are still present
+
+  const squad = bbRotation.mode==='squad' ? (bbRotation.lockedSquad||[]) : [];
+  const squadReady = squad.length===size && squad.every(pid=>presentIds.includes(pid));
+
+  if (squadReady){
+    const squadAvg = squad.reduce((s,pid)=>s+(bbRotation.played[pid]||0),0)/squad.length;
+    const others = presentIds.filter(pid=>!squad.includes(pid));
+    const soloUnits = others.map(pid=>({kind:'solo', pid, n:bbRotation.played[pid]||0, r:Math.random()}));
+    const units = [{ kind:'squad', n:squadAvg, r:Math.random() }, ...soloUnits].sort((a,b)=>a.n-b.n || a.r-b.r);
+    let slots = need, onCourt = [], squadPicked = false;
+    for (const u of units){
+      if (u.kind==='squad'){
+        if (size > slots) continue; // wouldn't fit without splitting — defer to a future match
+        onCourt.push(...squad); slots -= size; squadPicked = true;
+      } else {
+        if (slots < 1) continue;
+        onCourt.push(u.pid); slots -= 1;
+      }
+      if (slots === 0) break;
+    }
+    bbRotation.bench = presentIds.filter(pid=>!onCourt.includes(pid));
+    if (squadPicked){
+      bbRotation.teamA = squad.slice();
+      bbRotation.teamB = shuffle(onCourt.filter(pid=>!squad.includes(pid)));
+    } else {
+      // Not the squad's turn this round — standard shuffle among whoever was picked.
+      const sh=shuffle(onCourt); const half=Math.ceil(sh.length/2);
+      bbRotation.teamA=sh.slice(0,half); bbRotation.teamB=sh.slice(half);
+    }
+    return;
+  }
+
+  // Standard mixed selection (unchanged) — also the fallback when the squad
+  // isn't fully present or no squad is set for this session.
   const pool=presentIds.slice();
   // sort by fewest matches played, ties broken randomly → fair rotation
   const sorted=pool.map(pid=>({pid,n:bbRotation.played[pid]||0,r:Math.random()}))
@@ -5688,6 +5847,31 @@ function bbFormMatch(){
   bbRotation.teamA=sh.slice(0,half);
   bbRotation.teamB=sh.slice(half);
   bbRotation.bench=bench;
+}
+
+// Fixed Teams mode: pick the next two teams to play — least matches played,
+// tie-broken randomly — so it plays out like a mini round-robin tournament.
+function bbFormTeamMatch(){
+  if (!bbRotation || bbRotation.mode!=='fixedTeams') return;
+  const teams = bbRotation.teams;
+  const ranked = teams.map((t,i)=>({i,n:t.played,r:Math.random()})).sort((a,b)=>a.n-b.n||a.r-b.r);
+  const [a,b] = ranked;
+  bbRotation.currentTeamIds = [a.i, b.i];
+  bbRotation.teamA = teams[a.i].players.slice();
+  bbRotation.teamB = teams[b.i].players.slice();
+  bbRotation.bench = teams.filter((_,i)=>i!==a.i && i!==b.i).flatMap(t=>t.players);
+}
+
+function bbRenderStandings(){
+  if (!bbRotation || bbRotation.mode!=='fixedTeams') return '';
+  const ranked = [...bbRotation.teams].sort((a,b)=> b.wins-a.wins || a.losses-b.losses);
+  const rows = ranked.map((t,i)=>`<div class="t-row">
+    <span style="width:22px;font-family:'Bebas Neue';font-size:14px;color:var(--tx3)">${i+1}</span>
+    <span style="flex:1;font-size:13px">${t.name} <span style="font-size:10px;color:var(--tx3)">${t.players.map(bbFirst).join(', ')}</span></span>
+    <span style="font-family:'Bebas Neue';font-size:16px;color:var(--gr)">${t.wins}</span><span style="font-size:10px;color:var(--tx3);margin-right:6px">W</span>
+    <span style="font-family:'Bebas Neue';font-size:16px;color:var(--danger)">${t.losses}</span><span style="font-size:10px;color:var(--tx3)">L</span>
+  </div>`).join('');
+  return `<div class="card"><div class="card-h"><div class="card-t"><i class="ti ti-trophy"></i>Standings</div></div><div class="team-bd">${rows}</div></div>`;
 }
 
 function bbShuffleMatch(){
@@ -5752,6 +5936,8 @@ function bbRosterHtml(pids, teamKey, color, title){
 function renderBbRotation(){
   if(!bbRotation) return;
   document.getElementById('bb-match-num').textContent=bbRotation.matchNum;
+  const standingsEl=document.getElementById('bb-standings');
+  if(standingsEl) standingsEl.innerHTML=bbRenderStandings();
   const el=document.getElementById('bb-match'); if(!el) return;
   let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
   html+=bbRosterHtml(bbRotation.teamA,'teamA','#22C55E','Team A');
@@ -5779,12 +5965,26 @@ function bbRecordWinner(side){
   // Log the match locally only. Wins are NOT saved to player records or Supabase
   // until you tap "End Game Day & Archive" — so a mis-tap or a discarded day
   // never leaves stray wins behind.
-  bbRotation.log.push({matchNum:bbRotation.matchNum, teamA:bbRotation.teamA.slice(), teamB:bbRotation.teamB.slice(), winner:side});
-  // Bump session play counts (drives fair rotation — this is session-local only)
-  [...bbRotation.teamA, ...bbRotation.teamB].forEach(pid=>{ bbRotation.played[pid]=(bbRotation.played[pid]||0)+1; });
-  // Advance to next match
-  bbRotation.matchNum++;
-  bbFormMatch();
+  const isFixedTeams = bbRotation.mode==='fixedTeams';
+  bbRotation.log.push({
+    matchNum:bbRotation.matchNum, teamA:bbRotation.teamA.slice(), teamB:bbRotation.teamB.slice(), winner:side,
+    teamAId: isFixedTeams ? bbRotation.currentTeamIds[0] : undefined,
+    teamBId: isFixedTeams ? bbRotation.currentTeamIds[1] : undefined
+  });
+  if (isFixedTeams){
+    const [ai,bi] = bbRotation.currentTeamIds;
+    const winTeam = side==='A' ? bbRotation.teams[ai] : bbRotation.teams[bi];
+    const loseTeam = side==='A' ? bbRotation.teams[bi] : bbRotation.teams[ai];
+    winTeam.wins++; winTeam.played++;
+    loseTeam.losses++; loseTeam.played++;
+    bbRotation.matchNum++;
+    bbFormTeamMatch();
+  } else {
+    // Bump session play counts (drives fair rotation — this is session-local only)
+    [...bbRotation.teamA, ...bbRotation.teamB].forEach(pid=>{ bbRotation.played[pid]=(bbRotation.played[pid]||0)+1; });
+    bbRotation.matchNum++;
+    bbFormMatch();
+  }
   renderBbRotation();
   renderBbTimer();
   touchSharedSession();
@@ -5796,13 +5996,25 @@ function bbRecordWinner(side){
 function bbUndoLast(){
   if(!bbRotation || !bbRotation.log.length){ toast('No match to undo','er'); return; }
   const last=bbRotation.log.pop();
-  [...last.teamA, ...last.teamB].forEach(pid=>{ if(bbRotation.played[pid]>0) bbRotation.played[pid]--; });
-  // Restore that match as the current one to re-decide.
-  bbRotation.teamA=last.teamA.slice();
-  bbRotation.teamB=last.teamB.slice();
-  bbRotation.matchNum=last.matchNum;
-  // Rebuild the bench (everyone present who isn't on a team this match).
-  bbRotation.bench=presentIds.filter(pid=>!bbRotation.teamA.includes(pid)&&!bbRotation.teamB.includes(pid));
+  if (bbRotation.mode==='fixedTeams' && last.teamAId!=null){
+    const winTeam = last.winner==='A' ? bbRotation.teams[last.teamAId] : bbRotation.teams[last.teamBId];
+    const loseTeam = last.winner==='A' ? bbRotation.teams[last.teamBId] : bbRotation.teams[last.teamAId];
+    winTeam.wins--; winTeam.played--;
+    loseTeam.losses--; loseTeam.played--;
+    bbRotation.currentTeamIds = [last.teamAId, last.teamBId];
+    bbRotation.teamA = last.teamA.slice();
+    bbRotation.teamB = last.teamB.slice();
+    bbRotation.matchNum = last.matchNum;
+    bbRotation.bench = bbRotation.teams.filter((_,i)=>i!==last.teamAId && i!==last.teamBId).flatMap(t=>t.players);
+  } else {
+    [...last.teamA, ...last.teamB].forEach(pid=>{ if(bbRotation.played[pid]>0) bbRotation.played[pid]--; });
+    // Restore that match as the current one to re-decide.
+    bbRotation.teamA=last.teamA.slice();
+    bbRotation.teamB=last.teamB.slice();
+    bbRotation.matchNum=last.matchNum;
+    // Rebuild the bench (everyone present who isn't on a team this match).
+    bbRotation.bench=presentIds.filter(pid=>!bbRotation.teamA.includes(pid)&&!bbRotation.teamB.includes(pid));
+  }
   renderBbRotation();
   touchSharedSession();
   toast('Match '+last.matchNum+' undone — pick the winner again');
@@ -5877,7 +6089,9 @@ async function bbEndSession(){
     id:'H'+Date.now(),
     game_date:dateLabel,
     player_count:everyone.size,
-    teams:[{name:'Attendance', color:'#3B82F6', players:[...everyone], wins:0}],
+    teams: bbRotation.mode==='fixedTeams'
+      ? bbRotation.teams.map(t=>({name:t.name, color:'#3B82F6', players:t.players.slice(), wins:t.wins}))
+      : [{name:'Attendance', color:'#3B82F6', players:[...everyone], wins:0}],
     // Keep raw player-id arrays (not just display-name strings) so each
     // player's match history can be looked up later, same as pickleball's
     // archive shape — teamAName/teamBName stay as a display-only convenience.
