@@ -1410,8 +1410,7 @@ select.fi{
             <div>
               <label class="fl" style="margin-top:0">Team Mode</label>
               <select class="fi" id="bb-mode" style="min-width:240px" onchange="bbRenderModeSetup()">
-                <option value="mixed">Mixed — everyone rotates &amp; reshuffles</option>
-                <option value="squad">One Locked Squad — 5 stick together, rest mixes</option>
+                <option value="mixed">Mixed — everyone rotates &amp; reshuffles (lock squads live, anytime)</option>
                 <option value="fixedTeams">Fixed Teams — everyone locked all night (mini-tournament)</option>
               </select>
             </div>
@@ -1437,6 +1436,11 @@ select.fi{
                 <button type="button" class="btn btn-ghost btn-sm" onclick="resetBbTimer()"><i class="ti ti-rotate"></i>Reset</button>
               </div>
             </div>
+          </div>
+          <div class="card" id="bb-squad-card">
+            <div class="card-h"><div class="card-t"><i class="ti ti-lock"></i>Locked Squads</div></div>
+            <div class="note" style="margin-bottom:8px">Lock any group together, anytime, for the rest of the night — everyone else keeps rotating &amp; reshuffling normally. Lock a 2nd (or 3rd) group and they'll play each other directly when both are up.</div>
+            <div id="bb-squad-list"></div>
           </div>
           <div id="bb-standings"></div>
           <div class="card">
@@ -5656,6 +5660,7 @@ function removeFromLiveSession(pid){
   if (bbRotation && bbRotation.active){
     ['teamA','teamB','bench'].forEach(k=>{ const i=bbRotation[k].indexOf(pid); if(i>-1){ bbRotation[k].splice(i,1); removedFrom='session'; } });
     delete bbRotation.played[pid];
+    if (bbRotation.lockedSquads) bbRotation.lockedSquads = bbRotation.lockedSquads.filter(sq => !sq.includes(pid));
   }
 
   // Drop from presence list so they're no longer "confirmed" either.
@@ -5694,10 +5699,12 @@ let bbRotation = null;
 function bbName(pid){ const p=LC.arr('players').find(x=>x.id===pid); return p?(p.firstName+' '+p.lastName):'?'; }
 function bbFirst(pid){ const p=LC.arr('players').find(x=>x.id===pid); return p?p.firstName:'?'; }
 
-// ── PRE-SESSION MODE SETUP (Locked Squad / Fixed Teams) ─────────────────
-// _bbSquadSetup: pids picked for the locked squad, before starting.
+// ── PRE-SESSION MODE SETUP (Fixed Teams only) ────────────────────────────
+// Locked Squads no longer need pre-session setup — they're added live,
+// anytime, from the active session (see bbRenderSquadManager below), so
+// admins aren't forced to know in advance how many groups will want to
+// stick together, or how many people are in each.
 // _bbTeamAssign: pid -> team index (0-based) or null, for Fixed Teams.
-let _bbSquadSetup = [];
 let _bbTeamAssign = {};
 
 function bbRenderModeSetup(){
@@ -5706,20 +5713,7 @@ function bbRenderModeSetup(){
   if (!el || !modeSel) return;
   const mode = modeSel.value || 'mixed';
   const size = Math.max(2, Math.min(6, parseInt((document.getElementById('bb-team-size')||{}).value)||5));
-  if (mode === 'squad'){
-    _bbSquadSetup = _bbSquadSetup.filter(pid=>presentIds.includes(pid));
-    const rows = presentIds.map(pid=>{
-      const checked = _bbSquadSetup.includes(pid);
-      const disabled = !checked && _bbSquadSetup.length>=size;
-      return `<label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?.5:1}">
-        <input type="checkbox" ${checked?'checked':''} ${disabled?'disabled':''} onchange="bbToggleSquadSetup('${pid}',this.checked,${size})">
-        ${bbName(pid)}
-      </label>`;
-    }).join('') || '<div class="empty">No players selected as present yet.</div>';
-    el.innerHTML = `<div class="note" style="margin-bottom:8px">Pick exactly ${size} players to lock together as one team. They still rotate on/off the bench fairly like everyone else — whenever it's their turn, all ${size} play as one team; the opposing side is drawn fresh each match.</div>
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">${_bbSquadSetup.length}/${size} selected</div>
-      <div style="max-height:220px;overflow-y:auto">${rows}</div>`;
-  } else if (mode === 'fixedTeams'){
+  if (mode === 'fixedTeams'){
     const teamCount = Math.floor(presentIds.length / size);
     const unassignedCount = presentIds.length - teamCount*size;
     Object.keys(_bbTeamAssign).forEach(pid=>{ if(!presentIds.includes(pid)) delete _bbTeamAssign[pid]; });
@@ -5740,12 +5734,6 @@ function bbRenderModeSetup(){
   }
 }
 
-function bbToggleSquadSetup(pid, checked, size){
-  if (checked){ if (!_bbSquadSetup.includes(pid) && _bbSquadSetup.length<size) _bbSquadSetup.push(pid); }
-  else { const i=_bbSquadSetup.indexOf(pid); if(i>-1) _bbSquadSetup.splice(i,1); }
-  bbRenderModeSetup();
-}
-
 function bbShuffleTeamSetup(size){
   const teamCount = Math.floor(presentIds.length / size);
   const shuffled = shuffle(presentIds);
@@ -5759,12 +5747,7 @@ function bbStart(){
   const size=Math.max(2,Math.min(6,parseInt(document.getElementById('bb-team-size').value)||5));
   const mode=(document.getElementById('bb-mode')||{}).value || 'mixed';
 
-  if (mode === 'squad'){
-    if (_bbSquadSetup.length !== size){ toast('Pick exactly '+size+' players for the locked squad','er'); return; }
-    bbRotation={ active:true, mode:'squad', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, lockedSquad:_bbSquadSetup.slice() };
-    presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
-    bbFormMatch();
-  } else if (mode === 'fixedTeams'){
+  if (mode === 'fixedTeams'){
     const teamCount = Math.floor(presentIds.length / size);
     if (teamCount < 2){ toast('Need at least 2 full teams of '+size+' to run Fixed Teams','er'); return; }
     const teams = [];
@@ -5777,7 +5760,7 @@ function bbStart(){
     presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
     bbFormTeamMatch();
   } else {
-    bbRotation={ active:true, mode:'mixed', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{} };
+    bbRotation={ active:true, mode:'mixed', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, lockedSquads:[] };
     presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
     bbFormMatch();
   }
@@ -5796,25 +5779,41 @@ function bbStart(){
 // it's their turn, all 5 go on together as Team A and the opponent side is
 // drawn fresh from the rest; when it's not their turn, they sit out as a
 // block, same as any individual would.
+// Any number of Locked Squads can be active at once (locked live, anytime,
+// via bbLockSquad below — see bbRotation.lockedSquads). Each ready squad
+// (full size, all members present) competes as one N-slot unit on the same
+// fewest-played fairness rule as individuals — never split across teams or
+// benched partially. At most 2 squads can be on court in the same match
+// (more than that can't be resolved onto 2 teams); when exactly 2 are
+// picked, they play each other directly instead of either being diluted
+// with random players. When only 1 is picked, its opponent is drawn fresh
+// from whoever else is up. With 0 picked, this is identical to the
+// original mixed-only algorithm.
 function bbFormMatch(){
   if(!bbRotation) return;
   const size=bbRotation.teamSize, need=size*2;
   // make sure every present player has a play count (covers late arrivals)
   presentIds.forEach(pid=>{ if(bbRotation.played[pid]==null) bbRotation.played[pid]=0; });
 
-  const squad = bbRotation.mode==='squad' ? (bbRotation.lockedSquad||[]) : [];
-  const squadReady = squad.length===size && squad.every(pid=>presentIds.includes(pid));
+  const squads = (bbRotation.lockedSquads||[]).filter(sq => sq.length===size && sq.every(pid=>presentIds.includes(pid)));
 
-  if (squadReady){
-    const squadAvg = squad.reduce((s,pid)=>s+(bbRotation.played[pid]||0),0)/squad.length;
-    const others = presentIds.filter(pid=>!squad.includes(pid));
+  if (squads.length){
+    const squadPids = new Set(squads.flat());
+    const others = presentIds.filter(pid=>!squadPids.has(pid));
+    const squadUnits = squads.map(sq => ({
+      kind:'squad', members:sq,
+      n: sq.reduce((s,pid)=>s+(bbRotation.played[pid]||0),0)/sq.length,
+      r: Math.random()
+    }));
     const soloUnits = others.map(pid=>({kind:'solo', pid, n:bbRotation.played[pid]||0, r:Math.random()}));
-    const units = [{ kind:'squad', n:squadAvg, r:Math.random() }, ...soloUnits].sort((a,b)=>a.n-b.n || a.r-b.r);
-    let slots = need, onCourt = [], squadPicked = false;
+    const units = [...squadUnits, ...soloUnits].sort((a,b)=>a.n-b.n || a.r-b.r);
+
+    let slots = need, onCourt = [], pickedSquads = [];
     for (const u of units){
       if (u.kind==='squad'){
+        if (pickedSquads.length >= 2) continue; // a 3rd squad can't fit onto just 2 teams — defer it
         if (size > slots) continue; // wouldn't fit without splitting — defer to a future match
-        onCourt.push(...squad); slots -= size; squadPicked = true;
+        onCourt.push(...u.members); slots -= size; pickedSquads.push(u.members);
       } else {
         if (slots < 1) continue;
         onCourt.push(u.pid); slots -= 1;
@@ -5822,19 +5821,23 @@ function bbFormMatch(){
       if (slots === 0) break;
     }
     bbRotation.bench = presentIds.filter(pid=>!onCourt.includes(pid));
-    if (squadPicked){
-      bbRotation.teamA = squad.slice();
-      bbRotation.teamB = shuffle(onCourt.filter(pid=>!squad.includes(pid)));
+
+    if (pickedSquads.length === 2){
+      bbRotation.teamA = pickedSquads[0].slice();
+      bbRotation.teamB = pickedSquads[1].slice();
+    } else if (pickedSquads.length === 1){
+      bbRotation.teamA = pickedSquads[0].slice();
+      bbRotation.teamB = shuffle(onCourt.filter(pid=>!pickedSquads[0].includes(pid)));
     } else {
-      // Not the squad's turn this round — standard shuffle among whoever was picked.
+      // No squad picked this round — standard shuffle among whoever was picked.
       const sh=shuffle(onCourt); const half=Math.ceil(sh.length/2);
       bbRotation.teamA=sh.slice(0,half); bbRotation.teamB=sh.slice(half);
     }
     return;
   }
 
-  // Standard mixed selection (unchanged) — also the fallback when the squad
-  // isn't fully present or no squad is set for this session.
+  // Standard mixed selection (unchanged) — also the fallback when no
+  // locked squad is currently ready (not enough present, or none set).
   const pool=presentIds.slice();
   // sort by fewest matches played, ties broken randomly → fair rotation
   const sorted=pool.map(pid=>({pid,n:bbRotation.played[pid]||0,r:Math.random()}))
@@ -5874,6 +5877,67 @@ function bbRenderStandings(){
   return `<div class="card"><div class="card-h"><div class="card-t"><i class="ti ti-trophy"></i>Standings</div></div><div class="team-bd">${rows}</div></div>`;
 }
 
+// ── LIVE LOCKED SQUADS (Mixed mode only) ─────────────────────────────────
+// pids currently selected in the "lock a new squad" picker, before hitting
+// Lock Squad. Reset after each successful lock.
+let _bbSquadPicker = [];
+
+function bbRenderSquadManager(){
+  const el = document.getElementById('bb-squad-list');
+  if (!el || !bbRotation) return;
+  const squads = bbRotation.lockedSquads || [];
+  const lockedPids = new Set(squads.flat());
+  const chips = squads.length
+    ? squads.map((sq,i)=>`<div class="queue-chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0">
+        <span>${sq.map(bbFirst).join(' & ')}</span>
+        <button type="button" onclick="bbUnlockSquad(${i})" data-tip="Unlock squad" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:0;font-size:13px;line-height:1"><i class="ti ti-x"></i></button>
+      </div>`).join('')
+    : '<div class="empty" style="padding:8px 0">No locked squads yet.</div>';
+  _bbSquadPicker = _bbSquadPicker.filter(pid=>presentIds.includes(pid) && !lockedPids.has(pid));
+  const size = bbRotation.teamSize;
+  const pickable = presentIds.filter(pid=>!lockedPids.has(pid)).sort((a,b)=>bbName(a).localeCompare(bbName(b)));
+  const rows = pickable.map(pid=>{
+    const checked = _bbSquadPicker.includes(pid);
+    const disabled = !checked && _bbSquadPicker.length>=size;
+    return `<label style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px;cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?.5:1}">
+      <input type="checkbox" ${checked?'checked':''} ${disabled?'disabled':''} onchange="bbTogglePickSquad('${pid}',this.checked)">
+      ${bbName(pid)}
+    </label>`;
+  }).join('') || '<div class="empty" style="padding:4px 0">Everyone present is already in a locked squad.</div>';
+  el.innerHTML = `
+    <div>${chips}</div>
+    <div style="font-size:11px;font-weight:700;color:var(--tx3);margin:8px 0 4px">Lock a new squad — ${_bbSquadPicker.length}/${size} selected</div>
+    <div style="max-height:160px;overflow-y:auto;margin-bottom:8px">${rows}</div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="bbLockSquad()"><i class="ti ti-lock"></i>Lock Squad</button>`;
+}
+
+function bbTogglePickSquad(pid, checked){
+  const size = bbRotation ? bbRotation.teamSize : 5;
+  if (checked){ if (!_bbSquadPicker.includes(pid) && _bbSquadPicker.length<size) _bbSquadPicker.push(pid); }
+  else { const i=_bbSquadPicker.indexOf(pid); if(i>-1) _bbSquadPicker.splice(i,1); }
+  bbRenderSquadManager();
+}
+
+function bbLockSquad(){
+  if (!bbRotation) return;
+  const size = bbRotation.teamSize;
+  if (_bbSquadPicker.length !== size){ toast('Pick exactly '+size+' players to lock','er'); return; }
+  if (!bbRotation.lockedSquads) bbRotation.lockedSquads = [];
+  bbRotation.lockedSquads.push(_bbSquadPicker.slice());
+  toast(_bbSquadPicker.map(bbFirst).join(' & ')+' locked together for the rest of the night');
+  _bbSquadPicker = [];
+  bbRenderSquadManager();
+  touchSharedSession();
+}
+
+function bbUnlockSquad(i){
+  if (!bbRotation || !bbRotation.lockedSquads) return;
+  bbRotation.lockedSquads.splice(i,1);
+  bbRenderSquadManager();
+  touchSharedSession();
+  toast('Squad unlocked — back to normal rotation');
+}
+
 function bbShuffleMatch(){
   if(!bbRotation) return;
   bbFormMatch();
@@ -5900,6 +5964,11 @@ function bbRemovePlayer(pid){
   ['teamA','teamB','bench'].forEach(k=>{ const i=bbRotation[k].indexOf(pid); if(i>-1) bbRotation[k].splice(i,1); });
   const pi=presentIds.indexOf(pid); if(pi>-1) presentIds.splice(pi,1);
   delete bbRotation.played[pid];
+  // Drop any locked squad they were part of — a squad short a member can't
+  // field a full team, so leaving it around would just silently never fire.
+  if (bbRotation.lockedSquads){
+    bbRotation.lockedSquads = bbRotation.lockedSquads.filter(sq => !sq.includes(pid));
+  }
   renderBbRotation();
   renderGameDay();
   touchSharedSession();
@@ -5938,6 +6007,11 @@ function renderBbRotation(){
   document.getElementById('bb-match-num').textContent=bbRotation.matchNum;
   const standingsEl=document.getElementById('bb-standings');
   if(standingsEl) standingsEl.innerHTML=bbRenderStandings();
+  const squadCard=document.getElementById('bb-squad-card');
+  if(squadCard){
+    squadCard.style.display = bbRotation.mode==='fixedTeams' ? 'none' : '';
+    if (bbRotation.mode!=='fixedTeams') bbRenderSquadManager();
+  }
   const el=document.getElementById('bb-match'); if(!el) return;
   let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
   html+=bbRosterHtml(bbRotation.teamA,'teamA','#22C55E','Team A');
