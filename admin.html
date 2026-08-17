@@ -4432,40 +4432,90 @@ function pbMoveQueue(pid, dir){
 // steps in once both happen to land in the same foursome naturally, and
 // arranges them onto opposing teams instead of leaving it to chance. Once
 // that actually happens, the request is fulfilled and auto-clears.
+// Requests are stored as {sideA:[pids], sideB:[pids]} — 1 pid per side for
+// a "these two specific opponents" request, 2 pids per side for a "these
+// two partners want a rematch against that other pair" request. Older
+// sessions may still have plain [a,b] pairs saved from before 2v2 existed;
+// normalize handles both shapes so an in-progress session never breaks.
+function pbNormalizeRematchReq(req){
+  if (Array.isArray(req)) return { sideA:[req[0]], sideB:[req[1]] };
+  return { sideA: req.sideA||[], sideB: req.sideB||[] };
+}
+
+let _pbRematchMode = '1v1'; // '1v1' | '2v2'
+let _pbRematchPicks = { sideA:[], sideB:[] };
+
+function pbSetRematchMode(mode){
+  _pbRematchMode = mode;
+  _pbRematchPicks = { sideA:[], sideB:[] };
+  pbRenderRematchRequests();
+}
+
 function pbRenderRematchRequests(){
   const el = document.getElementById('pb-rematch-list');
   if (!el || !pbSession) return;
   const reqs = pbSession.rematchRequests || [];
-  const reqPids = new Set(reqs.flat());
+  const reqPids = new Set(reqs.flatMap(r=>{ const n=pbNormalizeRematchReq(r); return [...n.sideA,...n.sideB]; }));
   const roster = pbPinnedRoster();
   const chips = reqs.length
-    ? reqs.map((pair,i)=>`<div class="queue-chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0">
-        <span>${pbName(pair[0])} vs ${pbName(pair[1])}</span>
+    ? reqs.map((req,i)=>{
+        const n = pbNormalizeRematchReq(req);
+        return `<div class="queue-chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 6px 6px 0">
+        <span>${n.sideA.map(pbName).join(' & ')} vs ${n.sideB.map(pbName).join(' & ')}</span>
         <button type="button" onclick="pbCancelRematch(${i})" data-tip="Cancel request" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:0;font-size:13px;line-height:1"><i class="ti ti-x"></i></button>
-      </div>`).join('')
+      </div>`;
+      }).join('')
     : '<div class="empty" style="padding:8px 0">No rematch requests.</div>';
+  const picked = new Set([..._pbRematchPicks.sideA, ..._pbRematchPicks.sideB]);
   const pickable = roster.filter(pid=>!reqPids.has(pid));
-  const opts = pickable.map(p=>`<option value="${p}">${pbName(p)}</option>`).join('');
+  const optsFor = (side) => pickable.map(p=>{
+    const disabled = !( _pbRematchPicks[side].includes(p) ) && picked.has(p);
+    return `<option value="${p}"${_pbRematchPicks[side].includes(p)?' selected':''}${disabled?' disabled':''}>${pbName(p)}</option>`;
+  }).join('');
+  const picker = _pbRematchMode==='2v2'
+    ? `<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <div style="display:flex;gap:6px">
+          <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideA',0,this.value)"><option value="">Team A · Player 1</option>${optsFor('sideA')}</select>
+          <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideA',1,this.value)"><option value="">Team A · Player 2</option>${optsFor('sideA')}</select>
+        </div>
+        <div style="display:flex;gap:6px">
+          <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideB',0,this.value)"><option value="">Team B · Player 1</option>${optsFor('sideB')}</select>
+          <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideB',1,this.value)"><option value="">Team B · Player 2</option>${optsFor('sideB')}</select>
+        </div>
+      </div>`
+    : `<div style="display:flex;gap:6px;margin-top:8px">
+        <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideA',0,this.value)"><option value="">Player 1</option>${optsFor('sideA')}</select>
+        <select class="fi" style="flex:1" onchange="pbPickRematchSlot('sideB',0,this.value)"><option value="">Player 2</option>${optsFor('sideB')}</select>
+      </div>`;
   el.innerHTML = `
     <div>${chips}</div>
-    <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
-      <select class="fi" id="pb-rematch-a" style="flex:1"><option value="">Player 1</option>${opts}</select>
-      <select class="fi" id="pb-rematch-b" style="flex:1"><option value="">Player 2</option>${opts}</select>
-      <button type="button" class="btn btn-ghost btn-sm" onclick="pbRequestRematch()"><i class="ti ti-swords"></i>Request</button>
-    </div>`;
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button type="button" class="fin-pill${_pbRematchMode==='1v1'?' on':''}" onclick="pbSetRematchMode('1v1')">1 vs 1</button>
+      <button type="button" class="fin-pill${_pbRematchMode==='2v2'?' on':''}" onclick="pbSetRematchMode('2v2')">2 vs 2</button>
+    </div>
+    ${picker}
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="pbRequestRematch()"><i class="ti ti-swords"></i>Request</button>`;
+}
+
+function pbPickRematchSlot(side, idx, pid){
+  const arr = _pbRematchPicks[side];
+  arr[idx] = pid || undefined;
+  _pbRematchPicks[side] = arr.filter(Boolean);
+  pbRenderRematchRequests();
 }
 
 function pbRequestRematch(){
   if (!pbSession) return;
-  const a = document.getElementById('pb-rematch-a').value;
-  const b = document.getElementById('pb-rematch-b').value;
-  if (!a || !b){ toast('Pick two players','er'); return; }
-  if (a === b){ toast('Pick two different players','er'); return; }
+  const need = _pbRematchMode==='2v2' ? 2 : 1;
+  const sideA = _pbRematchPicks.sideA.slice(0,need);
+  const sideB = _pbRematchPicks.sideB.slice(0,need);
+  if (sideA.length!==need || sideB.length!==need){ toast('Pick '+need+' player'+(need>1?'s':'')+' per side','er'); return; }
   if (!pbSession.rematchRequests) pbSession.rematchRequests = [];
-  pbSession.rematchRequests.push([a,b]);
+  pbSession.rematchRequests.push({ sideA, sideB });
   touchSharedSession();
+  _pbRematchPicks = { sideA:[], sideB:[] };
   pbRenderRematchRequests();
-  toast(pbName(a)+' vs '+pbName(b)+' — they\'ll face off once it\'s their fair turn');
+  toast(sideA.map(pbName).join(' & ')+' vs '+sideB.map(pbName).join(' & ')+' — they\'ll face off once it\'s their fair turn');
 }
 
 function pbCancelRematch(i){
@@ -4475,35 +4525,47 @@ function pbCancelRematch(i){
   pbRenderRematchRequests();
 }
 
-// If both members of a pending rematch request happen to land in the same
-// foursome via the normal fairness pull, arrange them onto opposing teams
-// instead of leaving it to chance. Never changes who was pulled or their
-// order — only which side of the net they land on once already drawn.
+// If everyone named in a pending rematch request happens to land in the
+// same foursome via the normal fairness pull, arrange them onto the
+// requested sides instead of leaving it to chance. Never changes who was
+// pulled or their order — only which side of the net they land on once
+// already drawn. Works for both 1v1 (one named opponent per side) and 2v2
+// (a full partner pair per side) requests.
 function pbApplyRematchSplit(next){
   if (!pbSession || !next || next.length !== 4) return next;
   const reqs = pbSession.rematchRequests || [];
   const pinned = pbSession.pinnedPairs || [];
-  reqs.forEach(([a,b]) => {
-    const ia = next.indexOf(a), ib = next.indexOf(b);
-    if (ia===-1 || ib===-1) return; // not both drawn this round
-    if ((ia<2) !== (ib<2)) return; // already opposing — nothing to do
-    if (pinned.some(p=>p.includes(a)||p.includes(b))) return; // don't break a pinned-partner bond
-    const swapWith = ia<2 ? 2 : 0;
-    if (swapWith === ib) return;
-    [next[ib], next[swapWith]] = [next[swapWith], next[ib]];
+  reqs.forEach(rawReq => {
+    const { sideA, sideB } = pbNormalizeRematchReq(rawReq);
+    const all = [...sideA, ...sideB];
+    if (all.length !== 4 && all.length !== 2) return; // malformed, skip
+    if (!all.every(pid => next.includes(pid))) return; // not everyone drawn this round
+    const reqPids = new Set(all);
+    // Don't break a pinned partnership that spans outside this request
+    // (one member named here, their real partner is not part of it).
+    const conflict = pinned.some(p => p.some(pid=>reqPids.has(pid)) && !p.every(pid=>reqPids.has(pid)));
+    if (conflict) return;
+    const teamA = [...sideA];
+    const teamB = [...sideB];
+    next.filter(pid=>!reqPids.has(pid)).forEach(pid => {
+      (teamA.length < 2 ? teamA : teamB).push(pid);
+    });
+    if (teamA.length!==2 || teamB.length!==2) return; // safety guard, shouldn't happen
+    next[0]=teamA[0]; next[1]=teamA[1]; next[2]=teamB[0]; next[3]=teamB[1];
   });
   return next;
 }
 
-// Once a pending request's two players actually end up facing off on
+// Once a pending request's named players actually end up facing off on
 // opposite teams of a real match (auto-pulled or manually placed via Edit
 // Court), the request is fulfilled — clear it so it stops steering future
 // matches after tonight's ask has already been granted.
 function pbClearFulfilledRematches(court){
   if (!pbSession || !pbSession.rematchRequests || !pbSession.rematchRequests.length) return;
-  pbSession.rematchRequests = pbSession.rematchRequests.filter(([a,b]) => {
-    const aTeam = court.teamA.includes(a) ? 'A' : court.teamB.includes(a) ? 'B' : null;
-    const bTeam = court.teamA.includes(b) ? 'A' : court.teamB.includes(b) ? 'B' : null;
+  pbSession.rematchRequests = pbSession.rematchRequests.filter(rawReq => {
+    const { sideA, sideB } = pbNormalizeRematchReq(rawReq);
+    const sideOf = (pids) => pids.every(pid=>court.teamA.includes(pid)) ? 'A' : pids.every(pid=>court.teamB.includes(pid)) ? 'B' : null;
+    const aTeam = sideOf(sideA), bTeam = sideOf(sideB);
     return !(aTeam && bTeam && aTeam !== bTeam); // false = fulfilled here, drop it
   });
 }
