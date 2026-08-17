@@ -7281,14 +7281,13 @@ function renderTournBracketForm(existing) {
     const nameB = teamB ? (_tTeams.find(t=>t.id===teamB)||{name:'TBD'}).name : 'TBD';
     return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
       <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
-        ${r.label}${isRR&&teamA&&teamB?`<span style="font-weight:400;color:var(--tx2);margin-left:6px;text-transform:none">${nameA} vs ${nameB}</span>`:''}
+        ${r.label}${isRR?'<span style="font-weight:400;color:var(--tx3);margin-left:6px;text-transform:none">(defaults to roster order — change anytime below)</span>':''}
       </div>
-      ${isRR ? `<div style="font-size:12px;color:var(--tx3);margin-bottom:8px">Teams auto-assigned from roster order</div>` : `
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
         <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="A" onchange="updateBracketField(this)">${teamOpts('A')}</select>
         <span style="color:var(--tx3);font-size:13px">vs</span>
         <select class="inp" style="flex:2;min-width:100px;padding:6px 8px;font-size:13px" data-r="${r.id}" data-side="B" onchange="updateBracketField(this)">${teamOpts('B')}</select>
-      </div>`}
+      </div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
         <input type="date" class="inp" style="flex:1;min-width:120px;padding:6px 8px;font-size:13px" value="${m.date??''}" data-r="${r.id}" data-side="date" onchange="updateBracketField(this)" title="Game date">
         <input type="time" class="inp" style="width:110px;padding:6px 8px;font-size:13px" value="${m.time??''}" data-r="${r.id}" data-side="time" onchange="updateBracketField(this)" title="Tip-off time">
