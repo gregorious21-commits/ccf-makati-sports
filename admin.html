@@ -2312,7 +2312,7 @@ let resetPinId=null, syncInterval=null, syncing=false;
 const LC={get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v)),arr:k=>LC.get(k)||[]};
 
 // ── MAPPERS ───────────────────────────────────────────────────
-const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM',venue:g.venue||'',venueUrl:g.venue_url||'',route:g.route||'',weatherNote:g.weather_note||'',spots:g.spots||20,fee:g.fee||200,status:g.status||'tbd',cancelReason:g.cancel_reason||'',sport:g.sport||'basketball',courtCost:g.court_cost||0,startAt:g.start_at||null,remarks:g.remarks||''});
+const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM',venue:g.venue||'',venueUrl:g.venue_url||'',route:g.route||'',weatherNote:g.weather_note||'',spots:g.spots||20,fee:g.fee||200,status:g.status||'tbd',cancelReason:g.cancel_reason||'',sport:g.sport||'basketball',courtCost:g.court_cost||0,startAt:g.start_at||null,remarks:g.remarks||'',collectedOverride:g.collected_override!=null?g.collected_override:null});
 const mapReg=r=>({id:r.id,playerId:r.player_id,playerName:r.player_name,phone:r.phone||'',email:r.email||'',gameId:r.game_id,gameLabel:r.game_label||'',gameTime:r.game_time||'',fee:r.fee!=null?r.fee:200,payType:r.pay_type||'cash',refNum:r.ref_num||'',hasProof:r.has_proof||false,proofUrl:r.proof_url||'',status:r.status||'pending',registered:r.registered||'',isFirstTimer:r.is_first_timer||false,sport:r.sport||'basketball',paid:r.paid===true,attended:r.attended===true,attendedAt:r.attended_at||'',isVolunteer:r.is_volunteer===true});
 const spiTag=s=>s==='pickleball'?'<span class="spi spi-p"></span>':s==='running'?'<span class="spi spi-r"></span>':s==='badminton'?'<span class="spi spi-bd"></span>':s==='dragonboat'?'<span class="spi spi-db"></span>':'<span class="spi spi-b"></span>';
 const payLabel=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'First Timer (Free)':'Cash request';
@@ -7594,11 +7594,22 @@ function financeGames(){
   // newest first by date
   return [...list].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 }
-function gameCollected(gameId){
+// Pure auto-computed collected amount from actual paid registrations —
+// used as the default AND as the "reset to auto" reference value once a
+// manual override is in place.
+function gameCollectedAuto(gameId){
   const fee=parseInt(localStorage.getItem('def_fee'))||200;
   const regs=LC.arr('regs');
   return regs.filter(r=>r.gameId===gameId && r.paid===true && (r.status||'').toLowerCase()!=='cancelled')
              .reduce((s,r)=>s+(r.fee!=null?r.fee:fee),0);
+}
+// The actual figure Finance uses everywhere — a manual override (e.g. cash
+// collected loosely, corrections) wins when set; otherwise falls back to
+// the auto-computed total, same as before this feature existed.
+function gameCollected(gameId){
+  const g=LC.arr('games').find(x=>x.id===gameId);
+  if (g && g.collectedOverride!=null) return g.collectedOverride;
+  return gameCollectedAuto(gameId);
 }
 function gameAttended(gameId){
   const regs=LC.arr('regs');
@@ -7632,7 +7643,9 @@ function renderFinance(){
         <div style="font-weight:700;font-size:13px">${sp} ${g.label}</div>
         <div style="font-size:11px;color:var(--tx3)">${g.date||'—'} · ${att} attended</div>
       </div>
-      <div><div class="lbl">Collected</div><div style="font-weight:700;color:var(--gr)">₱${collected.toLocaleString()}</div></div>
+      <div><div class="lbl">Collected</div><input type="number" class="fin-cost-input" value="${collected}" min="0" onchange="saveCollected('${g.id}',this.value)">
+        ${g.collectedOverride!=null?`<button type="button" onclick="resetCollected('${g.id}')" data-tip="Back to auto-calculated from paid registrations (₱${gameCollectedAuto(g.id).toLocaleString()})" style="background:none;border:none;color:var(--tx3);font-size:10px;text-decoration:underline;cursor:pointer;padding:2px 0">reset to auto</button>`:''}
+      </div>
       <div><div class="lbl">Court Fee</div><input type="number" class="fin-cost-input" value="${cost}" min="0" onchange="saveCourtCost('${g.id}',this.value)"></div>
       <div><div class="lbl">Net</div><div style="font-weight:700;color:${rowNet>=0?'var(--gr)':'var(--danger)'}">₱${rowNet.toLocaleString()}</div></div>
     </div>`;
@@ -7646,6 +7659,26 @@ async function saveCourtCost(gameId, val){
   renderFinance();
   const ok=await rpc('admin_update_court_cost',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_game_id:gameId,p_court_cost:cost});
   if(ok) toast('Court fee saved','in'); else toast('Save failed — check connection','er');
+}
+// Manual override for the Collected figure — wins over the auto-computed
+// sum of paid registrations whenever it's set (e.g. cash collected loosely
+// on the day, or a correction). Passing null (via Reset) reverts to auto.
+async function saveCollected(gameId, val){
+  const amt=parseInt(val)||0;
+  const games=LC.arr('games');
+  const g=games.find(x=>x.id===gameId); if(!g) return;
+  g.collectedOverride=amt; LC.set('games',games);
+  renderFinance();
+  const ok=await rpc('admin_update_collected',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_game_id:gameId,p_collected_override:amt});
+  if(ok) toast('Collected amount saved','in'); else toast('Save failed — check connection','er');
+}
+async function resetCollected(gameId){
+  const games=LC.arr('games');
+  const g=games.find(x=>x.id===gameId); if(!g) return;
+  g.collectedOverride=null; LC.set('games',games);
+  renderFinance();
+  const ok=await rpc('admin_update_collected',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_game_id:gameId,p_collected_override:null});
+  if(ok) toast('Reset to auto-calculated','in'); else toast('Reset failed — check connection','er');
 }
 function exportFinanceCSV(){
   const games=financeGames();
