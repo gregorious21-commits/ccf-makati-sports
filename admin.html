@@ -2619,8 +2619,11 @@ function closeModal(id){document.getElementById('modal-'+id).classList.remove('o
 function renderDash(){
   const pl=LC.arr('players'),regs=LC.arr('regs'),games=LC.arr('games');
   const pend=regs.filter(r=>(r.status||'pending').toLowerCase()==='pending');
-  const fee=parseInt(localStorage.getItem('def_fee'))||200;
-  const collected=regs.filter(r=>r.paid===true&&(r.status||'').toLowerCase()!=='cancelled').reduce((s,r)=>s+(r.fee!=null?r.fee:fee),0);
+  // Same override-aware figure Finance uses (gameCollected respects a
+  // manual "Collected" edit when set, falling back to the auto-computed
+  // sum of paid registrations otherwise) — keeps this tile in sync with
+  // the Finance tab instead of recomputing a separate, stale total.
+  const collected=games.reduce((s,g)=>s+gameCollected(g.id),0);
   const courtTotal=games.reduce((s,g)=>s+(g.courtCost||0),0);
   const net=collected-courtTotal;
   document.getElementById('s-players').textContent=pl.length;
