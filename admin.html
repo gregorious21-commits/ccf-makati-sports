@@ -1129,7 +1129,7 @@ select.fi{
     <div class="nav-item" data-p="history"><i class="ti ti-history"></i>Game History</div>
     <div class="nav-item" data-p="finance"><i class="ti ti-cash"></i>Finance</div>
     <div class="nav-item" data-p="summary"><i class="ti ti-chart-bar"></i>Summary</div>
-    <div class="nav-item" data-p="gospel"><i class="ti ti-heart"></i>Gospel Sharing</div>
+    <div class="nav-item" data-p="discipleship"><i class="ti ti-route"></i>Discipleship Pipeline</div>
     <div class="nav-item" data-p="attendance"><i class="ti ti-run"></i>Run Attendance</div>
     <div class="nav-sec">Config</div>
     <div class="nav-item" data-p="settings"><i class="ti ti-settings"></i>Settings</div>
@@ -1277,28 +1277,29 @@ select.fi{
       </div>
     </div>
 
-    <!-- GOSPEL SHARING -->
-    <div class="panel" id="panel-gospel">
+    <!-- DISCIPLESHIP PIPELINE -->
+    <div class="panel" id="panel-discipleship">
       <div class="card">
         <div class="card-h">
-          <div class="card-t"><i class="ti ti-heart"></i>Gospel Sharing Tracker</div>
-          <button type="button" class="btn btn-sm" onclick="renderGospelPanel()"><i class="ti ti-refresh"></i>Refresh</button>
+          <div class="card-t"><i class="ti ti-route"></i>Discipleship Pipeline</div>
+          <button type="button" class="btn btn-sm" onclick="renderDiscipleshipPanel()"><i class="ti ti-refresh"></i>Refresh</button>
         </div>
-        <div class="note">Tracks whether we've ever shared the gospel with someone — a lifetime status, not a weekly checklist. D-Group members already know the gospel and are excluded automatically. First-timers are the priority list: people who just showed up and may not have heard it yet.</div>
-        <div id="gs-toolbar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div class="note">Share → Invite → Attend CCF → Plug into Dgroup. Filter by sport so each ministry head can review just their own people. D-Group members auto-count as Shared &amp; Attended (they're already discipled).</div>
+        <div id="dp-sport-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <input type="text" class="fi" id="gs-search" placeholder="Search player…" oninput="gsRenderList()" style="flex:1;min-width:180px">
-          <button type="button" class="btn btn-sm" style="width:auto;background:rgba(245,197,24,.12);border:1px solid var(--gold);color:var(--gold)" onclick="gsMarkAllShown()"><i class="ti ti-users"></i>Mark all shown</button>
+          <input type="text" class="fi" id="dp-search" placeholder="Search player…" oninput="dpRenderList()" style="flex:1;min-width:180px">
+          <button type="button" class="btn btn-sm" style="width:auto;background:rgba(245,197,24,.12);border:1px solid var(--gold);color:var(--gold)" onclick="dpMarkAllShown()"><i class="ti ti-users"></i>Mark all shown shared</button>
         </div>
-        <div id="gs-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px"></div>
-        <div id="gs-list"><div class="empty">Loading…</div></div>
+        <div id="dp-funnel" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
+        <div id="dp-stage-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+        <div id="dp-list"><div class="empty">Loading…</div></div>
       </div>
       <div class="card" style="margin-top:12px">
         <div class="card-h">
           <div class="card-t"><i class="ti ti-history"></i>Gospel Share Log</div>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="renderGospelHistory()"><i class="ti ti-refresh"></i>Refresh</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="dpRenderShareLog()"><i class="ti ti-refresh"></i>Refresh</button>
         </div>
-        <div id="gs-history"><div class="empty">Loading…</div></div>
+        <div id="dp-history"><div class="empty">Loading…</div></div>
       </div>
     </div>
 
@@ -2380,6 +2381,7 @@ async function doFullSync() {
       phone:sp.phone||'', email:sp.email||'', position:sp.position||'',
       hasDgroup:sp.has_dgroup||false, dgroupLeader:sp.dgroup_leader||'',
       attendedCCF:sp.attended_ccf||false,
+      invited:sp.invited||false, invitedAt:sp.invited_at||'',
       pin:sp.pin||'', wins:sp.wins||0, games:sp.games_played||0,
       dupr:sp.dupr!=null?sp.dupr:null, ratingBasketball:sp.rating_basketball!=null?sp.rating_basketball:null, ratingPickleball:sp.rating_pickleball!=null?sp.rating_pickleball:null, ratingBadminton:sp.rating_badminton!=null?sp.rating_badminton:null,
       isFirstGame:sp.is_first_game!==false, joined:sp.joined||'',
@@ -2524,7 +2526,7 @@ function applyRoleVisibility(){
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────
-const TITLES={dashboard:'Dashboard',schedule:'Game Schedule',regs:'Registrations',players:'Players',announcements:'Announcements',feed:'News Feed',devotion:'Devotion & Verse',gameday:'Game Day',weekly:'Weekly Roster',leaderboard:'Leaderboard',history:'Game History',tournaments:'Tournaments',finance:'Finance',summary:'Summary',attendance:'Run Attendance',settings:'Settings'};
+const TITLES={dashboard:'Dashboard',schedule:'Game Schedule',regs:'Registrations',players:'Players',announcements:'Announcements',feed:'News Feed',devotion:'Devotion & Verse',gameday:'Game Day',weekly:'Weekly Roster',leaderboard:'Leaderboard',history:'Game History',tournaments:'Tournaments',finance:'Finance',summary:'Summary',attendance:'Run Attendance',settings:'Settings',discipleship:'Discipleship Pipeline'};
 
 function nav(pid){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
@@ -2544,7 +2546,7 @@ function renderPanel(pid){
   if(pid==='players')      renderPlayers();
   if(pid==='announcements')loadAnnouncements();
   if(pid==='feed')         renderFeedAdmin();
-  if(pid==='gospel')       renderGospelPanel();
+  if(pid==='discipleship') renderDiscipleshipPanel();
   if(pid==='attendance')   renderRunRecords();
   if(pid==='devotion')     loadDevotion();
   if(pid==='gameday')      renderGameDay();
@@ -9126,27 +9128,10 @@ async function toggleDraftPause(draftId) {
 
 // ── GOSPEL SHARING ────────────────────────────────────────────
 // Lifetime tracker: has the gospel ever been shared with this person?
-// D-Group members already know the gospel and are auto-excluded from the
-// working list. First-timers (tagged on any registration) are the default,
-// priority segment — the actual people this ministry needs to reach.
+// D-Group members already know the gospel and auto-count as shared.
+// This is the one stage the Discipleship Pipeline panel reuses rather than
+// tracking twice — everything else (toolbar, filters, list) lives there now.
 let gsShared = new Map();   // player_id (string) -> {date, sharedBy} — first time it happened
-let gsSegment = 'firsttimers'; // 'firsttimers' | 'all'
-let gsStatusFilter = 'notyet'; // 'notyet' | 'shared' | 'all'
-let gsScheduleFilter = ''; // '' = all schedules, else a specific game id
-const GS_SPORT_LABEL = { basketball: 'Basketball', pickleball: 'Pickleball', badminton: 'Badminton', dragonboat: 'Dragonboat', running: 'Running' };
-function gsGameLabel(g) {
-  const dateLabel = g.date ? new Date(g.date + 'T00:00:00').toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : g.label;
-  return (GS_SPORT_LABEL[g.sport] || g.sport || 'Game') + ' · ' + dateLabel;
-}
-// Non-cancelled registrations for one schedule, split into everyone vs the
-// ones specifically tagged first-timer for that game.
-function gsRegsForSchedule(gameId) {
-  const regs = LC.arr('regs').filter(r => r.gameId === gameId && (r.status || '').toLowerCase() !== 'cancelled');
-  return {
-    registeredIds: new Set(regs.map(r => String(r.playerId))),
-    firstTimerIds: new Set(regs.filter(r => r.isFirstTimer).map(r => String(r.playerId)))
-  };
-}
 
 async function gsLoadAllShared() {
   const rows = await dbGet('gospel_shares', 'select=player_id,date,shared_by&order=date.asc');
@@ -9161,156 +9146,6 @@ function gsIsShared(p) {
   return !!p.hasDgroup || gsShared.has(String(p.id));
 }
 
-// Latest game date (ISO, sortable) each player was tagged first-timer on any
-// registration — this is the real "just showed up as a newcomer" signal,
-// distinct from players.isFirstGame (which just means "hasn't played yet").
-function gsFirstTimerInfo() {
-  const games = LC.arr('games');
-  const gameDate = id => { const g = games.find(x => x.id === id); return g ? (g.date || '') : ''; };
-  const map = new Map();
-  LC.arr('regs').forEach(r => {
-    if (!r.playerId || !r.isFirstTimer) return;
-    const id = String(r.playerId);
-    const when = gameDate(r.gameId);
-    const cur = map.get(id);
-    if (!cur || when > cur) map.set(id, when);
-  });
-  return map;
-}
-
-async function renderGospelPanel() {
-  document.getElementById('gs-list').innerHTML = '<div class="empty">Loading…</div>';
-  await gsLoadAllShared();
-  gsRenderList();
-}
-
-function gsRenderToolbar() {
-  const el = document.getElementById('gs-toolbar');
-  if (!el) return;
-  const seg = (val, label) => `<button type="button" class="fin-pill${gsSegment === val ? ' on' : ''}" onclick="gsSetSegment('${val}')">${label}</button>`;
-  const stat = (val, label) => `<button type="button" class="fin-pill${gsStatusFilter === val ? ' on' : ''}" onclick="gsSetStatus('${val}')">${label}</button>`;
-  const games = LC.arr('games').slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const gameOpts = games.map(g => `<option value="${g.id}"${gsScheduleFilter === g.id ? ' selected' : ''}>${gsGameLabel(g)}</option>`).join('');
-  el.innerHTML = `
-    <div style="display:flex;gap:6px">${seg('firsttimers', 'First-Timers')}${seg('all', 'All Players')}</div>
-    <div style="display:flex;gap:6px">${stat('notyet', 'Not Yet')}${stat('shared', 'Shared')}${stat('all', 'All')}</div>
-    <select class="fi" style="width:auto;min-width:210px" onchange="gsSetSchedule(this.value)">
-      <option value=""${gsScheduleFilter ? '' : ' selected'}>All Schedules</option>
-      ${gameOpts}
-    </select>`;
-}
-function gsSetSegment(seg) { gsSegment = seg; gsRenderList(); }
-function gsSetStatus(st) { gsStatusFilter = st; gsRenderList(); }
-function gsSetSchedule(gameId) { gsScheduleFilter = gameId; gsRenderList(); }
-
-// Fast, local re-render — no network call. Used for search/segment/status
-// changes and after optimistic mark/unmark updates.
-function gsRenderList() {
-  const statsEl = document.getElementById('gs-stats');
-  const listEl = document.getElementById('gs-list');
-  if (!listEl) return;
-
-  gsRenderToolbar();
-
-  const players = LC.arr('players').filter(p => p.isActive !== false);
-  const ftMap = gsFirstTimerInfo();
-  const query = (document.getElementById('gs-search')?.value || '').toLowerCase().trim();
-
-  const dgroupCount = players.filter(p => p.hasDgroup).length;
-  const eligible = players.filter(p => !p.hasDgroup); // D-Group auto-excluded — already know the gospel
-  const firstTimers = eligible.filter(p => ftMap.has(String(p.id)));
-  const ftNotYet = firstTimers.filter(p => !gsIsShared(p));
-  const ftShared = firstTimers.filter(p => gsIsShared(p));
-  const allNotYet = eligible.filter(p => !gsIsShared(p));
-
-  statsEl.innerHTML = `
-    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--am)">${ftNotYet.length}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">First-Timers — Not Yet</span>
-    </div>
-    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--gold)">${ftShared.length}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">First-Timers — Shared</span>
-    </div>
-    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--tx2)">${allNotYet.length}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">All Players — Not Yet</span>
-    </div>
-    <div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
-      <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:var(--blue)">${dgroupCount}</span>
-      <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">D-Group (auto-shared)</span>
-    </div>`;
-
-  let pool, scheduleNote = '';
-  if (gsScheduleFilter) {
-    const game = LC.arr('games').find(g => g.id === gsScheduleFilter);
-    const { registeredIds, firstTimerIds } = gsRegsForSchedule(gsScheduleFilter);
-    pool = eligible.filter(p => registeredIds.has(String(p.id)));
-    if (gsSegment === 'firsttimers') pool = pool.filter(p => firstTimerIds.has(String(p.id)));
-    if (game) scheduleNote = `<div style="margin-bottom:10px;font-size:12px;color:var(--tx3)">Showing <strong style="color:var(--tx)">${gsGameLabel(game)}</strong> — ${registeredIds.size} registered, ${firstTimerIds.size} first-timer${firstTimerIds.size === 1 ? '' : 's'}</div>`;
-  } else {
-    pool = gsSegment === 'firsttimers' ? firstTimers : eligible;
-  }
-  if (gsStatusFilter === 'notyet') pool = pool.filter(p => !gsIsShared(p));
-  else if (gsStatusFilter === 'shared') pool = pool.filter(p => gsIsShared(p));
-  if (query) pool = pool.filter(p => (p.firstName + ' ' + p.lastName).toLowerCase().includes(query));
-
-  pool = pool.slice().sort((a, b) => (gsSegment === 'firsttimers' && !gsScheduleFilter)
-    ? (ftMap.get(String(b.id)) || '').localeCompare(ftMap.get(String(a.id)) || '')
-    : (a.firstName + a.lastName).localeCompare(b.firstName + b.lastName));
-
-  if (!pool.length) {
-    listEl.innerHTML = scheduleNote + '<div class="empty">' + (gsSegment === 'firsttimers' && gsStatusFilter === 'notyet'
-      ? 'No first-timers waiting — everyone’s been reached! 🎉'
-      : 'No players match this filter.') + '</div>';
-    return;
-  }
-
-  listEl.innerHTML = scheduleNote + `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding:4px 0">
-    ${pool.map(p => {
-      const sid = String(p.id);
-      const on = gsIsShared(p);
-      const name = (p.firstName + ' ' + p.lastName).trim() || 'Unnamed';
-      const ft = ftMap.has(sid);
-      const info = gsShared.get(sid);
-      const sub = on ? ('Shared' + (info && info.date ? ' ' + fmtWhen(info.date) : '')) : (ft ? 'First-timer · not yet shared' : 'Not yet shared');
-      return `<button type="button" data-gs-id="${sid}" onclick="gsToggle('${sid}')"
-        style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid ${on ? 'var(--gold)' : 'var(--b)'};background:${on ? 'rgba(245,197,24,0.08)' : 'var(--card)'};cursor:pointer;text-align:left;transition:all .15s;width:100%">
-        <span style="font-size:18px">${on ? '✝️' : '⭕'}</span>
-        <span style="flex:1;min-width:0">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:13px;font-weight:600;color:${on ? 'var(--gold)' : 'var(--tx)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-            ${ft ? '<span style="flex:none;font-size:9px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.12);border-radius:4px;padding:1px 5px">1ST</span>' : ''}
-          </span>
-          <span style="font-size:11px;color:var(--tx3)">${sub}</span>
-        </span>
-      </button>`;
-    }).join('')}
-  </div>`;
-}
-
-async function gsMarkAllShown() {
-  const idsShown = [...document.querySelectorAll('#gs-list [data-gs-id]')].map(el => el.dataset.gsId);
-  const toMark = idsShown.filter(id => !gsShared.has(id));
-
-  if (!idsShown.length) { toast('No players match the current filter', 'er'); return; }
-  if (!toMark.length) { toast('Everyone shown is already marked shared', 'in'); return; }
-  if (!confirm('Mark ' + toMark.length + ' player(s) as gospel shared?')) return;
-
-  const today = new Date().toISOString().split('T')[0];
-  const scheduleGame = gsScheduleFilter ? LC.arr('games').find(g => g.id === gsScheduleFilter) : null;
-  const label = (gsSegment === 'firsttimers' ? 'First-Timers' : 'All Players') + (scheduleGame ? ' @ ' + gsGameLabel(scheduleGame) : '');
-  const rows = toMark.map(id => ({ player_id: id, date: today, shared_by: (AUTH.name() || 'Admin') + ' (bulk: ' + label + ')' }));
-  const ok = await dbUpsert('gospel_shares', rows);
-  if (ok) {
-    toMark.forEach(id => gsShared.set(id, { date: today, sharedBy: AUTH.name() || 'Admin' }));
-    toast('Marked ' + toMark.length + ' player(s)', 'in');
-    gsRenderList();
-  } else {
-    toast('Bulk mark failed — check Supabase', 'er');
-  }
-}
-
 async function gsToggle(playerId) {
   const wasShared = gsShared.has(playerId);
 
@@ -9318,23 +9153,21 @@ async function gsToggle(playerId) {
     if (!confirm('Unmark as gospel-shared? This clears their history.')) return;
     const prev = gsShared.get(playerId);
     gsShared.delete(playerId);
-    gsRenderList();
     const ok = await dbDelete('gospel_shares', 'player_id=eq.' + playerId);
     if (ok) toast('Removed', 'in');
-    else { toast('Failed to remove', 'er'); gsShared.set(playerId, prev); gsRenderList(); }
+    else { toast('Failed to remove', 'er'); gsShared.set(playerId, prev); }
   } else {
     const today = new Date().toISOString().split('T')[0];
     gsShared.set(playerId, { date: today, sharedBy: AUTH.name() || 'Admin' });
-    gsRenderList();
     const ok = await dbUpsert('gospel_shares', { player_id: playerId, date: today, shared_by: AUTH.name() || 'Admin' });
     if (ok) toast('Gospel marked ✝', 'in');
-    else { toast('Failed to save', 'er'); gsShared.delete(playerId); gsRenderList(); }
+    else { toast('Failed to save', 'er'); gsShared.delete(playerId); }
   }
-  renderGospelHistory();
+  dpRenderShareLog();
 }
 
-async function renderGospelHistory() {
-  const el = document.getElementById('gs-history');
+async function dpRenderShareLog() {
+  const el = document.getElementById('dp-history');
   if (!el) return;
   const rows = await dbGet('gospel_shares', 'select=player_id,date,shared_by&order=date.desc,created_at.desc&limit=60');
   if (!rows || !rows.length) { el.innerHTML = '<div class="empty">No records yet.</div>'; return; }
@@ -9356,6 +9189,168 @@ async function renderGospelHistory() {
         ${entries.map(r => `<span style="background:rgba(245,197,24,0.1);border:1px solid rgba(245,197,24,0.3);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--gold)">✝ ${getName(r.player_id)}</span>`).join('')}
       </div>
     </div>`).join('');
+}
+
+// ── DISCIPLESHIP PIPELINE ────────────────────────────────────────────────
+// Share → Invite → Attend CCF → Plug into Dgroup, filterable per sport so
+// each ministry head can review just their own people. Reuses the Gospel
+// Sharing data (gsShared/gsIsShared) for the Shared stage rather than
+// tracking it twice. Sport membership is derived from a player's actual
+// registrations (which games they've signed up for), not the self-declared
+// profile sport tag — same signal Gospel Sharing's schedule filter uses,
+// since it reflects real activity rather than a tag that can go stale.
+let dpSport = 'all';
+let dpStage = 'all';
+const DP_SPORT_LABEL = { basketball:'Basketball', pickleball:'Pickleball', badminton:'Badminton', dragonboat:'Dragonboat', running:'Running' };
+
+function dpPlayerSportSet(){
+  const map = new Map();
+  LC.arr('regs').forEach(r=>{
+    if (!r.playerId || (r.status||'').toLowerCase()==='cancelled') return;
+    const sp = r.sport || 'basketball';
+    if (!map.has(r.playerId)) map.set(r.playerId, new Set());
+    map.get(r.playerId).add(sp);
+  });
+  return map;
+}
+
+// D-Group is treated as proof of every earlier stage for counting purposes
+// (you can't be plugged into a small group without having gone through
+// invite/attend first) — mirrors gsIsShared's existing "D-Group auto-
+// counts as shared" logic, extended to the other stages.
+function dpShared(p){ return gsIsShared(p); }
+function dpInvited(p){ return !!p.invited || !!p.hasDgroup; }
+function dpAttended(p){ return !!p.attendedCCF || !!p.hasDgroup; }
+function dpDgroup(p){ return !!p.hasDgroup; }
+
+function dpSetSport(s){ dpSport = s; dpRenderList(); }
+function dpSetStage(s){ dpStage = s; dpRenderList(); }
+
+async function renderDiscipleshipPanel(){
+  document.getElementById('dp-list').innerHTML = '<div class="empty">Loading…</div>';
+  await gsLoadAllShared();
+  dpRenderList();
+  dpRenderShareLog();
+}
+
+function dpRenderSportFilter(){
+  const el = document.getElementById('dp-sport-filter');
+  if (!el) return;
+  const pill = (val,label) => `<button type="button" class="fin-pill${dpSport===val?' on':''}" onclick="dpSetSport('${val}')">${label}</button>`;
+  el.innerHTML = pill('all','All Sports') + Object.keys(DP_SPORT_LABEL).map(s=>pill(s,DP_SPORT_LABEL[s])).join('');
+}
+
+function dpRenderList(){
+  const listEl = document.getElementById('dp-list');
+  if (!listEl) return;
+  dpRenderSportFilter();
+
+  const sportMap = dpPlayerSportSet();
+  let sportPool = LC.arr('players').filter(p=>p.isActive!==false);
+  if (dpSport !== 'all') sportPool = sportPool.filter(p => (sportMap.get(p.id)||new Set()).has(dpSport));
+
+  // Funnel counts reflect everyone in the sport filter, independent of the
+  // search box or stage filter below — so the numbers don't shrink just
+  // because you're looking for one person or one stage.
+  const nShared = sportPool.filter(dpShared).length;
+  const nInvited = sportPool.filter(dpInvited).length;
+  const nAttended = sportPool.filter(dpAttended).length;
+  const nDgroup = sportPool.filter(dpDgroup).length;
+
+  const funnelEl = document.getElementById('dp-funnel');
+  const tile = (n,label,color) => `<div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
+    <span style="font-family:'Bebas Neue';font-size:28px;line-height:1;color:${color}">${n}</span>
+    <span style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px">${label}</span>
+  </div>`;
+  funnelEl.innerHTML = tile(sportPool.length,'Total','var(--tx2)')
+    + tile(nShared,'Shared','var(--gold)')
+    + tile(nInvited,'Invited','var(--blue)')
+    + tile(nAttended,'Attended CCF','var(--am)')
+    + tile(nDgroup,'In Dgroup','var(--gr)');
+
+  const stageEl = document.getElementById('dp-stage-filter');
+  const spill = (val,label) => `<button type="button" class="fin-pill${dpStage===val?' on':''}" onclick="dpSetStage('${val}')">${label}</button>`;
+  stageEl.innerHTML = spill('all','Everyone') + spill('notshared','Not Shared') + spill('notinvited','Not Invited') + spill('notattended','Not Attended CCF') + spill('notdgroup','Not in Dgroup');
+
+  let pool = sportPool;
+  const query = (document.getElementById('dp-search')?.value||'').toLowerCase().trim();
+  if (query) pool = pool.filter(p=>(p.firstName+' '+p.lastName).toLowerCase().includes(query));
+  if (dpStage==='notshared') pool = pool.filter(p=>!dpShared(p));
+  else if (dpStage==='notinvited') pool = pool.filter(p=>!dpInvited(p));
+  else if (dpStage==='notattended') pool = pool.filter(p=>!dpAttended(p));
+  else if (dpStage==='notdgroup') pool = pool.filter(p=>!dpDgroup(p));
+
+  pool = pool.slice().sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
+
+  if (!pool.length) { listEl.innerHTML = '<div class="empty">No players match this filter.</div>'; return; }
+
+  // Shared & Invited toggle directly here (simple lifetime booleans).
+  // Attended CCF & Dgroup open the full player edit form instead — Dgroup
+  // in particular also needs a leader name, which a one-click chip can't
+  // capture, and both already have an established edit path there.
+  const chip = (on,label,onclick,tip) => `<button type="button" onclick="${onclick}" data-tip="${tip}" style="font-size:9px;font-weight:700;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;background:${on?'rgba(34,197,94,.15)':'rgba(255,255,255,.05)'};color:${on?'var(--gr)':'var(--tx3)'}">${label}</button>`;
+
+  listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:4px 0">
+    ${pool.map(p=>{
+      const name=(p.firstName+' '+p.lastName).trim()||'Unnamed';
+      const sports=[...(sportMap.get(p.id)||[])].map(s=>DP_SPORT_LABEL[s]||s).join(', ')||'—';
+      return `<div data-dp-id="${p.id}" style="padding:10px 12px;border-radius:8px;border:1px solid var(--b);background:var(--card)">
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px">${name}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-bottom:6px">${sports}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+          ${chip(dpShared(p),'Shared',`dpToggleShared('${p.id}')`,'Toggle gospel-shared')}
+          ${chip(dpInvited(p),'Invited',`dpToggleInvited('${p.id}')`,'Toggle invited')}
+          ${chip(dpAttended(p),'Attended',`openEditPlayer('${p.id}')`,'Edit in player profile')}
+          ${chip(dpDgroup(p),'Dgroup',`openEditPlayer('${p.id}')`,'Edit in player profile')}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+async function dpToggleShared(playerId){
+  await gsToggle(playerId);
+  dpRenderList();
+}
+
+// Bulk-marks everyone in the currently visible filtered pool (sport + stage
+// + search) as gospel-shared — e.g. "everyone at today's game just heard
+// the message, mark them all." Only touches the Shared stage; the other
+// three still need their own review.
+async function dpMarkAllShown(){
+  const idsShown = [...document.querySelectorAll('#dp-list [data-dp-id]')].map(el => el.dataset.dpId);
+  const toMark = idsShown.filter(id => !gsShared.has(id));
+
+  if (!idsShown.length) { toast('No players match the current filter', 'er'); return; }
+  if (!toMark.length) { toast('Everyone shown is already marked shared', 'in'); return; }
+  if (!confirm('Mark ' + toMark.length + ' player(s) as gospel shared?')) return;
+
+  const today = new Date().toISOString().split('T')[0];
+  const label = dpSport==='all' ? 'All Sports' : (DP_SPORT_LABEL[dpSport]||dpSport);
+  const rows = toMark.map(id => ({ player_id: id, date: today, shared_by: (AUTH.name() || 'Admin') + ' (bulk: ' + label + ')' }));
+  const ok = await dbUpsert('gospel_shares', rows);
+  if (ok) {
+    toMark.forEach(id => gsShared.set(id, { date: today, sharedBy: AUTH.name() || 'Admin' }));
+    toast('Marked ' + toMark.length + ' player(s)', 'in');
+    dpRenderList();
+    dpRenderShareLog();
+  } else {
+    toast('Bulk mark failed — check Supabase', 'er');
+  }
+}
+
+async function dpToggleInvited(playerId){
+  const players = LC.arr('players');
+  const p = players.find(x=>x.id===playerId); if (!p) return;
+  const newVal = !p.invited;
+  const today = new Date().toISOString().split('T')[0];
+  const prevInvited = p.invited, prevAt = p.invitedAt;
+  p.invited = newVal; p.invitedAt = newVal ? today : '';
+  LC.set('players', players);
+  dpRenderList();
+  const ok = await rpc('admin_update_invited', {p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_target_id:playerId, p_invited:newVal, p_invited_at: newVal?today:null});
+  if (ok) toast(newVal?'Marked invited':'Unmarked invited','in');
+  else { toast('Save failed — check connection','er'); p.invited=prevInvited; p.invitedAt=prevAt; LC.set('players',players); dpRenderList(); }
 }
 </script>
 </body>
