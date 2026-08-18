@@ -6714,7 +6714,6 @@ function _toggleRosterPlayer(pid, tournId, teamId) {
     if (pid===tm?.owner) return; // can't remove owner
     players.splice(idx,1);
   } else {
-    if (players.length >= 15) return toast('Max 15 players per team','er');
     players.push(pid);
   }
   const t2 = LC.arr('tournaments').find(x=>x.id===tournId);
@@ -6811,7 +6810,7 @@ function openTournRegForm(tournId) {
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
           <div style="font-size:12px;color:var(--tx3);margin-top:2px">You're auto-included as team owner</div>
         </div>
-        <span id="treg-count" style="font-size:12px;font-weight:700;background:var(--b2);border-radius:20px;padding:4px 10px;color:var(--tx2)">1 / 15</span>
+        <span id="treg-count" style="font-size:12px;font-weight:700;background:var(--b2);border-radius:20px;padding:4px 10px;color:var(--tx2)">1</span>
       </div>
       <div id="treg-pills" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
@@ -6840,7 +6839,7 @@ function _renderTregPills() {
     });
   const count = _tournRegPlayers.length;
   const countEl = document.getElementById('treg-count');
-  if (countEl) { countEl.textContent = count+' / 15'; countEl.style.color = count>=15?'var(--gr)':'var(--tx2)'; }
+  if (countEl) { countEl.textContent = count; }
 
   container.innerHTML = allPlayers.map(p => {
     const isSelf = ME && p.id === ME.id;
@@ -6863,7 +6862,6 @@ function _toggleTregPlayer(pid) {
   if (idx >= 0) {
     _tournRegPlayers.splice(idx, 1);
   } else {
-    if (_tournRegPlayers.length >= 15) { toast('Max 15 players per team','er'); return; }
     _tournRegPlayers.push(pid);
   }
   _renderTregPills();

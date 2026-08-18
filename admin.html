@@ -6326,8 +6326,6 @@ let _tTeams     = [];
 let _tFees      = [];
 let _tCaptains  = [];
 
-const MAX_TOURN_PLAYERS = 15;
-
 function _tPlayerName(pid) {
   const all = LC.arr('players');
   const p = all.find(x=>x.id===pid);
@@ -7246,7 +7244,7 @@ function renderTournTeamsForm() {
   el.innerHTML = _tTeams.map((tm,i) => {
     const selected = tm.players||[];
     const count = selected.length;
-    const countColor = count > MAX_TOURN_PLAYERS ? 'var(--danger,#e53e3e)' : count===MAX_TOURN_PLAYERS ? 'var(--gr)' : 'var(--tx3)';
+    const countColor = 'var(--tx3)';
     // All players are eligible as team owner (owners may or may not play)
     const ownerOpts = `<option value="">— Select owner —</option>`+allPlayers.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
     const pills = allPlayers.map(p => {
@@ -7263,7 +7261,7 @@ function renderTournTeamsForm() {
       <select class="fi" style="margin-bottom:12px" onchange="_tTeams[${i}].owner=this.value||null;renderTournTeamsForm()">${ownerOpts}</select>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <label class="fl" style="margin:0">Players</label>
-        <span style="font-size:11px;font-weight:700;background:var(--surface-2);border-radius:20px;padding:3px 10px;color:${countColor}">${count} / ${MAX_TOURN_PLAYERS}</span>
+        <span style="font-size:11px;font-weight:700;background:var(--surface-2);border-radius:20px;padding:3px 10px;color:${countColor}">${count}</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:6px">${pills}</div>
       ${selected.length ? `
@@ -7303,7 +7301,6 @@ function _toggleTeamPlayer(teamIdx, pid) {
     if (tm.owner === pid) tm.owner = null;
     if (tm.waivers) delete tm.waivers[pid];
   } else {
-    if ((tm.players||[]).length >= MAX_TOURN_PLAYERS) { toast('Max '+MAX_TOURN_PLAYERS+' players per team','er'); return; }
     if (!tm.players) tm.players = [];
     tm.players.push(pid);
     if (!tm.waivers) tm.waivers = {};
@@ -7398,8 +7395,6 @@ async function saveTournament() {
   if (!name) return toast('Enter a tournament name','er');
   const unnamedTeam = _tTeams.find(t=>!t.name||!t.name.trim());
   if (unnamedTeam) return toast('All teams must have a name','er');
-  const overLimit = _tTeams.find(t=>(t.players||[]).length > MAX_TOURN_PLAYERS);
-  if (overLimit) return toast(`"${overLimit.name}" exceeds ${MAX_TOURN_PLAYERS} players`,'er');
   const bracketEl = document.getElementById('tf-bracket');
   const payload = {
     name,
