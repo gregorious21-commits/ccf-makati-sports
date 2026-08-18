@@ -1284,14 +1284,15 @@ select.fi{
           <div class="card-t"><i class="ti ti-route"></i>Discipleship Pipeline</div>
           <button type="button" class="btn btn-sm" onclick="renderDiscipleshipPanel()"><i class="ti ti-refresh"></i>Refresh</button>
         </div>
-        <div class="note">Share → Invite → Attend CCF → Plug into Dgroup. Filter by sport so each ministry head can review just their own people. D-Group members auto-count as Shared &amp; Attended (they're already discipled).</div>
+        <div class="note">Share → Invite → Attend CCF → Plug into Dgroup. Filter by sport so each ministry head can review just their own people. D-Group members auto-count as Shared &amp; Attended (they're already discipled). Assign someone to be responsible for a person's Share/Invite follow-up.</div>
         <div id="dp-sport-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
           <input type="text" class="fi" id="dp-search" placeholder="Search player…" oninput="dpRenderList()" style="flex:1;min-width:180px">
           <button type="button" class="btn btn-sm" style="width:auto;background:rgba(245,197,24,.12);border:1px solid var(--gold);color:var(--gold)" onclick="dpMarkAllShown()"><i class="ti ti-users"></i>Mark all shown shared</button>
         </div>
         <div id="dp-funnel" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"></div>
-        <div id="dp-stage-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+        <div id="dp-stage-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+        <div id="dp-assign-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
         <div id="dp-list"><div class="empty">Loading…</div></div>
       </div>
       <div class="card" style="margin-top:12px">
@@ -2109,10 +2110,11 @@ select.fi{
         <label class="fl" style="margin-top:0">Team Access</label>
         <select class="fi" id="e-role">
           <option value="member">Member — Regular player</option>
+          <option value="gdm">Game Day Manager — Only sees Game Day</option>
           <option value="manager">Manager — Run game day, approve registrations</option>
           <option value="owner">Owner — Full access (you)</option>
       </select>
-        <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.5">Managers can run sessions and approve payments. They can't delete players, change payment methods, or modify roles. Promote sparingly.</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.5">Managers can run sessions and approve payments. They can't delete players, change payment methods, or modify roles. Game Day Managers only see the Game Day screen — nothing else in the sidebar. This is a simplified view for a trusted volunteer, not a hard security wall — treat it like handing someone the keys to just that room. Promote sparingly.</div>
     </div>
   </div>
     <div class="modal-f">
@@ -2288,7 +2290,7 @@ const AUTH = {
   role()  { const a = this.get(); return a ? a.role  : null; },
   name()  { const a = this.get(); return a ? a.name  : ''; },
   isAuthed() { return !!this.get(); },
-  isAdmin()  { const r = this.role(); return r === 'owner' || r === 'manager'; },
+  isAdmin()  { const r = this.role(); return r === 'owner' || r === 'manager' || r === 'gdm'; },
   isOwner()  { return this.role() === 'owner'; },
 };
 
@@ -2382,6 +2384,7 @@ async function doFullSync() {
       hasDgroup:sp.has_dgroup||false, dgroupLeader:sp.dgroup_leader||'',
       attendedCCF:sp.attended_ccf||false,
       invited:sp.invited||false, invitedAt:sp.invited_at||'',
+      assignedTo:sp.assigned_to||'',
       pin:sp.pin||'', wins:sp.wins||0, games:sp.games_played||0,
       dupr:sp.dupr!=null?sp.dupr:null, ratingBasketball:sp.rating_basketball!=null?sp.rating_basketball:null, ratingPickleball:sp.rating_pickleball!=null?sp.rating_pickleball:null, ratingBadminton:sp.rating_badminton!=null?sp.rating_badminton:null,
       isFirstGame:sp.is_first_game!==false, joined:sp.joined||'',
@@ -2466,7 +2469,7 @@ async function tryUnlock(){
     }
     const profile = rows[0];
     const role = profile.role || 'member';
-    if (role !== 'owner' && role !== 'manager') {
+    if (role !== 'owner' && role !== 'manager' && role !== 'gdm') {
       err.textContent = 'You don\'t have admin access.';
       document.getElementById('pin-field').value = '';
       setTimeout(()=>{ err.textContent = ''; }, 4000);
@@ -2476,8 +2479,8 @@ async function tryUnlock(){
     err.textContent = '';
     document.getElementById('pin-screen').style.display='none';
     document.getElementById('app').style.display='flex';
-    applyRoleVisibility();   // hide owner-only nav items for managers
-    nav('dashboard');
+    applyRoleVisibility();   // hide owner-only nav items for managers, everything but Game Day for gdm
+    nav(role==='gdm' ? 'gameday' : 'dashboard');
     doFullSync();
     start30s();
     startSessionPoller();
@@ -2515,13 +2518,20 @@ document.getElementById('lock-btn').addEventListener('click',()=>{
   setTimeout(()=>{ if (_alPhone) _alPhone.focus(); else document.getElementById('pin-field').focus(); },100);
 });
 
-// Apply role-based visibility (managers see less than owners).
+// Apply role-based visibility (managers see less than owners; Game Day
+// Managers see only Game Day — a simplified view for a trusted volunteer,
+// not a hard security wall, since the underlying RPCs still just check
+// for any admin role. Don't hand this role to someone you don't trust
+// with the same data a manager could reach if they went looking.
 function applyRoleVisibility(){
-  // For step 1, managers see everything except: payment methods edit, role management.
-  // We'll wire those up in their respective panels. For now, just expose a helper.
   const isOwner = AUTH.isOwner();
   document.querySelectorAll('[data-owner-only]').forEach(el => {
     el.style.display = isOwner ? '' : 'none';
+  });
+  const isGdm = AUTH.role() === 'gdm';
+  document.querySelectorAll('.nav-item').forEach(el => {
+    if (isGdm) el.style.display = el.dataset.p === 'gameday' ? '' : 'none';
+    else el.style.display = '';
   });
 }
 
@@ -8570,12 +8580,12 @@ function exportCSV(type){
     const rows = await rpc('verify_player_pin', { p_phone: AUTH.phone(), p_pin: AUTH.pin() });
     if (Array.isArray(rows) && rows.length){
       const role = rows[0].role || 'member';
-      if (role === 'owner' || role === 'manager'){
+      if (role === 'owner' || role === 'manager' || role === 'gdm'){
         AUTH.set(AUTH.phone(), AUTH.pin(), role, (rows[0].first_name||'') + ' ' + (rows[0].last_name||''));
         document.getElementById('pin-screen').style.display = 'none';
         document.getElementById('app').style.display = 'flex';
         applyRoleVisibility();
-        nav('dashboard');
+        nav(role==='gdm' ? 'gameday' : 'dashboard');
         doFullSync();
         start30s();
         startSessionPoller();
@@ -9201,7 +9211,40 @@ async function dpRenderShareLog() {
 // since it reflects real activity rather than a tag that can go stale.
 let dpSport = 'all';
 let dpStage = 'all';
+let dpAssignFilter = 'all'; // 'all' | 'unassigned' | 'mine'
+let dpViewMode = 'sport'; // 'sport' | 'tournament'
+let dpTournamentId = null;
+let dpTeamId = 'all';
 const DP_SPORT_LABEL = { basketball:'Basketball', pickleball:'Pickleball', badminton:'Badminton', dragonboat:'Dragonboat', running:'Running' };
+
+// pid -> team name, for whichever tournament/team scope is currently
+// selected — used both to build the roster pool and to label each card.
+function dpTournamentTeams(tournId){
+  const t = LC.arr('tournaments').find(x=>x.id===tournId);
+  return (t && t.teams) || [];
+}
+function dpTournamentPlayerIds(tournId, teamId){
+  const teams = dpTournamentTeams(tournId);
+  const scoped = teamId==='all' ? teams : teams.filter(tm=>tm.id===teamId);
+  const ids = new Set();
+  scoped.forEach(tm=>(tm.players||[]).forEach(pid=>ids.add(pid)));
+  return ids;
+}
+function dpTournamentTeamNameMap(tournId){
+  const map = new Map();
+  dpTournamentTeams(tournId).forEach(tm=>(tm.players||[]).forEach(pid=>map.set(pid, tm.name)));
+  return map;
+}
+
+// Resolves the logged-in admin to their own player record (by phone) so
+// "Assigned to Me" can work — admins are just players with the manager/
+// owner role, there's no separate admin-identity table.
+function dpMyPlayerId(){
+  const myPhone = (AUTH.phone()||'').replace(/\s/g,'');
+  if (!myPhone) return null;
+  const me = LC.arr('players').find(p=>(p.phone||'').replace(/\s/g,'')===myPhone);
+  return me ? me.id : null;
+}
 
 function dpPlayerSportSet(){
   const map = new Map();
@@ -9225,6 +9268,10 @@ function dpDgroup(p){ return !!p.hasDgroup; }
 
 function dpSetSport(s){ dpSport = s; dpRenderList(); }
 function dpSetStage(s){ dpStage = s; dpRenderList(); }
+function dpSetAssignFilter(s){ dpAssignFilter = s; dpRenderList(); }
+function dpSetViewMode(m){ dpViewMode = m; dpRenderList(); }
+function dpSetTournament(id){ dpTournamentId = id; dpTeamId = 'all'; dpRenderList(); }
+function dpSetTeam(id){ dpTeamId = id; dpRenderList(); }
 
 async function renderDiscipleshipPanel(){
   document.getElementById('dp-list').innerHTML = '<div class="empty">Loading…</div>';
@@ -9233,21 +9280,46 @@ async function renderDiscipleshipPanel(){
   dpRenderShareLog();
 }
 
-function dpRenderSportFilter(){
+function dpRenderScopeFilter(){
   const el = document.getElementById('dp-sport-filter');
   if (!el) return;
-  const pill = (val,label) => `<button type="button" class="fin-pill${dpSport===val?' on':''}" onclick="dpSetSport('${val}')">${label}</button>`;
-  el.innerHTML = pill('all','All Sports') + Object.keys(DP_SPORT_LABEL).map(s=>pill(s,DP_SPORT_LABEL[s])).join('');
+  const modePill = (val,label) => `<button type="button" class="fin-pill${dpViewMode===val?' on':''}" onclick="dpSetViewMode('${val}')">${label}</button>`;
+  let html = `<div style="display:flex;gap:6px;width:100%;margin-bottom:6px">${modePill('sport','By Sport')}${modePill('tournament','By Tournament')}</div>`;
+
+  if (dpViewMode === 'sport'){
+    const pill = (val,label) => `<button type="button" class="fin-pill${dpSport===val?' on':''}" onclick="dpSetSport('${val}')">${label}</button>`;
+    html += pill('all','All Sports') + Object.keys(DP_SPORT_LABEL).map(s=>pill(s,DP_SPORT_LABEL[s])).join('');
+  } else {
+    const tourns = LC.arr('tournaments');
+    if (!tourns.length){
+      html += `<div class="empty" style="padding:8px 0">No tournaments yet.</div>`;
+    } else {
+      if (!dpTournamentId || !tourns.some(t=>t.id===dpTournamentId)) dpTournamentId = tourns[0].id;
+      const tournOpts = tourns.map(t=>`<option value="${t.id}"${dpTournamentId===t.id?' selected':''}>${t.name}</option>`).join('');
+      html += `<select class="fi" style="width:auto;min-width:200px" onchange="dpSetTournament(this.value)">${tournOpts}</select>`;
+      const teams = dpTournamentTeams(dpTournamentId);
+      const tpill = (val,label) => `<button type="button" class="fin-pill${dpTeamId===val?' on':''}" onclick="dpSetTeam('${val}')">${label}</button>`;
+      html += `<div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:6px">${tpill('all','All Teams')}${teams.map(tm=>tpill(tm.id,tm.name)).join('')}</div>`;
+    }
+  }
+  el.innerHTML = html;
 }
 
 function dpRenderList(){
   const listEl = document.getElementById('dp-list');
   if (!listEl) return;
-  dpRenderSportFilter();
+  dpRenderScopeFilter();
 
   const sportMap = dpPlayerSportSet();
+  const inTournamentMode = dpViewMode==='tournament' && dpTournamentId;
+  const tournTeamMap = inTournamentMode ? dpTournamentTeamNameMap(dpTournamentId) : null;
   let sportPool = LC.arr('players').filter(p=>p.isActive!==false);
-  if (dpSport !== 'all') sportPool = sportPool.filter(p => (sportMap.get(p.id)||new Set()).has(dpSport));
+  if (inTournamentMode){
+    const idSet = dpTournamentPlayerIds(dpTournamentId, dpTeamId);
+    sportPool = sportPool.filter(p=>idSet.has(p.id));
+  } else if (dpSport !== 'all') {
+    sportPool = sportPool.filter(p => (sportMap.get(p.id)||new Set()).has(dpSport));
+  }
 
   // Funnel counts reflect everyone in the sport filter, independent of the
   // search box or stage filter below — so the numbers don't shrink just
@@ -9256,6 +9328,7 @@ function dpRenderList(){
   const nInvited = sportPool.filter(dpInvited).length;
   const nAttended = sportPool.filter(dpAttended).length;
   const nDgroup = sportPool.filter(dpDgroup).length;
+  const nUnassigned = sportPool.filter(p=>!p.assignedTo).length;
 
   const funnelEl = document.getElementById('dp-funnel');
   const tile = (n,label,color) => `<div class="stat-pill" style="background:var(--card);border:1px solid var(--b);border-radius:8px;padding:10px 18px;display:flex;flex-direction:column;gap:2px">
@@ -9266,11 +9339,17 @@ function dpRenderList(){
     + tile(nShared,'Shared','var(--gold)')
     + tile(nInvited,'Invited','var(--blue)')
     + tile(nAttended,'Attended CCF','var(--am)')
-    + tile(nDgroup,'In Dgroup','var(--gr)');
+    + tile(nDgroup,'In Dgroup','var(--gr)')
+    + tile(nUnassigned,'Unassigned','var(--danger,#e53e3e)');
 
   const stageEl = document.getElementById('dp-stage-filter');
   const spill = (val,label) => `<button type="button" class="fin-pill${dpStage===val?' on':''}" onclick="dpSetStage('${val}')">${label}</button>`;
   stageEl.innerHTML = spill('all','Everyone') + spill('notshared','Not Shared') + spill('notinvited','Not Invited') + spill('notattended','Not Attended CCF') + spill('notdgroup','Not in Dgroup');
+
+  const myId = dpMyPlayerId();
+  const assignEl = document.getElementById('dp-assign-filter');
+  const apill = (val,label) => `<button type="button" class="fin-pill${dpAssignFilter===val?' on':''}" onclick="dpSetAssignFilter('${val}')">${label}</button>`;
+  assignEl.innerHTML = apill('all','Everyone') + apill('unassigned','Unassigned') + (myId?apill('mine','Assigned to Me'):'');
 
   let pool = sportPool;
   const query = (document.getElementById('dp-search')?.value||'').toLowerCase().trim();
@@ -9279,6 +9358,8 @@ function dpRenderList(){
   else if (dpStage==='notinvited') pool = pool.filter(p=>!dpInvited(p));
   else if (dpStage==='notattended') pool = pool.filter(p=>!dpAttended(p));
   else if (dpStage==='notdgroup') pool = pool.filter(p=>!dpDgroup(p));
+  if (dpAssignFilter==='unassigned') pool = pool.filter(p=>!p.assignedTo);
+  else if (dpAssignFilter==='mine') pool = pool.filter(p=>p.assignedTo===myId);
 
   pool = pool.slice().sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
 
@@ -9290,22 +9371,40 @@ function dpRenderList(){
   // capture, and both already have an established edit path there.
   const chip = (on,label,onclick,tip) => `<button type="button" onclick="${onclick}" data-tip="${tip}" style="font-size:9px;font-weight:700;padding:3px 7px;border-radius:4px;border:none;cursor:pointer;background:${on?'rgba(34,197,94,.15)':'rgba(255,255,255,.05)'};color:${on?'var(--gr)':'var(--tx3)'}">${label}</button>`;
 
+  // Built once and reused per card — avoids re-sorting the whole roster
+  // for every single assign dropdown.
+  const assignable = LC.arr('players').filter(p=>p.isActive!==false).sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
+  const assignOpts = cur => `<option value="">— Unassigned —</option>` + assignable.map(x=>`<option value="${x.id}"${cur===x.id?' selected':''}>${x.firstName} ${x.lastName}</option>`).join('');
+
   listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:4px 0">
     ${pool.map(p=>{
       const name=(p.firstName+' '+p.lastName).trim()||'Unnamed';
-      const sports=[...(sportMap.get(p.id)||[])].map(s=>DP_SPORT_LABEL[s]||s).join(', ')||'—';
+      const sports=inTournamentMode ? (tournTeamMap.get(p.id)||'—') : ([...(sportMap.get(p.id)||[])].map(s=>DP_SPORT_LABEL[s]||s).join(', ')||'—');
       return `<div data-dp-id="${p.id}" style="padding:10px 12px;border-radius:8px;border:1px solid var(--b);background:var(--card)">
         <div style="font-size:13px;font-weight:600;margin-bottom:2px">${name}</div>
         <div style="font-size:10px;color:var(--tx3);margin-bottom:6px">${sports}</div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
           ${chip(dpShared(p),'Shared',`dpToggleShared('${p.id}')`,'Toggle gospel-shared')}
           ${chip(dpInvited(p),'Invited',`dpToggleInvited('${p.id}')`,'Toggle invited')}
           ${chip(dpAttended(p),'Attended',`openEditPlayer('${p.id}')`,'Edit in player profile')}
           ${chip(dpDgroup(p),'Dgroup',`openEditPlayer('${p.id}')`,'Edit in player profile')}
         </div>
+        <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="Who's responsible for reaching this person" onchange="dpAssignTo('${p.id}',this.value)">${assignOpts(p.assignedTo)}</select>
       </div>`;
     }).join('')}
   </div>`;
+}
+
+async function dpAssignTo(playerId, disciplerId){
+  const players = LC.arr('players');
+  const p = players.find(x=>x.id===playerId); if (!p) return;
+  const prev = p.assignedTo;
+  p.assignedTo = disciplerId || '';
+  LC.set('players', players);
+  dpRenderList();
+  const ok = await rpc('admin_update_assigned', {p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_target_id:playerId, p_assigned_to: disciplerId || null});
+  if (ok) toast(disciplerId ? 'Assigned' : 'Unassigned','in');
+  else { toast('Save failed — check connection','er'); p.assignedTo=prev; LC.set('players',players); dpRenderList(); }
 }
 
 async function dpToggleShared(playerId){
