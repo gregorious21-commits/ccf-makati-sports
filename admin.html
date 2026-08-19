@@ -9376,10 +9376,28 @@ function dpRenderList(){
   const assignable = LC.arr('players').filter(p=>p.isActive!==false).sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
   const assignOpts = cur => `<option value="">— Unassigned —</option>` + assignable.map(x=>`<option value="${x.id}"${cur===x.id?' selected':''}>${x.firstName} ${x.lastName}</option>`).join('');
 
+  // Dgroup Leader is a free-text name typed on the player edit form, not a
+  // player reference — match it against the roster by full name so an
+  // already-registered leader shows as a live link to their profile;
+  // falls back to the plain typed text for an external/unregistered leader.
+  const normName = s => (s||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const nameIndex = new Map();
+  assignable.forEach(x=>{
+    const key = normName((x.firstName||'')+' '+(x.lastName||''));
+    if (key) nameIndex.set(key, x.id);
+  });
+
   listEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px;padding:4px 0">
     ${pool.map(p=>{
       const name=(p.firstName+' '+p.lastName).trim()||'Unnamed';
       const sports=inTournamentMode ? (tournTeamMap.get(p.id)||'—') : ([...(sportMap.get(p.id)||[])].map(s=>DP_SPORT_LABEL[s]||s).join(', ')||'—');
+      const leaderName = (p.dgroupLeader||'').trim();
+      const leaderMatchId = leaderName ? nameIndex.get(normName(leaderName)) : null;
+      const leaderLine = (p.hasDgroup && leaderName)
+        ? `<div style="font-size:10px;color:var(--tx3);margin-bottom:6px">Leader: ${leaderMatchId
+            ? `<a href="javascript:void(0)" onclick="openEditPlayer('${leaderMatchId}')" style="color:var(--blue);text-decoration:underline;cursor:pointer">${leaderName}</a>`
+            : `<span data-tip="Not found in the app — typed as free text">${leaderName}</span>`}</div>`
+        : '';
       return `<div data-dp-id="${p.id}" style="padding:10px 12px;border-radius:8px;border:1px solid var(--b);background:var(--card)">
         <div style="font-size:13px;font-weight:600;margin-bottom:2px">${name}</div>
         <div style="font-size:10px;color:var(--tx3);margin-bottom:6px">${sports}</div>
@@ -9389,6 +9407,7 @@ function dpRenderList(){
           ${chip(dpAttended(p),'Attended',`openEditPlayer('${p.id}')`,'Edit in player profile')}
           ${chip(dpDgroup(p),'Dgroup',`openEditPlayer('${p.id}')`,'Edit in player profile')}
         </div>
+        ${leaderLine}
         <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="Who's responsible for reaching this person" onchange="dpAssignTo('${p.id}',this.value)">${assignOpts(p.assignedTo)}</select>
       </div>`;
     }).join('')}
