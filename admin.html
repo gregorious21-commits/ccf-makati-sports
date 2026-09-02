@@ -7382,7 +7382,7 @@ function renderTournBracketForm(existing) {
   }).join('');
   el._matches = rounds.map(r=>{
     const saved = ex.find(x=>x.round===r.id);
-    return { round:r.id, teamA:saved?.teamA??r.autoA??null, teamB:saved?.teamB??r.autoB??null, scoreA:saved?.scoreA??null, scoreB:saved?.scoreB??null, winner:saved?.winner??null, date:saved?.date??null, time:saved?.time??null };
+    return { round:r.id, teamA:saved?.teamA??r.autoA??null, teamB:saved?.teamB??r.autoB??null, scoreA:saved?.scoreA??null, scoreB:saved?.scoreB??null, winner:saved?.winner??null, date:saved?.date??null, time:saved?.time??null, stats:saved?.stats??[] };
   });
 }
 
