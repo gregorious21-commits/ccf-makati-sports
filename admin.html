@@ -4024,6 +4024,8 @@ const SKILL_LABEL = { newbie:'Beginner', intermediate:'Intermediate', expert:'Ex
 // Per-court skill tier chosen in Session Setup, before the session exists —
 // consumed once by startPickleballSession, then each court's live dropdown
 // takes over. Index i = Court (i+1).
+// Each entry is an array of tier keys (e.g. ['intermediate','expert']) —
+// empty array = Open/any skill. A court can pool 1, 2, or all 3 tiers.
 let _pbSetupTiers = [];
 function pbRenderCourtTierSetup(){
   const el = document.getElementById('pb-court-tier-setup');
@@ -4031,15 +4033,27 @@ function pbRenderCourtTierSetup(){
   if (!el || !countSel) return;
   const count = parseInt(countSel.value) || 2;
   el.innerHTML = Array.from({length:count}, (_,i) => {
-    const val = _pbSetupTiers[i] || '';
-    const opts = ['',...Object.keys(SKILL_LABEL)].map(t=>
-      `<option value="${t}"${val===t?' selected':''}>${t?SKILL_LABEL[t]+' only':'Open — any skill'}</option>`
+    if (!_pbSetupTiers[i]) _pbSetupTiers[i] = [];
+    const picked = _pbSetupTiers[i];
+    const boxes = Object.keys(SKILL_LABEL).map(t=>
+      `<label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--tx2);cursor:pointer">
+        <input type="checkbox" ${picked.includes(t)?'checked':''} onchange="_pbToggleSetupTier(${i},'${t}',this.checked)">${SKILL_LABEL[t]}
+      </label>`
     ).join('');
-    return `<div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    return `<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--tx2);min-width:60px">Court ${i+1}</span>
-      <select class="fi" style="flex:1;font-size:12px;padding:6px 8px" onchange="_pbSetupTiers[${i}]=this.value">${opts}</select>
+      ${boxes}
+      <span style="font-size:10px;color:var(--tx3)">${picked.length?'':'(Open — any skill)'}</span>
     </div>`;
   }).join('');
+}
+function _pbToggleSetupTier(i, tier, checked){
+  if (!_pbSetupTiers[i]) _pbSetupTiers[i] = [];
+  const arr = _pbSetupTiers[i];
+  const idx = arr.indexOf(tier);
+  if (checked && idx===-1) arr.push(tier);
+  else if (!checked && idx>-1) arr.splice(idx,1);
+  pbRenderCourtTierSetup();
 }
 let pbSession = null;  // { active, courts, queue, log, format, style, gameId, startedAt }
 
@@ -4138,19 +4152,24 @@ function seedPlayers(presentPids, style){
 // array or null (not enough matching players yet — court starts empty,
 // same as the existing "leave empty until queue grows" pattern).
 function pbSeedCourtsByTier(presentIdsList, courtCount, seedMode){
-  const tiers = Array.from({length:courtCount}, (_,i)=>_pbSetupTiers[i]||'');
+  // Each court's tiers is now a list (e.g. ['intermediate','expert']) —
+  // empty list = Open. Tiered courts are filled first, in court order,
+  // each claiming up to 4 matching players from whatever's left; Open
+  // courts split whatever remains afterward, same "leave empty until the
+  // queue grows" fallback as before when there aren't enough matches yet.
+  const tiers = Array.from({length:courtCount}, (_,i)=>_pbSetupTiers[i]||[]);
   let pool = [...presentIdsList];
   const courtSeed = new Array(courtCount).fill(null);
   const take = (pids) => pids.forEach(pid => { const idx=pool.indexOf(pid); if (idx>-1) pool.splice(idx,1); });
 
-  [...new Set(tiers.filter(Boolean))].forEach(tier => {
-    const courtIdxs = tiers.map((t,i)=>t===tier?i:-1).filter(i=>i>=0);
-    const matching = pool.filter(pid => pbSkill(pid)===tier);
+  tiers.forEach((tierList, ci) => {
+    if (!tierList.length) return; // Open court — handled in the pass below
+    const matching = pool.filter(pid => tierList.includes(pbSkill(pid)));
     const { groups } = chunk4(seedPlayers(matching, seedMode));
-    courtIdxs.forEach((ci,gi) => { if (groups[gi]){ courtSeed[ci]=groups[gi]; take(groups[gi]); } });
+    if (groups[0]){ courtSeed[ci]=groups[0]; take(groups[0]); }
   });
 
-  const openIdxs = tiers.map((t,i)=>t?-1:i).filter(i=>i>=0);
+  const openIdxs = tiers.map((t,i)=>t.length?-1:i).filter(i=>i>=0);
   const { groups: openGroups } = chunk4(seedPlayers(pool, seedMode));
   openIdxs.forEach((ci,gi) => { if (openGroups[gi]){ courtSeed[ci]=openGroups[gi]; take(openGroups[gi]); } });
 
@@ -4408,7 +4427,7 @@ function pbUnpinPair(i){
 // whether the Waiting Queue displays as one list or grouped pools.
 function pbQueueGroupTiers(){
   if (!pbSession) return [];
-  return [...new Set(pbSession.courts.map(c=>c.skillTier).filter(Boolean))];
+  return [...new Set(pbSession.courts.flatMap(c=>c.skillTier||[]))];
 }
 // Which display group a player belongs to: their own skill tier if a court
 // is actually restricted to it, otherwise a shared "unmatched" bucket.
@@ -4605,7 +4624,7 @@ function startPickleballSession(){
     // Manual: every court starts empty, every player goes in the queue.
     courts = [];
     for (let i = 0; i < courtCount; i++){
-      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||'' });
+      courts.push({ id:'C'+(i+1), name:'Court '+(i+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||[] });
     }
     queue = presentIds.map(pid => ({ pid, lastResult: null }));
   } else if (partnerMode === 'fixed' && Object.keys(fixedPairs).length >= 4){
@@ -4639,11 +4658,11 @@ function startPickleballSession(){
     courts = courtPairs.map(([pA, pB], i) => ({
       id:'C'+(i+1), name:'Court '+(i+1),
       teamA: pA.slice(0,2), teamB: pB.slice(0,2),
-      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||''
+      scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[i]||[]
     }));
     // Pad courts up to courtCount if fewer pairs filled them
     while (courts.length < courtCount)
-      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[courts.length]||'' });
+      courts.push({ id:'C'+(courts.length+1), name:'Court '+(courts.length+1), teamA:[], teamB:[], scoreA:0, scoreB:0, startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:_pbSetupTiers[courts.length]||[] });
     queue = queuePairs.flat().map(pid => ({ pid, lastResult: null }));
   } else {
     // Auto-seed (random or by skill) — respects each court's assigned tier
@@ -4736,8 +4755,8 @@ function pbPreviewUpNext(){
   let remaining = pbSession.queue.map(q=>({...q}));
   const upNext = new Set();
   pbSession.courts.forEach(c => {
-    const tier = c.skillTier;
-    const pool = (tier ? remaining.filter(q=>pbEffectiveSkill(q.pid)===tier) : remaining.slice());
+    const tiers = c.skillTier;
+    const pool = (tiers && tiers.length ? remaining.filter(q=>tiers.includes(pbEffectiveSkill(q.pid))) : remaining.slice());
     if (pool.length < 4) return;
     const picked = pullNextFour(pbSession.style, pool);
     if (!picked || picked.length < 4) return;
@@ -4758,10 +4777,14 @@ function renderPballSession(){
   const partnerSel = document.getElementById('pb-partner-mode-live');
   if (partnerSel && partnerSel.value !== pbSession.partnerMode) partnerSel.value = pbSession.partnerMode || 'random';
   const grid = document.getElementById('pball-courts-grid');
-  const fmtLabel = pbSession.format==='points'
-    ? 'First to '+pbSession.formatValue+' pts'
-    : pbSession.formatValue+'-min timer';
   grid.innerHTML = pbSession.courts.map(c=>{
+    // A court can override the session's target (points/timer) — falls
+    // back to the session default until someone sets one explicitly.
+    const cFormat = c.format || pbSession.format;
+    const cFormatValue = c.formatValue || pbSession.formatValue;
+    const fmtLabel = cFormat==='points'
+      ? 'First to '+cFormatValue+' pts'
+      : cFormatValue+'-min timer';
     const aPlayers = c.teamA.map(pid=>{
       const sk = pbSkill(pid);
       return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
@@ -4771,26 +4794,33 @@ function renderPballSession(){
       return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
     }).join(', ');
     let progress = '';
-    if (pbSession.format === 'points'){
-      progress = `Target: ${pbSession.formatValue} pts`;
+    if (cFormat === 'points'){
+      progress = `Target: ${cFormatValue} pts`;
     } else {
       const mins = Math.floor((Date.now()-c.startedAt)/60000);
       const secs = Math.floor(((Date.now()-c.startedAt)%60000)/1000);
-      progress = `Elapsed: ${mins}:${String(secs).padStart(2,'0')} / ${pbSession.formatValue}:00`;
+      progress = `Elapsed: ${mins}:${String(secs).padStart(2,'0')} / ${cFormatValue}:00`;
     }
     const fixedBadge = (pbSession.partnerMode === 'fixed')
       ? ' <span style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.04em;text-transform:uppercase">Fixed Pairs</span>'
       : '';
-    const tierOpts = ['',...Object.keys(SKILL_LABEL)].map(t=>
-      `<option value="${t}"${(c.skillTier||'')===t?' selected':''}>${t?SKILL_LABEL[t]+' only':'Open — any skill'}</option>`
+    const courtTiers = c.skillTier || [];
+    const tierBoxes = Object.keys(SKILL_LABEL).map(t=>
+      `<label style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--tx2);cursor:pointer">
+        <input type="checkbox" ${courtTiers.includes(t)?'checked':''} onchange="pbToggleCourtSkillTier('${c.id}','${t}',this.checked)">${SKILL_LABEL[t]}
+      </label>`
+    ).join('');
+    const fmtOpts = [['points','11'],['points','15'],['points','21'],['timer','8'],['timer','10'],['timer','15']].map(([f,v])=>
+      `<option value="${f}:${v}"${cFormat===f&&String(cFormatValue)===v?' selected':''}>${f==='points'?'First to '+v+' pts':v+'-min timer'}</option>`
     ).join('');
     return `<div class="court-card">
       <div class="court-hd">
         <div class="court-name">${c.name}${fixedBadge}</div>
         <div class="court-format">${fmtLabel}</div>
     </div>
-      <div style="padding:0 var(--s-4);margin-top:-4px">
-        <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="Changes only affect who's auto-pulled next — anyone already on this court stays put" onchange="pbSetCourtSkill('${c.id}',this.value)">${tierOpts}</select>
+      <div style="padding:0 var(--s-4);margin-top:-4px;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" data-tip="Changes only affect who's auto-pulled next — anyone already on this court stays put">${tierBoxes}</div>
+        <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="This court's target — overrides the session default" onchange="pbSetCourtFormat('${c.id}',this.value)">${fmtOpts}</select>
       </div>
       <div class="court-body">
         <div class="team-line">
@@ -5064,8 +5094,8 @@ function pbSetScore(courtId, team, value){
 // the chosen players from the real queue. Everyone waiting for a different
 // tier is left untouched, still in place, still able to fill their own court.
 function pbPullForCourt(court){
-  const tier = court && court.skillTier;
-  const pool = (tier ? pbSession.queue.filter(q => pbEffectiveSkill(q.pid) === tier) : pbSession.queue)
+  const tiers = court && court.skillTier;
+  const pool = (tiers && tiers.length ? pbSession.queue.filter(q => tiers.includes(pbEffectiveSkill(q.pid))) : pbSession.queue)
     .map(q => ({...q}));
   const next = pullNextFour(pbSession.style, pool);
   if (next.length === 4){
@@ -5075,14 +5105,36 @@ function pbPullForCourt(court){
   return next;
 }
 
-function pbSetCourtSkill(courtId, tier){
+// A court's skill pool can now hold 1+ tiers (e.g. Intermediate + Expert
+// pooled together) — toggled on/off individually rather than picked from
+// a single dropdown. Only affects future automatic pulls — anyone already
+// on this court stays put.
+function pbToggleCourtSkillTier(courtId, tier, checked){
   if (!pbSession) return;
   const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
-  c.skillTier = tier || '';
-  // Only affects future automatic pulls — anyone already on this court stays put.
+  if (!Array.isArray(c.skillTier)) c.skillTier = [];
+  const idx = c.skillTier.indexOf(tier);
+  if (checked && idx===-1) c.skillTier.push(tier);
+  else if (!checked && idx>-1) c.skillTier.splice(idx,1);
   renderPballSession();
   touchSharedSession();
-  toast(c.name + ' set to ' + (c.skillTier ? SKILL_LABEL[c.skillTier] : 'Open — any skill'));
+  const label = c.skillTier.length ? c.skillTier.map(t=>SKILL_LABEL[t]).join(' + ') + ' only' : 'Open — any skill';
+  toast(c.name + ' set to ' + label);
+}
+
+// Per-court target override (points/timer) — falls back to the session
+// default until set. Purely a display/rule change for that court; doesn't
+// touch the current score or reset the match in progress.
+function pbSetCourtFormat(courtId, value){
+  if (!pbSession) return;
+  const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
+  const [f, v] = (value||'').split(':');
+  if (!f || !v) return;
+  c.format = f;
+  c.formatValue = parseInt(v)||0;
+  renderPballSession();
+  touchSharedSession();
+  toast(c.name + ' target set to ' + (f==='points' ? 'first to '+v+' pts' : v+'-min timer'));
 }
 
 // ── ADD / REMOVE COURT MID-SESSION ───────────────────────────────
@@ -5114,7 +5166,7 @@ function pbAddCourt(){
     id:'C'+Date.now().toString(36),
     name:'Court '+(pbSession.courts.length+1),
     teamA:[], teamB:[], scoreA:0, scoreB:0,
-    startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:''
+    startedAt:Date.now(), warmupEndsAt:null, pickingWarmup:false, skillTier:[]
   });
   const filled = pbFillEmptyCourts();
   renderPballSession();
