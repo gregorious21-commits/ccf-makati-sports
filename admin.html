@@ -1502,6 +1502,7 @@ select.fi{
                 <select class="fi" id="pb-style">
                   <option value="balanced">Balanced · everyone rotates</option>
                   <option value="ladder">Winners vs Winners · ladder</option>
+                  <option value="fifo">Straight Queue · no fairness boost</option>
               </select>
             </div>
               <div>
@@ -1563,6 +1564,7 @@ select.fi{
             <select class="fi" id="pb-style-live" onchange="pbSetStyleLive(this.value)">
               <option value="balanced">Balanced · everyone rotates</option>
               <option value="ladder">Winners vs Winners · ladder</option>
+              <option value="fifo">Straight Queue · no fairness boost</option>
             </select>
           </div>
           <div style="margin-bottom:10px">
@@ -5446,6 +5448,18 @@ function pullNextFour(style, queue){
     if (picked) return picked;
   }
 
+  // ── STRAIGHT QUEUE (FIFO) ────────────────────────────────────────────────
+  // No games-played math at all — a late arrival just joins the back and
+  // waits their natural turn like everyone else. This exists specifically
+  // because "Balanced" seeds a newcomer's played-count to the group's
+  // current minimum (see pbSeedPlayed) so they don't unfairly start at 0 —
+  // but if several people arrive together, that whole cluster ties for
+  // "least played" and can rotate in for multiple rounds straight ahead of
+  // people who'd already been waiting. FIFO sidesteps that entirely.
+  if (style === 'fifo'){
+    return queue.splice(0, 4).map(q => q.pid);
+  }
+
   // ── STANDARD (RANDOM PARTNER) MODE ───────────────────────────────────────
   if (style === 'ladder'){
     // Winners vs winners: prefer 4 winners; if not enough, fall back to 4 losers; else fairest 4.
@@ -5522,7 +5536,9 @@ function pullWithPinnedPairs(style, queue, pinned){
         const pool = eligible.length ? eligible : units;
         return [...pool].sort((a,b) => b.score-a.score || a.n-b.n || a.i-b.i);
       })()
-    : [...units].sort((a,b) => a.n-b.n || a.i-b.i);
+    : style === 'fifo'
+      ? [...units].sort((a,b) => a.i - b.i) // pure queue order — no games-played weighting at all
+      : [...units].sort((a,b) => a.n-b.n || a.i-b.i);
 
   // Greedily fill 4 slots, skipping any unit that would split across the boundary.
   const chosen = [];

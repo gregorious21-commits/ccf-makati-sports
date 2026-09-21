@@ -6973,33 +6973,192 @@ function lqAvatar(pid){
   const txt=p&&p.avatarUrl ? '' : (p?ini(p.firstName,p.lastName):'?');
   return `<div class="lq-av" style="${style}">${txt}</div>`;
 }
+// ── LIVE QUEUE FAIRNESS PREVIEW ──────────────────────────────────────────
+// Mirrors admin's pullNextFour/pullWithPinnedPairs/pbPreviewUpNext exactly
+// (least-played-first or ladder streaks, pinned pairs never split) so
+// members see the SAME "who's actually up next" the admin does — critical
+// once courts are skill-tiered, since raw queue position no longer lines
+// up with who can actually play where. Pure simulation: clones the queue,
+// never touches the real synced session state. Fixed Partner Mode's
+// full-roster pairing isn't mirrored here (rare mode, out of scope) —
+// everything else (balanced/ladder + pinned pairs + skill tiers) is.
+const LQ_LADDER_FAIRNESS_CAP = 2;
+const LQ_SKILL_LABEL = { newbie:'Beginner', intermediate:'Intermediate', expert:'Expert' };
+
+function lqEffectiveSkill(pid, pb){
+  if (pb && pb.skillOverrides && pb.skillOverrides[pid]) return pb.skillOverrides[pid];
+  let p=LC.arr('roster').find(x=>x.id===pid);
+  if(!p) p=LC.arr('players').find(x=>x.id===pid);
+  return (p && p.pickleballSkill) || '';
+}
+
+function lqPullWithPinnedPairs(pb, style, queue, pinned){
+  const played = pb.played || {};
+  const inQueue = new Set(queue.map(q=>q.pid));
+  const claimed = new Set();
+  const units = [];
+  pinned.forEach(pair => {
+    const [a,b] = pair;
+    if (claimed.has(a) || claimed.has(b)) return;
+    if (!inQueue.has(a) || !inQueue.has(b)) return;
+    claimed.add(a); claimed.add(b);
+    const qa = queue.find(q=>q.pid===a), qb = queue.find(q=>q.pid===b);
+    units.push({
+      pids:[a,b],
+      n: ((played[a]||0)+(played[b]||0))/2,
+      i: Math.min(queue.indexOf(qa), queue.indexOf(qb)),
+      score: (qa.lastResult==='won' && qb.lastResult==='won') ? 2 : (qa.lastResult==='lost' && qb.lastResult==='lost') ? 1 : 0
+    });
+  });
+  if (!units.length) return null;
+  queue.forEach((item,i) => {
+    if (claimed.has(item.pid)) return;
+    units.push({ pids:[item.pid], n: played[item.pid]||0, i, score: item.lastResult==='won' ? 2 : item.lastResult==='lost' ? 1 : 0 });
+  });
+  const ranked = style === 'ladder'
+    ? (() => {
+        const globalMin = Math.min(...units.map(u=>u.n));
+        const eligible = units.filter(u => u.n <= globalMin + LQ_LADDER_FAIRNESS_CAP);
+        const pool = eligible.length ? eligible : units;
+        return [...pool].sort((a,b) => b.score-a.score || a.n-b.n || a.i-b.i);
+      })()
+    : style === 'fifo'
+      ? [...units].sort((a,b) => a.i - b.i)
+      : [...units].sort((a,b) => a.n-b.n || a.i-b.i);
+  const chosen = [];
+  let slots = 4;
+  for (const u of ranked){
+    if (u.pids.length > slots) continue;
+    chosen.push(u);
+    slots -= u.pids.length;
+    if (slots === 0) break;
+  }
+  if (slots !== 0) return null;
+  const teamA = [], teamB = [];
+  chosen.filter(u=>u.pids.length===2).forEach(u=>{ (teamA.length===0?teamA:teamB).push(...u.pids); });
+  chosen.filter(u=>u.pids.length===1).forEach(u=>{ (teamA.length<=teamB.length?teamA:teamB).push(u.pids[0]); });
+  const chosenPids = new Set(chosen.flatMap(u=>u.pids));
+  for (let i=queue.length-1;i>=0;i--){ if (chosenPids.has(queue[i].pid)) queue.splice(i,1); }
+  return [teamA[0], teamA[1], teamB[0], teamB[1]];
+}
+
+function lqPullNextFour(pb, style, queue){
+  if (queue.length < 4) return [];
+  const pinned = pb.pinnedPairs;
+  if (pinned && pinned.length){
+    const picked = lqPullWithPinnedPairs(pb, style, queue, pinned);
+    if (picked) return picked;
+  }
+  if (style === 'fifo'){
+    return queue.splice(0, 4).map(q => q.pid);
+  }
+  const played = pb.played || {};
+  if (style === 'ladder'){
+    const globalMin = Math.min(...queue.map(q => played[q.pid]||0));
+    const eligible = queue.map((q,i)=>i).filter(i => (played[queue[i].pid]||0) <= globalMin + LQ_LADDER_FAIRNESS_CAP);
+    const wonIdx = eligible.filter(i => queue[i].lastResult === 'won');
+    const lostIdx = eligible.filter(i => queue[i].lastResult === 'lost');
+    const byPlayed = (idxs) => idxs.slice().sort((a,b) => (played[queue[a].pid]||0) - (played[queue[b].pid]||0));
+    const wonSorted = byPlayed(wonIdx), lostSorted = byPlayed(lostIdx);
+    let picked;
+    if (wonSorted.length >= 4) picked = wonSorted.slice(0,4);
+    else if (lostSorted.length >= 4) picked = lostSorted.slice(0,4);
+    else {
+      const pool = eligible.length >= 4 ? eligible : queue.map((q,i)=>i);
+      picked = pool.map(i=>({i, n:played[queue[i].pid]||0})).sort((a,b)=>a.n-b.n).slice(0,4).map(x=>x.i);
+    }
+    const out = picked.map(i=>queue[i].pid);
+    picked.slice().sort((a,b)=>b-a).forEach(i=>queue.splice(i,1));
+    return out;
+  }
+  const ranked = queue.map((item,i)=>({ i, pid:item.pid, n: played[item.pid]||0 }))
+                      .sort((a,b)=> (a.n-b.n) || (a.i-b.i));
+  const pick = ranked.slice(0,4);
+  const out  = pick.map(x=>x.pid);
+  pick.map(x=>x.i).sort((a,b)=>b-a).forEach(i=>queue.splice(i,1));
+  return out;
+}
+
+function lqPreviewUpNext(pb){
+  let remaining = (pb.queue||[]).map(q=>({...q}));
+  const upNext = new Set();
+  (pb.courts||[]).forEach(c => {
+    const tiers = c.skillTier;
+    const pool = (Array.isArray(tiers) && tiers.length) ? remaining.filter(q=>tiers.includes(lqEffectiveSkill(q.pid,pb))) : remaining.slice();
+    if (pool.length < 4) return;
+    const picked = lqPullNextFour(pb, pb.style, pool);
+    if (!picked || picked.length < 4) return;
+    picked.forEach(pid => pid && upNext.add(pid));
+    const chosen = new Set(picked);
+    remaining = remaining.filter(q => !chosen.has(q.pid));
+  });
+  return upNext;
+}
+
 function renderLivePickleball(card, pb){
   if(!pb || !Array.isArray(pb.courts)){ card.style.display='none'; return; }
   const meId=ME?ME.id:null;
   const queue=Array.isArray(pb.queue)?pb.queue:[];
+  const upNextSet=lqPreviewUpNext(pb);
+  // Distinct skill tiers actually assigned to at least one court — same
+  // gate the admin queue uses to decide "one flat list" vs "grouped pools".
+  const tierOrder=['newbie','intermediate','expert'].filter(t=>
+    pb.courts.some(c=>Array.isArray(c.skillTier)&&c.skillTier.includes(t))
+  );
+  const poolOf=pid=>{
+    const sk=lqEffectiveSkill(pid,pb);
+    return tierOrder.includes(sk) ? sk : '__other__';
+  };
   // Where am I?
   let onCourt=null;
   pb.courts.forEach(c=>{ if(meId&&((c.teamA||[]).includes(meId)||(c.teamB||[]).includes(meId))) onCourt=c; });
   const qIdx=meId?queue.findIndex(q=>q.pid===meId):-1;
   let myStatus='';
   if(onCourt) myStatus=`<div class="lq-you playing"><i class="ti ti-player-play"></i> You're playing now on ${onCourt.name}</div>`;
-  else if(qIdx>=0 && qIdx<4) myStatus=`<div class="lq-you next"><i class="ti ti-bell-ringing"></i> You're up next! (#${qIdx+1} in the queue)</div>`;
-  else if(qIdx>=0){ const groups=Math.floor(qIdx/4); myStatus=`<div class="lq-you"><i class="ti ti-clock"></i> You're #${qIdx+1} in the queue${groups>0?' · ~'+groups+' turn'+(groups===1?'':'s')+' away':''}</div>`; }
+  else if(qIdx>=0 && upNextSet.has(meId)) myStatus=`<div class="lq-you next"><i class="ti ti-bell-ringing"></i> You're up next!</div>`;
+  else if(qIdx>=0){
+    const myPool=poolOf(meId);
+    const poolQueue=tierOrder.length?queue.filter(q=>poolOf(q.pid)===myPool):queue;
+    const posInPool=poolQueue.findIndex(q=>q.pid===meId);
+    const poolLabel=(myPool!=='__other__'&&LQ_SKILL_LABEL[myPool])?' in the '+LQ_SKILL_LABEL[myPool]+' pool':'';
+    myStatus=`<div class="lq-you"><i class="ti ti-clock"></i> You're #${posInPool+1}${poolLabel}</div>`;
+  }
   // Courts
   const courtsHtml=pb.courts.map(c=>{
     const a=(c.teamA||[]).map(lqName).join(' & ')||'—';
     const b=(c.teamB||[]).map(lqName).join(' & ')||'—';
     const mine=meId&&((c.teamA||[]).includes(meId)||(c.teamB||[]).includes(meId));
+    const tiers=Array.isArray(c.skillTier)?c.skillTier:[];
+    const tierBadge=tiers.length?`<span class="lq-tag" style="background:rgba(59,130,246,.15);color:#7DA9F8;margin-left:6px">${tiers.map(t=>LQ_SKILL_LABEL[t]||t).join(' + ')}</span>`:'';
     return `<div class="lq-court${mine?' mine':''}">
-      <div class="lq-court-h">${c.name}</div>
+      <div class="lq-court-h">${c.name}${tierBadge}</div>
       <div class="lq-teams"><span>${a}</span><span class="lq-vs">vs</span><span>${b}</span></div>
     </div>`;
   }).join('');
-  const queueHtml=queue.length? `<div class="lq-chips">` + queue.map((q,i)=>{
+  const chipHtml=(q,posLabel)=>{
     const mine=meId&&q.pid===meId;
-    const up=i<4;
-    return `<div class="lq-chip${mine?' mine':up?' up':''}">${lqAvatar(q.pid)}<span class="lq-qn">${i+1}</span><span>${lqName(q.pid)}${mine?' (You)':''}</span></div>`;
-  }).join('') + `</div>` : '<div style="font-size:13px;color:var(--tx3);padding:6px">Queue is empty — everyone\'s on a court.</div>';
+    const up=upNextSet.has(q.pid);
+    return `<div class="lq-chip${mine?' mine':up?' up':''}">${lqAvatar(q.pid)}<span class="lq-qn">${posLabel}</span><span>${lqName(q.pid)}${mine?' (You)':''}</span></div>`;
+  };
+  let queueHtml;
+  if(!queue.length){
+    queueHtml='<div style="font-size:13px;color:var(--tx3);padding:6px">Queue is empty — everyone\'s on a court.</div>';
+  } else if(!tierOrder.length){
+    // No skill-tiered courts — single combined list, same as before.
+    queueHtml=`<div class="lq-chips">`+queue.map((q,i)=>chipHtml(q,i+1)).join('')+`</div>`;
+  } else {
+    // At least one court is skill-tiered — group to match, same grouping
+    // the admin queue uses, so "who's next" reads the same both sides.
+    const groups=tierOrder.map(t=>({tier:t,label:(LQ_SKILL_LABEL[t]||t)+' Pool',items:[]}));
+    const other={tier:null,label:'Other / Unassigned',items:[]};
+    queue.forEach(q=>{ const g=groups.find(g=>g.tier===poolOf(q.pid)); (g||other).items.push(q); });
+    const allGroups=other.items.length?[...groups,other]:groups;
+    queueHtml=allGroups.map(g=>{
+      const hd=`<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
+      const rows=g.items.length?`<div class="lq-chips">`+g.items.map((q,i)=>chipHtml(q,i+1)).join('')+`</div>`:'';
+      return hd+rows;
+    }).join('');
+  }
   // Recent match results (most recent first, latest 6)
   const log=Array.isArray(pb.log)?pb.log:[];
   let resultsHtml='';
