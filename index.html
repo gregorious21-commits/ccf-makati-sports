@@ -4194,6 +4194,23 @@ function renderWeekGames() {
   _maybeScrollToGame();
 }
 
+let _pendingGameJoinId = null;
+function _maybeAutoJoin(){
+  const id = _pendingGameJoinId;
+  if (!id || !ME) return;
+  _pendingGameJoinId = null;
+  // Drop the /join suffix so a refresh or back-navigation can't re-open it.
+  history.replaceState(history.state, '', '#game/'+id);
+  const g = LC.arr('games').find(x=>x.id===id);
+  if (!g || g.status==='cancelled' || g.status==='completed'){
+    toast('That game is no longer open for sign-ups','in');
+    return;
+  }
+  const mine = LC.arr('regs').find(r=>r.gameId===id && r.playerId===ME.id && r.status!=='cancelled');
+  if (mine){ toast("You're already signed up for this game",'in'); return; }
+  startJoin(id); // waiver + payment still happen as usual; also enforces the no-show block
+}
+
 let _pendingGameScrollId = null;
 function _maybeScrollToGame(){
   if (!_pendingGameScrollId) return;
@@ -5072,9 +5089,17 @@ function _handleHash() {
   const hash = location.hash.replace('#','');
   if (!hash || hash==='home') { switchTab('home',{pushState:false}); return; }
   if (hash.startsWith('game/')) {
-    const id = hash.split('/')[1] || null;
+    const parts = hash.split('/');
+    const id = parts[1] || null;
     switchTab('home',{pushState:false});
     if (id) { _pendingGameScrollId = id; renderWeekGames(); }
+    // "#game/<id>/join" — same as the plain game link, but also opens the
+    // join flow once fresh registrations are loaded (so someone already
+    // signed up doesn't get prompted again off a stale cache).
+    if (id && parts[2]==='join' && ME) {
+      _pendingGameJoinId = id;
+      syncAll().then(_maybeAutoJoin);
+    }
     return;
   }
   if (hash.startsWith('tournaments/')) {

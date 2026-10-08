@@ -2880,10 +2880,23 @@ function gameCardHtml(g, regs, isCompleted){
           <button type="button" class="st-btn ${g.status==='confirmed'?'sel-on':''}" onclick="setGameStatus('${g.id}','confirmed')"> Confirmed</button>
           <button type="button" class="st-btn ${g.status==='tbd'?'sel-tbd':''}" onclick="setGameStatus('${g.id}','tbd')">TBD</button>
           <button type="button" class="st-btn ${g.status==='cancelled'?'sel-off':''}" onclick="setGameStatus('${g.id}','cancelled')"> Cancelled</button>
+          ${g.status!=='cancelled'?`<button type="button" class="btn btn-ghost btn-sm" onclick="copyGameJoinLink('${g.id}')" data-tip="Copy a link that opens the member app straight to this game's sign-up"><i class="ti ti-link"></i>Join link</button>`:''}
           <button type="button" class="btn btn-ghost btn-sm" onclick="openEditGame('${g.id}')"><i class="ti ti-edit"></i>Edit</button>
           <button type="button" class="btn btn-rd btn-sm" onclick="delGame('${g.id}')" data-tip="Delete game"><i class="ti ti-trash"></i></button>
       </div>`}
   </div>`;
+}
+// Link members can tap to land on this game and go straight into the join
+// flow (waiver, then payment). The member app lives at the site root; this
+// panel is served from /admin on the same origin.
+async function copyGameJoinLink(id){
+  const url = location.origin + '/#game/' + id + '/join';
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Join link copied — paste it into your group chat','in');
+  } catch(e) {
+    window.prompt('Copy this join link:', url);
+  }
 }
 // Whether the Past/Completed section is expanded — kept collapsed by
 // default (most recently completed first) so a newly scheduled active game
