@@ -4177,7 +4177,7 @@ function renderWeekGames() {
       ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
       <span class="attendee-label">${attendees.length} signed up</span>
     </div>` : '';
-    const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Share this game" aria-label="Share this game"><i class="ti ti-share"></i></button>`;
+    const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i></button>`;
     return `<div class="game-card" id="game-card-${g.id}">
       <div class="${tClass}" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
         <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}${shareBtn}</div></div>
@@ -4225,7 +4225,7 @@ function _maybeScrollToGame(){
 async function shareGame(gameId){
   const g = LC.arr('games').find(x=>x.id===gameId);
   if (!g) return;
-  const url = location.origin + location.pathname + '#game/' + gameId;
+  const url = location.origin + location.pathname + '#game/' + gameId + '/join';
   const text = g.label + ' · ' + g.time + (g.venue?' at '+g.venue:'') + '. Join us!';
   if (navigator.share) {
     try { await navigator.share({ title: g.label, text, url }); return; }
@@ -4233,7 +4233,7 @@ async function shareGame(gameId){
   }
   try {
     await navigator.clipboard.writeText(url);
-    toast('Game link copied!');
+    toast('Invite link copied — send it to a friend!');
   } catch(e) {
     toast('Could not copy link','er');
   }
