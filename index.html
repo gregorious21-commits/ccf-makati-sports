@@ -990,6 +990,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   color:var(--text-3);cursor:pointer;flex-shrink:0;
   transition:all 150ms var(--ease);
 }
+.game-share-btn:has(span){width:auto;padding:0 12px;gap:6px;border-radius:999px;font-size:13px;font-weight:600;color:var(--text-2)}
 .game-share-btn:hover{border-color:var(--border-strong);color:var(--text-1)}
 .game-card.gc-highlight{animation:gcPulse 1.6s var(--ease) 2}
 @keyframes gcPulse{
@@ -4177,15 +4178,15 @@ function renderWeekGames() {
       ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
       <span class="attendee-label">${attendees.length} signed up</span>
     </div>` : '';
-    const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i></button>`;
+    const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i><span>Invite</span></button>`;
     return `<div class="game-card" id="game-card-${g.id}">
       <div class="${tClass}" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
-        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}${shareBtn}</div></div>
+        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
     </div>
       ${wxLine}
       <div class="game-bot">
         <div class="game-spots ${spots<=3&&!mySt?'warn':''}">${spots<=0&&!myReg?'Game full':spots+' slots left'}</div>
-        <div style="display:flex;align-items:center;gap:8px">${myReg?mBadge:jBtn}${cancelBtn}</div>
+        <div style="display:flex;align-items:center;gap:8px">${shareBtn}${myReg?mBadge:jBtn}${cancelBtn}</div>
     </div>
       ${mySt==='pending'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">Waiting for admin confirmation</div>':''}
       ${mySt==='waitlist'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">You\'ll be automatically confirmed if a slot opens up</div>':''}
