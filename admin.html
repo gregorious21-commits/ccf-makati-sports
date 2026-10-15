@@ -654,6 +654,15 @@ select.fi{
 .dp-link{background:none;border:none;color:var(--tx3);font-size:11px;cursor:pointer;padding:8px 4px;text-decoration:underline;font-family:inherit}
 .dp-link:hover{color:var(--tx)}
 .dp-done{font-size:12px;color:var(--gr);display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.dp-views{display:flex;gap:6px;margin-bottom:14px}
+.dp-views .fin-pill{min-height:36px;display:inline-flex;align-items:center;gap:6px}
+.dp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dp-chip{background:var(--bg3);border:1px solid var(--b);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--tx2);cursor:pointer;font-family:inherit;min-height:28px}
+.dp-chip:hover{border-color:var(--b2);color:var(--tx)}
+.dp-dupe{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.06);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.dp-dupe-names{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.dp-dupe-why{font-size:11px;color:var(--am)}
+.dp-dupe .fi{font-size:12px;padding:7px 9px;min-height:34px}
 @media(max-width:768px){.dp-toolbar{grid-template-columns:1fr 1fr}.dp-toolbar #dp-search{grid-column:1/-1}.dp-grid{grid-template-columns:1fr}}
 .fin-stat .n{font-family:'Bebas Neue';font-size:26px;letter-spacing:.5px}
 .fin-stat .l{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--tx3);margin-top:2px}
@@ -1315,6 +1324,11 @@ select.fi{
             <button type="button" class="btn btn-ghost btn-sm" onclick="renderDiscipleshipPanel()" data-tip="Reload"><i class="ti ti-refresh"></i>Refresh</button>
           </div>
         </div>
+        <div class="dp-views" role="tablist" aria-label="View">
+          <button type="button" role="tab" id="dp-view-people" class="fin-pill on" aria-selected="true" onclick="dpSetView('people')"><i class="ti ti-users"></i> People</button>
+          <button type="button" role="tab" id="dp-view-leaders" class="fin-pill" aria-selected="false" onclick="dpSetView('leaders')"><i class="ti ti-crown"></i> Dgroup Leaders</button>
+        </div>
+        <div id="dp-people-view">
         <div class="note">Everyone who plays with us moves through four steps: <strong>Gospel shared &rarr; Invited to CCF &rarr; Attended CCF &rarr; In a Dgroup</strong>. Each person shows at the furthest step they've reached. Tap <strong>Next step</strong> when they move forward, and set who's following up with them.</div>
         <div id="dp-summary" class="dp-summary"></div>
         <div class="dp-toolbar">
@@ -1326,8 +1340,18 @@ select.fi{
         <div id="dp-tabs" class="dp-tabs" role="tablist" aria-label="Step"></div>
         <div id="dp-hint" class="dp-hint"></div>
         <div id="dp-list"><div class="empty">Loading&hellip;</div></div>
+        </div>
+        <div id="dp-leaders-view" style="display:none">
+          <div class="note">Every Dgroup leader and who's under them. Leader names were typed in by hand, so the app flags names that look like the same person &mdash; merge them so each leader's group is counted once.</div>
+          <div id="dp-ld-summary" class="dp-summary"></div>
+          <div id="dp-ld-dupes"></div>
+          <div class="dp-toolbar" style="grid-template-columns:1fr">
+            <input type="search" class="fi" id="dp-ld-search" placeholder="Search a leader or member&hellip;" oninput="dpRenderLeaders()" aria-label="Search leaders or members">
+          </div>
+          <div id="dp-ld-list"></div>
+        </div>
       </div>
-      <div class="card" style="margin-top:12px">
+      <div class="card" id="dp-log-card" style="margin-top:12px">
         <div class="card-h">
           <div class="card-t"><i class="ti ti-history"></i>Gospel Share Log</div>
         </div>
@@ -9372,10 +9396,12 @@ async function renderDiscipleshipPanel(){
   if (firstLoad) listEl.innerHTML = '<div class="empty">Loading&hellip;</div>';
   const ok = await gsLoadAllShared();
   if (!ok && firstLoad) toast('Couldn\'t load gospel-share records — showing the rest','er');
-  const busy = document.activeElement && document.activeElement.tagName==='SELECT'
-    && document.getElementById('panel-discipleship').contains(document.activeElement);
+  const ae = document.activeElement;
+  const busy = ae && document.getElementById('panel-discipleship').contains(ae)
+    && (ae.tagName==='SELECT' || !!ae.closest('#dp-ld-dupes'));
   if (busy) return;
   dpRenderControls();
+  if (dpView==='leaders') { dpRenderLeaders(); return; }
   dpRenderList();
   dpRenderShareLog();
 }
@@ -9626,6 +9652,7 @@ async function dpMarkAllShown(){
 }
 
 function dpExportCSV(){
+  if (dpView==='leaders') { dpExportLeadersCSV(); return; }
   if (!dpLastFiltered.length) { toast('No one in this view to export','er'); return; }
   const players = LC.arr('players');
   const byId = new Map(players.map(p=>[p.id,p]));
@@ -9644,6 +9671,259 @@ function dpExportCSV(){
   });
   dlCSV('dgroup-management-'+dpToday()+'.csv', rows);
   toast('Exported '+dpLastFiltered.length+' people','in');
+}
+
+// ── DGROUP LEADERS VIEW ─────────────────────────────────────────────────
+// Leader names are free text typed per member, so one leader can appear
+// under several spellings. Names that differ only by case/spacing/
+// punctuation are grouped automatically; looser matches (titles like
+// "Pastor"/"Kuya", first-name-only, small typos, couple-led groups) are
+// only *suggested* — a person decides whether to merge.
+let dpView = 'people';
+const DP_LEADER_TITLES = /^(pastor|ptr|pstr|ps|kuya|ate|bro|sis|brother|sister)\.?\s+/i;
+const DP_DUPE_DISMISS_KEY = 'ccf_dp_dupe_dismissed';
+
+function dpSetView(v){
+  dpView = v;
+  document.getElementById('dp-people-view').style.display = v==='people' ? '' : 'none';
+  document.getElementById('dp-leaders-view').style.display = v==='leaders' ? '' : 'none';
+  document.getElementById('dp-log-card').style.display = v==='people' ? '' : 'none';
+  ['people','leaders'].forEach(k=>{
+    const b = document.getElementById('dp-view-'+k);
+    b.classList.toggle('on', k===v);
+    b.setAttribute('aria-selected', String(k===v));
+  });
+  if (v==='leaders') dpRenderLeaders(); else dpRenderList();
+}
+
+// Letters only, lowercase — "Francis sta. Maria" and "francis sta.maria" share a key.
+function dpLeaderKey(s){ return (s||'').toLowerCase().replace(/[^\p{L}]/gu,''); }
+function dpCleanSpelling(s){ return (s||'').trim().replace(/\s+/g,' '); }
+
+// key -> { key, display, spellings: Map(cleanSpelling -> count), raw:Set(stored strings), members:[player] }
+function dpLeaderGroups(players){
+  const groups = new Map();
+  players.forEach(p=>{
+    if (!p.hasDgroup || !(p.dgroupLeader||'').trim()) return;
+    const sp = dpCleanSpelling(p.dgroupLeader);
+    const k = dpLeaderKey(sp);
+    if (!k) return;
+    let g = groups.get(k);
+    if (!g) { g = { key:k, spellings:new Map(), raw:new Set(), members:[] }; groups.set(k, g); }
+    g.spellings.set(sp, (g.spellings.get(sp)||0)+1);
+    g.raw.add(p.dgroupLeader);
+    g.members.push(p);
+  });
+  // Show the most-used spelling; on a tie prefer the one with capitals.
+  groups.forEach(g=>{
+    g.display = [...g.spellings.entries()].sort((a,b)=>(b[1]-a[1]) || ((b[0]!==b[0].toLowerCase())-(a[0]!==a[0].toLowerCase())) || a[0].localeCompare(b[0]))[0][0];
+  });
+  return groups;
+}
+
+function dpLev(a,b){
+  const m=a.length, n=b.length;
+  if (Math.abs(m-n)>2) return 3;
+  let prev = Array.from({length:n+1},(_,j)=>j);
+  for (let i=1;i<=m;i++){
+    const cur=[i];
+    for (let j=1;j<=n;j++) cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    prev=cur;
+  }
+  return prev[n];
+}
+
+function dpDismissed(){
+  try { return new Set(JSON.parse(localStorage.getItem(DP_DUPE_DISMISS_KEY)||'[]')); } catch(e){ return new Set(); }
+}
+function dpClusterId(keys){ return [...keys].sort().join('|'); }
+
+// Returns clusters of leader groups that may be the same person:
+// [{ groups:[g...], reasons:Set }]. Also includes single groups that are
+// stored under several spellings, so one click tidies the data.
+function dpDuplicateClusters(groups){
+  const items = [...groups.values()].map(g=>{
+    const isCouple = /\s(and|&)\s/i.test(g.display);
+    const stripped = g.display.replace(DP_LEADER_TITLES,'').trim();
+    const parts = stripped.toLowerCase().split(/\s+/).filter(Boolean);
+    // "Mike and Yvette Yap" -> ["mikeyap","yvetteyap"]
+    let coupleKeys = [];
+    if (isCouple) {
+      const m = stripped.match(/^(.+?)\s+(?:and|&)\s+(.+)$/i);
+      if (m) {
+        const right = m[2].trim().split(/\s+/);
+        const surname = right.length>1 ? right[right.length-1] : '';
+        coupleKeys = [dpLeaderKey(m[1]+' '+surname), dpLeaderKey(m[2])];
+      }
+    }
+    return { g, isCouple, strippedKey:dpLeaderKey(stripped), parts, first:parts[0]||'', last:parts.length>1?parts[parts.length-1]:'', coupleKeys };
+  });
+  const parent = new Map(items.map(it=>[it.g.key, it.g.key]));
+  const find = k => { while (parent.get(k)!==k) k = parent.get(k); return k; };
+  const reasons = new Map();
+  const link = (a,b,why) => {
+    const ra=find(a.g.key), rb=find(b.g.key);
+    if (ra!==rb) parent.set(ra, rb);
+    const r = find(a.g.key);
+    if (!reasons.has(r)) reasons.set(r, new Set());
+    reasons.get(r).add(why);
+  };
+  for (let i=0;i<items.length;i++) for (let j=i+1;j<items.length;j++){
+    const A=items[i], B=items[j];
+    if (A.strippedKey && A.strippedKey===B.strippedKey) { link(A,B,'Same name with a title (Pastor, Kuya…)'); continue; }
+    if (A.isCouple && A.coupleKeys.includes(B.g.key)) { link(A,B,'Couple-led group vs. one of the couple'); continue; }
+    if (B.isCouple && B.coupleKeys.includes(A.g.key)) { link(A,B,'Couple-led group vs. one of the couple'); continue; }
+    if (A.isCouple || B.isCouple) continue;
+    const oneWordA = A.parts.length===1, oneWordB = B.parts.length===1;
+    if (oneWordA !== oneWordB) {
+      const single = oneWordA ? A : B, full = oneWordA ? B : A;
+      if (single.first && single.first===full.first) link(A,B,'First name only');
+      continue;
+    }
+    if (!A.last || !B.last) continue;
+    if (A.first===B.first && A.last===B.last) { link(A,B,'Same first and last name, middle name differs'); continue; }
+    if (A.last===B.last && A.first!==B.first && A.first.length>2 && B.first.length>2 && dpLev(A.first,B.first)<=2) link(A,B,'Similar first name, same last name');
+    else if (A.first===B.first && A.last!==B.last && A.last.length>3 && B.last.length>3 && dpLev(A.last,B.last)<=2) link(A,B,'Same first name, similar last name');
+  }
+  const clusters = new Map();
+  items.forEach(it=>{ const r=find(it.g.key); if(!clusters.has(r)) clusters.set(r,[]); clusters.get(r).push(it.g); });
+  const dismissed = dpDismissed();
+  const out = [];
+  clusters.forEach((gs, r)=>{
+    const spellings = gs.reduce((n,g)=>n+g.spellings.size, 0);
+    if (gs.length<2 && spellings<2) return;
+    const why = reasons.get(r) || new Set();
+    if (gs.length===1) why.add('Same name, different capitalization or spacing');
+    if (dismissed.has(dpClusterId(gs.map(g=>g.key)))) return;
+    out.push({ groups:gs, reasons:why });
+  });
+  return out.sort((a,b)=>b.groups.reduce((n,g)=>n+g.members.length,0)-a.groups.reduce((n,g)=>n+g.members.length,0));
+}
+
+function dpRenderLeaders(){
+  const listEl = document.getElementById('dp-ld-list');
+  if (!listEl) return;
+  const players = LC.arr('players').filter(p=>p.isActive!==false);
+  const groups = dpLeaderGroups(players);
+  const rosterIdx = new Map();
+  LC.arr('players').forEach(p=>{ const k=dpLeaderKey(dpFullName(p)); if(k && !rosterIdx.has(k)) rosterIdx.set(k,p.id); });
+  const clusters = dpDuplicateClusters(groups);
+  const placed = [...groups.values()].reduce((n,g)=>n+g.members.length,0);
+  const inApp = [...groups.values()].filter(g=>rosterIdx.has(g.key)).length;
+  const noLeader = players.filter(p=>p.hasDgroup && !(p.dgroupLeader||'').trim()).length;
+
+  const tile = (n,l,color) => `<div class="fin-stat"><div class="n" style="color:${color}">${n}</div><div class="l">${l}</div></div>`;
+  document.getElementById('dp-ld-summary').innerHTML =
+      tile(groups.size,'Dgroup leaders','var(--gold)')
+    + tile(placed,'People placed','var(--gr)')
+    + tile(inApp,'Leaders with an app account','var(--blue)')
+    + tile(clusters.length,'Possible duplicates','var(--am)')
+    + (noLeader ? tile(noLeader,'In a Dgroup, no leader recorded','var(--rd)') : '');
+
+  // Possible duplicates
+  const dupEl = document.getElementById('dp-ld-dupes');
+  if (!clusters.length) {
+    dupEl.innerHTML = '';
+  } else {
+    dupEl.innerHTML = `<div style="font-size:13px;font-weight:700;margin:4px 0 8px">Possible duplicates <span style="font-weight:400;color:var(--tx3)">&middot; check each one and merge if it's the same person</span></div>
+      <div class="dp-grid" style="margin-bottom:18px">${clusters.map((c,ci)=>{
+        const spellings = [];
+        c.groups.forEach(g=>g.spellings.forEach((n,sp)=>spellings.push({sp,n,inApp:rosterIdx.has(g.key)})));
+        spellings.sort((a,b)=>(b.inApp-a.inApp)||(b.n-a.n)||a.sp.localeCompare(b.sp));
+        const best = spellings[0].sp;
+        return `<div class="dp-dupe" data-cluster="${ci}">
+          <div class="dp-dupe-why"><i class="ti ti-alert-triangle"></i> ${[...c.reasons].map(feedEsc).join(' &middot; ')}</div>
+          <div class="dp-dupe-names">${spellings.map(s=>`<div>&ldquo;${feedEsc(s.sp)}&rdquo; <span style="color:var(--tx3)">&middot; ${s.n} ${s.n===1?'member':'members'}${s.inApp?' &middot; has app account':''}</span></div>`).join('')}</div>
+          <label class="fl" style="margin:0" for="dp-dupe-to-${ci}">Keep this name</label>
+          <input class="fi" id="dp-dupe-to-${ci}" list="dp-dupe-opts-${ci}" value="${feedEsc(best)}" maxlength="80">
+          <datalist id="dp-dupe-opts-${ci}">${spellings.map(s=>`<option value="${feedEsc(s.sp)}"></option>`).join('')}</datalist>
+          <div class="dp-actions">
+            <button type="button" class="btn btn-w btn-sm" onclick="dpMergeCluster(${ci})"><i class="ti ti-git-merge"></i>Merge</button>
+            <button type="button" class="dp-link" onclick="dpDismissCluster(${ci})">Not the same person</button>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+  }
+  dpLeaderClusters = clusters;
+
+  // Leader list
+  const q = dpNorm(document.getElementById('dp-ld-search')?.value);
+  let list = [...groups.values()];
+  if (q) list = list.filter(g=>dpNorm(g.display).includes(q) || g.members.some(m=>dpNorm(dpFullName(m)).includes(q)));
+  list.sort((a,b)=>(b.members.length-a.members.length) || a.display.localeCompare(b.display));
+  dpLeaderList = list;
+  if (!list.length) { listEl.innerHTML = `<div class="empty">${q?'No leader or member matches that search.':'No Dgroup leaders recorded yet. Place someone in a Dgroup from the People view.'}</div>`; return; }
+  listEl.innerHTML = `<div class="dp-grid">${list.map((g,gi)=>{
+    const lid = rosterIdx.get(g.key);
+    const others = [...g.spellings.keys()].filter(s=>s!==g.display);
+    const members = g.members.slice().sort((a,b)=>dpFullName(a).localeCompare(dpFullName(b)));
+    return `<div class="dp-card">
+      <div class="dp-card-top">
+        ${lid ? `<button type="button" class="dp-name" onclick="openEditPlayer('${lid}')" data-tip="Open leader's profile">${feedEsc(g.display)}</button>`
+              : `<span class="dp-name" style="cursor:default">${feedEsc(g.display)}</span>`}
+        <span class="badge ${lid?'b-nv':'dp-badge-none'}">${lid?'In app':'Not in app'}</span>
+      </div>
+      <div class="dp-meta">${g.members.length} ${g.members.length===1?'member':'members'}${others.length?` &middot; also written as ${others.map(o=>'&ldquo;'+feedEsc(o)+'&rdquo;').join(', ')}`:''}</div>
+      <div class="dp-chips">${members.map(m=>`<button type="button" class="dp-chip" onclick="openEditPlayer('${m.id}')">${feedEsc(dpFullName(m))}</button>`).join('')}</div>
+      <div class="dp-actions"><button type="button" class="dp-link" onclick="dpRenameLeader(${gi})">Rename</button></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+let dpLeaderClusters = [];
+let dpLeaderList = [];
+
+async function dpApplyLeaderMerge(fromRaw, to, label){
+  to = dpCleanSpelling(to);
+  if (!to) { toast('Enter the name to keep','er'); return false; }
+  const ok = await rpc('admin_merge_dgroup_leaders', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_from:fromRaw, p_to:to });
+  if (typeof ok!=='number') { toast('Couldn\'t save — check your connection and try again','er'); return false; }
+  const players = LC.arr('players');
+  const from = new Set(fromRaw);
+  players.forEach(p=>{ if (from.has(p.dgroupLeader)) p.dgroupLeader = to; });
+  LC.set('players', players);
+  dpRenderLeaders();
+  toast(label.replace('{n}', ok).replace('{to}', to),'in');
+  return true;
+}
+
+async function dpMergeCluster(ci){
+  const c = dpLeaderClusters[ci];
+  if (!c) return;
+  const to = dpCleanSpelling(document.getElementById('dp-dupe-to-'+ci).value);
+  const fromRaw = [...new Set(c.groups.flatMap(g=>[...g.raw]))];
+  const count = c.groups.reduce((n,g)=>n+g.members.length,0);
+  if (!to) { toast('Enter the name to keep','er'); return; }
+  if (!confirm(`Put all ${count} member(s) under "${to}"?`)) return;
+  await dpApplyLeaderMerge(fromRaw, to, 'Merged — {n} member(s) now under {to}');
+}
+
+function dpDismissCluster(ci){
+  const c = dpLeaderClusters[ci];
+  if (!c) return;
+  const set = dpDismissed();
+  set.add(dpClusterId(c.groups.map(g=>g.key)));
+  try { localStorage.setItem(DP_DUPE_DISMISS_KEY, JSON.stringify([...set])); } catch(e) {}
+  dpRenderLeaders();
+}
+
+async function dpRenameLeader(gi){
+  const g = dpLeaderList[gi];
+  if (!g) return;
+  const to = prompt(`Rename "${g.display}" for all ${g.members.length} member(s) to:`, g.display);
+  if (to===null) return;
+  if (dpCleanSpelling(to)===g.display && g.spellings.size===1) return;
+  await dpApplyLeaderMerge([...g.raw], to, 'Renamed — {n} member(s) now under {to}');
+}
+
+function dpExportLeadersCSV(){
+  const groups = [...dpLeaderGroups(LC.arr('players').filter(p=>p.isActive!==false)).values()]
+    .sort((a,b)=>a.display.localeCompare(b.display));
+  if (!groups.length) { toast('No Dgroup leaders to export','er'); return; }
+  const rows = [['Dgroup Leader','Member','Member Phone','Member Email']];
+  groups.forEach(g=>g.members.slice().sort((a,b)=>dpFullName(a).localeCompare(dpFullName(b)))
+    .forEach(m=>rows.push([g.display, dpFullName(m), m.phone||'', m.email||''])));
+  dlCSV('dgroup-leaders-'+dpToday()+'.csv', rows);
+  toast('Exported '+groups.length+' leaders','in');
 }
 </script>
 </body>
