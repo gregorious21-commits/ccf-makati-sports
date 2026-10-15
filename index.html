@@ -2479,7 +2479,7 @@ const AUTH = {
   pin()   { const a = this.get(); return a ? a.pin   : null; },
   role()  { const a = this.get(); return a ? a.role  : null; },
   isAuthed()    { return !!this.get(); },
-  isAdmin()     { const r = this.role(); return r === 'owner' || r === 'manager'; },
+  isAdmin()     { const r = this.role(); return r === 'owner' || r === 'manager' || r === 'dgc'; },
   isOwner()     { return this.role() === 'owner'; },
 };
 
