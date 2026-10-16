@@ -2083,6 +2083,8 @@ footer a:hover{color:var(--text-1)}
         </div>
       </div>
 
+      <div id="dg-join-card" style="display:none"></div>
+
       <div class="sec-h" style="margin-top:18px"><div class="sec-t">Account</div></div>
       <div class="card" style="border-left:3px solid var(--danger,#e53e3e)">
         <div style="font-weight:600;margin-bottom:4px">Disable My Account</div>
@@ -3079,7 +3081,7 @@ async function doConfirmReset() {
 
 // ── LOGOUT ────────────────────────────────────────────────────
 function doLogout() {
-  ME=null; stopRefresh(); localStorage.removeItem('session');
+  ME=null; _dgFormStatus=undefined; stopRefresh(); localStorage.removeItem('session');
   AUTH.clear();
   document.getElementById('view-dash').style.display='none';
   document.getElementById('view-landing').style.display='flex';
@@ -3144,6 +3146,88 @@ function renderProfile() {
   if (ME.bio) { bio.style.display=''; bio.textContent=ME.bio; } else bio.style.display='none';
   const stack = document.getElementById('my-team-stack');
   if (stack) stack.innerHTML = renderTeamStackHtml(myCurrentTeamEntries(ME.id));
+  renderDgroupJoinCard();
+}
+
+// ── JOIN A DGROUP (CCF's Jotform) ─────────────────────────────
+// CCF's Dgroup team runs their own sign-up form. We open it pre-filled
+// (name, mobile, email, "Sports Ministry") and record that the member
+// opened it / says they submitted it, so the Dgroup coordinator can follow
+// up. We can't see CCF's submissions, so "submitted" is self-reported.
+// Phone field is masked "(09##) ###-####" -> send the 9 digits after 09.
+const DGROUP_FORM_URL = 'https://form.jotform.com/ccfmakatiforms/JoinADGroup';
+let _dgFormStatus;          // undefined = not loaded yet; null = nothing recorded
+let _dgFormLoading = false;
+function dgroupFormPhone(phone){
+  let d = String(phone||'').replace(/\D/g,'');
+  if (d.startsWith('63')) d = '0' + d.slice(2);
+  if (d.length===10 && d.startsWith('9')) d = '0' + d;
+  return (d.length===11 && d.startsWith('09')) ? d.slice(2) : '';
+}
+function dgroupFormLink(p){
+  const q = new URLSearchParams();
+  if (p.firstName) q.set('fullName[first]', p.firstName);
+  if (p.lastName)  q.set('fullName[last]', p.lastName);
+  const ph = dgroupFormPhone(p.phone);
+  if (ph) q.set('mobileNumer[full]', ph);
+  if (p.email) q.set('emailAddress', p.email);
+  q.set('iAm', 'Sports Ministry');
+  q.set('areYou53', 'Sports');
+  return DGROUP_FORM_URL + '?' + q.toString();
+}
+async function loadDgroupFormStatus(){
+  if (!ME || _dgFormLoading) return;
+  _dgFormLoading = true;
+  const st = await rpc('member_dgroup_form', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_event:'status' });
+  _dgFormLoading = false;
+  _dgFormStatus = st || null;
+  renderDgroupJoinCard();
+}
+function renderDgroupJoinCard(){
+  const el = document.getElementById('dg-join-card');
+  if (!el || !ME) return;
+  if (ME.hasDgroup) { el.style.display = 'none'; return; }
+  el.style.display = '';
+  if (_dgFormStatus === undefined) loadDgroupFormStatus();
+  const link = feedEsc(dgroupFormLink(ME));
+  const openBtn = (label, cls) => `<a href="${link}" target="_blank" rel="noopener" class="btn ${cls}" style="width:100%;justify-content:center;text-decoration:none" onclick="dgFormOpened()"><i class="ti ti-forms"></i>${label}</a>`;
+  let body;
+  if (_dgFormStatus === 'submitted') {
+    body = `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px">
+        <span style="font-size:22px;color:var(--success,#22C55E)"><i class="ti ti-circle-check"></i></span>
+        <div style="font-size:14px;line-height:1.6;color:var(--tx2)"><strong style="color:var(--tx)">You've signed up for a Dgroup.</strong> CCF's Dgroup team will connect you with a group within 1&ndash;2 weeks.</div>
+      </div>
+      <div style="font-size:12px;color:var(--tx3);text-align:center">Didn't finish it after all? <button type="button" onclick="dgFormUndo()" style="background:none;border:none;color:var(--tx2);text-decoration:underline;cursor:pointer;font-size:12px;padding:6px 2px">Open it again</button></div>`;
+  } else {
+    body = `<div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:16px">A Dgroup is a small group that meets regularly to grow in faith and do life together. Sign up through CCF's Dgroup form &mdash; your name, mobile and email are already filled in.</div>
+      ${openBtn(_dgFormStatus==='opened' ? 'Continue the sign-up form' : 'Sign up for a Dgroup', 'btn-g')}
+      ${_dgFormStatus==='opened' ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <span style="font-size:13px;color:var(--tx2)">Finished and submitted the form?</span>
+          <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px" onclick="dgFormSubmitted()"><i class="ti ti-check"></i>Yes, I submitted it</button>
+        </div>` : ''}`;
+  }
+  el.innerHTML = `<div class="sec-h" style="margin-top:18px"><div class="sec-t">Join a Dgroup</div></div>
+    <div class="card">${body}</div>`;
+}
+function dgFormOpened(){
+  if (_dgFormStatus === 'submitted') return;
+  _dgFormStatus = 'opened';
+  rpc('member_dgroup_form', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_event:'opened' });
+  // Re-render after the link has opened (removing it mid-click can cancel navigation).
+  setTimeout(renderDgroupJoinCard, 400);
+}
+async function dgFormSubmitted(){
+  const st = await rpc('member_dgroup_form', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_event:'submitted' });
+  if (st !== 'submitted') { toast("Couldn't save — check your connection and try again",'er'); return; }
+  _dgFormStatus = 'submitted';
+  renderDgroupJoinCard();
+  toast("Thanks! CCF's Dgroup team will reach out within 1–2 weeks.");
+}
+async function dgFormUndo(){
+  const st = await rpc('member_dgroup_form', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_event:'undo' });
+  if (st !== 'opened') { toast("Couldn't update — try again",'er'); return; }
+  _dgFormStatus = 'opened';
+  renderDgroupJoinCard();
 }
 
 function shareCard() { openStatCard(); }

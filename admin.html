@@ -655,6 +655,8 @@ select.fi{
 .dp-link:hover{color:var(--tx)}
 .dp-done{font-size:12px;color:var(--gr);display:inline-flex;align-items:center;gap:4px;font-weight:600}
 .dp-views{display:flex;gap:6px;margin-bottom:14px}
+.dp-form-row{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;border-top:1px dashed var(--b);padding-top:8px}
+.dp-form-row .dp-meta i{color:var(--gold)}
 .dp-views .fin-pill{min-height:36px;display:inline-flex;align-items:center;gap:6px}
 .dp-chips{display:flex;flex-wrap:wrap;gap:6px}
 .dp-chip{background:var(--bg3);border:1px solid var(--b);border-radius:999px;padding:4px 10px;font-size:12px;color:var(--tx2);cursor:pointer;font-family:inherit;min-height:28px}
@@ -2463,7 +2465,9 @@ async function doFullSync() {
       sports:sp.sports||'basketball', pickleballSkill:sp.pickleball_skill||'',
       role:sp.role||'member',
       lastLoginAt: sp.last_login_at || null,
-      isActive: sp.is_active !== false
+      isActive: sp.is_active !== false,
+      placedAt: sp.dgroup_placed_at || null, sheetSyncedAt: sp.sheet_synced_at || null,
+      dgFormStatus: sp.dgroup_form_status || null, dgFormAt: sp.dgroup_form_at || null, dgFormBy: sp.dgroup_form_by || ''
     })));
   }
   if(Array.isArray(dev)&&dev[0]) LC.set('devotion',mapDev(dev[0]));
@@ -9284,7 +9288,8 @@ const DP_TAB_HINT = {
   0: 'Nobody has shared the gospel with these players yet.',
   1: 'Gospel shared. Next: invite them to a CCF service.',
   2: 'Invited to CCF. Next: confirm once they\'ve attended.',
-  3: 'Attended CCF. Next: connect them with a Dgroup leader.',
+  3: 'Attended CCF. Next: send them CCF\'s Dgroup sign-up form, then place them once CCF connects them.',
+  form: 'They\'ve submitted CCF\'s Dgroup sign-up form. CCF\'s Dgroup team connects them in 1\u20132 weeks \u2014 mark them In Dgroup once placed.',
   4: 'Plugged into a Dgroup.',
   all: 'Everyone in this view, most active first.',
 };
@@ -9451,10 +9456,11 @@ function dpRenderList(){
 
   // Counts cover the whole scope — they don't shrink with search/tab/assign.
   const counts = [0,0,0,0,0];
-  let attention = 0, unassigned = 0;
+  let attention = 0, unassigned = 0, formIn = 0;
   scoped.forEach(p=>{
     const s = dpStageOf(p);
     counts[s]++;
+    if (s<4 && p.dgFormStatus==='submitted') formIn++;
     if (s<4 && isRegular(p)) attention++;
     if (s<4 && !p.assignedTo) unassigned++;
   });
@@ -9471,7 +9477,9 @@ function dpRenderList(){
   const tabBtn = (val,label,n) => `<button type="button" role="tab" aria-selected="${dpTab===val}" class="fin-pill${dpTab===val?' on':''}" onclick="dpSetTab(${typeof val==='number'?val:`'${val}'`})">${label}<span class="dp-tab-n">${n}</span></button>`;
   document.getElementById('dp-tabs').innerHTML =
       tabBtn('attention','<i class="ti ti-alert-circle"></i> Needs attention', attention)
-    + DP_STAGES.map((st,i)=>tabBtn(i, st.label, counts[i])).join('')
+    + DP_STAGES.slice(0,4).map((st,i)=>tabBtn(i, st.label, counts[i])).join('')
+    + tabBtn('form','<i class="ti ti-forms"></i> Form submitted', formIn)
+    + tabBtn(4, DP_STAGES[4].label, counts[4])
     + tabBtn('all','Everyone', scoped.length);
 
   const myId = dpMyPlayerId();
@@ -9479,6 +9487,7 @@ function dpRenderList(){
   const qDigits = q.replace(/\D/g,'');
   let pool = scoped;
   if (dpTab==='attention') pool = pool.filter(p=>dpStageOf(p)<4 && isRegular(p));
+  else if (dpTab==='form') pool = pool.filter(p=>dpStageOf(p)<4 && p.dgFormStatus==='submitted');
   else if (typeof dpTab==='number') pool = pool.filter(p=>dpStageOf(p)===dpTab);
   if (q) pool = pool.filter(p=>dpNorm(dpFullName(p)).includes(q) || (qDigits.length>=3 && (p.phone||'').replace(/\D/g,'').includes(qDigits)));
   if (dpAssignFilter==='unassigned') pool = pool.filter(p=>!p.assignedTo);
@@ -9521,6 +9530,13 @@ function dpRenderList(){
       ? `<button type="button" class="btn btn-w btn-sm" onclick="dpNext('${p.id}')"><i class="ti ti-arrow-right"></i>${st.next}</button>`
       : `<span class="dp-done"><i class="ti ti-circle-check"></i>In a Dgroup</span><button type="button" class="dp-link" onclick="dpOpenLeader('${p.id}')">Change leader</button>`;
     const back = s>0 ? `<button type="button" class="dp-link" onclick="dpBack('${p.id}')">Move back</button>` : '';
+    const formRow = s<4 ? `<div class="dp-form-row"><span class="dp-meta"><i class="ti ti-forms"></i> Dgroup form: ${dpFormStatusText(p)}</span>
+        <span class="dp-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="dpCopyFormLink('${p.id}')" data-tip="Copies CCF's Dgroup sign-up form with their name, mobile and email filled in"><i class="ti ti-link"></i>Copy form link</button>
+          ${p.dgFormStatus==='submitted'
+            ? `<button type="button" class="dp-link" onclick="dpSetFormStatus('${p.id}',null)">Clear</button>`
+            : `<button type="button" class="dp-link" onclick="dpSetFormStatus('${p.id}','submitted')">Mark submitted</button>`}
+        </span></div>` : '';
     return `<div class="dp-card">
       <div class="dp-card-top">
         <button type="button" class="dp-name" onclick="openEditPlayer('${p.id}')" data-tip="Open player profile">${feedEsc(dpFullName(p))}</button>
@@ -9529,6 +9545,7 @@ function dpRenderList(){
       <div class="dp-meta">${phone}<br>${where} &middot; ${gamesTxt}</div>
       ${leaderLine}
       <div class="dp-actions">${primary}${back}</div>
+      ${formRow}
       <div class="dp-follow"><label for="dp-as-${p.id}">Follow-up by</label><select class="fi" id="dp-as-${p.id}" onchange="dpAssignTo('${p.id}',this.value)">${assignOpts(p.assignedTo)}</select></div>
     </div>`;
   }).join('')}</div>`
@@ -9658,12 +9675,13 @@ function dpExportCSV(){
   const byId = new Map(players.map(p=>[p.id,p]));
   const act = dpActivity();
   const { teamOf } = dpScopePool([], act);
-  const rows = [['Name','Phone','Email','Step','Dgroup Leader','Follow-up By',teamOf?'Team':'Sports','Games (last '+DP_REGULAR_DAYS+' days)','Gospel Shared On']];
+  const rows = [['Name','Phone','Email','Step','Dgroup Form','Dgroup Leader','Follow-up By',teamOf?'Team':'Sports','Games (last '+DP_REGULAR_DAYS+' days)','Gospel Shared On']];
   dpLastFiltered.forEach(p=>{
     const a = act.get(p.id);
     const fu = p.assignedTo ? byId.get(p.assignedTo) : null;
     rows.push([
       dpFullName(p), p.phone||'', p.email||'', DP_STAGES[dpStageOf(p)].label,
+      p.dgFormStatus ? p.dgFormStatus+(p.dgFormAt?' '+String(p.dgFormAt).slice(0,10):'') : '',
       p.hasDgroup ? (p.dgroupLeader||'') : '', fu ? dpFullName(fu) : '',
       teamOf ? (teamOf.get(p.id)||'') : [...(a?.sports||[])].map(k=>DP_SPORT_LABEL[k]||k).join(' / '),
       String(a?.recent||0), (gsShared.get(String(p.id))||{}).date || ''
@@ -9671,6 +9689,59 @@ function dpExportCSV(){
   });
   dlCSV('dgroup-management-'+dpToday()+'.csv', rows);
   toast('Exported '+dpLastFiltered.length+' people','in');
+}
+
+// ── CCF DGROUP SIGN-UP FORM (Jotform) ───────────────────────────────────
+// We can't submit or read CCF's form; we hand people a pre-filled link and
+// track sent / opened (member app) / submitted (confirmed by member or
+// coordinator). The phone field is masked "(09##) ###-####", so it takes
+// the 9 digits after the leading 09.
+const DGROUP_FORM_URL = 'https://form.jotform.com/ccfmakatiforms/JoinADGroup';
+function dgroupFormPhone(phone){
+  let d = String(phone||'').replace(/\D/g,'');
+  if (d.startsWith('63')) d = '0' + d.slice(2);
+  if (d.length===10 && d.startsWith('9')) d = '0' + d;
+  return (d.length===11 && d.startsWith('09')) ? d.slice(2) : '';
+}
+function dgroupFormLink(p){
+  const q = new URLSearchParams();
+  if (p.firstName) q.set('fullName[first]', p.firstName);
+  if (p.lastName)  q.set('fullName[last]', p.lastName);
+  const ph = dgroupFormPhone(p.phone);
+  if (ph) q.set('mobileNumer[full]', ph);
+  if (p.email) q.set('emailAddress', p.email);
+  q.set('iAm', 'Sports Ministry');
+  q.set('areYou53', 'Sports');
+  return DGROUP_FORM_URL + '?' + q.toString();
+}
+function dpFormStatusText(p){
+  const when = p.dgFormAt ? new Date(p.dgFormAt).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+  if (p.dgFormStatus==='submitted') return `<strong style="color:var(--gr)">submitted</strong>${when?' '+when:''}${p.dgFormBy && p.dgFormBy!=='member' ? ' &middot; marked by '+feedEsc(p.dgFormBy) : ''}`;
+  if (p.dgFormStatus==='opened') return `opened by them${when?' '+when:''}, not confirmed yet`;
+  if (p.dgFormStatus==='sent') return `link sent${when?' '+when:''}${p.dgFormBy?' by '+feedEsc(p.dgFormBy):''}`;
+  return 'not sent yet';
+}
+async function dpCopyFormLink(pid){
+  const players = LC.arr('players');
+  const p = players.find(x=>x.id===pid); if (!p) return;
+  const link = dgroupFormLink(p);
+  try { await navigator.clipboard.writeText(link); toast('Form link copied \u2014 send it to '+(p.firstName||'them')+' on Messenger or Viber','in'); }
+  catch(e) { window.prompt('Copy this Dgroup form link:', link); }
+  if (!p.dgFormStatus) {
+    const st = await rpc('admin_set_dgroup_form', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_target_id:pid, p_status:'sent' });
+    if (st==='sent') { p.dgFormStatus = st; p.dgFormAt = new Date().toISOString(); p.dgFormBy = AUTH.name()||'Admin'; LC.set('players', players); dpRenderList(); }
+  }
+}
+async function dpSetFormStatus(pid, status){
+  const players = LC.arr('players');
+  const p = players.find(x=>x.id===pid); if (!p) return;
+  if (status===null && !confirm('Clear the Dgroup form status for '+dpFullName(p)+'?')) return;
+  const st = await rpc('admin_set_dgroup_form', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_target_id:pid, p_status:status });
+  if (st !== (status || 'none')) { toast('Couldn\'t save \u2014 check your connection and try again','er'); return; }
+  const set = status !== null;
+  p.dgFormStatus = set ? status : null; p.dgFormAt = set ? new Date().toISOString() : null; p.dgFormBy = set ? (AUTH.name()||'Admin') : '';
+  LC.set('players', players); dpRenderList();
+  toast(set ? dpFullName(p)+' marked as form submitted' : 'Form status cleared','in');
 }
 
 // ── DGROUP LEADERS VIEW ─────────────────────────────────────────────────
