@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="tournament-format.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════
    CCF MAKATI SPORTS — Player App
@@ -5934,7 +5935,8 @@ function renderTournDetail(id) {
   const matches = Array.isArray(t.matches) ? t.matches : [];
   const breakdown = Array.isArray(t.fee_breakdown) ? t.fee_breakdown : [];
   const _feePool = breakdown.reduce((s,x)=>s+(Number(x.amount)||0), 0);
-  const teamFee = teams.length > 1 ? Math.round(_feePool / teams.length) : _feePool;
+  const gko = TF.isGroupsKO(t), gc = TF.cfg(t);
+  const teamFee = TF.teamFee(t);
   const isCrossCourt = /crosscourt/i.test(t.name||'');
   const leagueBadgeLabel = isCrossCourt ? 'CROSSCOURT' : (t.sport||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
 
@@ -6051,7 +6053,7 @@ function renderTournDetail(id) {
 
     const numTeams = teams.length || 1;
     // Show per-team share per line item, with the full pool in muted text
-    const feeRows = `
+    const feeRows = gko ? `<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0"><span style="color:var(--tx2)">Team fee</span><span style="font-weight:600">₱${teamFee.toLocaleString()}</span></div>` : `
       <div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:var(--tx3);line-height:1.6">
         Total tournament budget of <strong style="color:var(--tx2)">₱${_feePool.toLocaleString()}</strong> split equally among <strong style="color:var(--tx2)">${numTeams} teams</strong> — your team's share is <strong style="color:var(--tx)">₱${teamFee.toLocaleString()}</strong>.
       </div>
@@ -6123,7 +6125,9 @@ function renderTournDetail(id) {
   const iDesignatedCaptain = ME ? tCaptains.includes(ME.id) : false;
   const myReg = ME ? _tournRegs.find(r=>r.captain_id===ME.id) : null;
   const alreadyOnTeam = ME ? teams.some(tm=>(tm.players||[]).includes(ME.id)||tm.owner===ME.id) : false;
-  const canRegister = iDesignatedCaptain && (t.status==='upcoming'||t.status==='active') && !alreadyOnTeam && !myReg;
+  const canCaptain = iDesignatedCaptain || (gko && gc.open_registration);
+  const slotsFull = teams.length >= (t.max_teams||4);
+  const canRegister = canCaptain && (t.status==='upcoming'||t.status==='active') && !alreadyOnTeam && !myReg && !(gko && slotsFull);
   let regSection = '';
 
   if (myReg) {
@@ -6139,12 +6143,13 @@ function renderTournDetail(id) {
         </div>
         <div style="font-size:13px;color:var(--tx2);line-height:1.7">${regPlayerNames||'No players listed'}</div>
         ${myReg.status==='pending'?`<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The organizer will review and add your team to the bracket.</div>`:''}
+        ${gko && myReg.status==='pending' ? gkoRegPaymentHtml(t, myReg) : ''}
       </div>`;
   } else if (canRegister) {
     regSection = `
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">Join this Tournament</div></div>
       <div class="card" style="margin-bottom:14px">
-        <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">Register your team. The organizer will review and confirm your spot.</div>
+        <div style="font-size:13px;color:var(--tx2);margin-bottom:12px">${gko ? `Register a team of ${gc.roster_size} (you + ${gc.roster_size-1}).${teamFee>0?` Team fee ₱${teamFee.toLocaleString()} &mdash; your slot is secured once payment is verified.`:''} ${Math.max(0,(t.max_teams||0)-teams.length)} of ${t.max_teams||0} slots left.` : 'Register your team. The organizer will review and confirm your spot.'}</div>
         <button type="button" class="btn" onclick="openTournRegForm('${t.id}')"><i class="ti ti-users-plus"></i>Register a Team</button>
       </div>`;
   } else if (ME && !alreadyOnTeam && !myReg && (t.status==='upcoming'||t.status==='active')) {
@@ -6308,7 +6313,7 @@ function renderTournDetail(id) {
         const won      = m.winner && ((isA && m.winner==='A')||(isB && m.winner==='B'));
         const lost     = m.winner && !won && (isA||isB);
         const dateStr  = m.date ? new Date(m.date+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
-        return { round:m.round, label:roundLabelMap[m.round]||m.round, oppName, myScore, oppScore, won, lost, dateStr, stat:myStat };
+        return { round:m.round, label:TF.matchLabel(m), oppName, myScore, oppScore, won, lost, dateStr, stat:myStat };
       });
 
     const gameLogRows = myGameLog.length ? myGameLog.map(g => `
@@ -6422,7 +6427,7 @@ function renderTournDetail(id) {
           </div>
           <button type="button" onclick="leaveTournWaitlist('${t.id}','${myWaitEntry.id}')" style="margin-top:12px;background:none;border:1px solid var(--b);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--tx3);cursor:pointer;width:100%">Leave Waitlist</button>
         </div>`;
-    } else if (teamsFull && iDesignatedCaptain) {
+    } else if (teamsFull && canCaptain) {
       waitlistSection = `
         <div class="sec-h" style="margin-top:4px"><div class="sec-t">Waitlist</div></div>
         <div class="card" style="margin-bottom:14px">
@@ -6508,6 +6513,13 @@ function renderTournDetail(id) {
         ${t.venue?`<div style="font-size:13px;color:var(--tx2)"><i class="ti ti-map-pin" style="margin-right:6px;color:${heroAccent}"></i>${t.venue}</div>`:''}
       </div>`:`<div style="margin-top:16px"></div>`}
 
+      ${gko?(()=>{ const e = TF.estimate(t.config||{}, Math.max(teams.length, t.max_teams||0));
+        return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Format</div></div>
+        <div class="card" style="margin-bottom:14px;font-size:13px;color:var(--tx2);line-height:1.6">
+          <div>${feedEsc(TF.describe(t))}</div>
+          ${e.error?'':`<div style="margin-top:6px">Every team plays at least <strong style="color:var(--tx)">${e.minGamesPerTeam} games</strong> &middot; ${TF.fmtTime(gc.start_time)} &ndash; about ${TF.fmtTime(e.endTime)}</div>`}
+          ${teamFee>0?`<div style="margin-top:6px">Team fee <strong style="color:var(--tx)">₱${teamFee.toLocaleString()}</strong>${gc.pay_before_slot?' &middot; pay to secure your slot':''}</div>`:''}
+        </div>`; })():''}
       ${t.description?`
         <div class="sec-h" style="margin-top:4px"><div class="sec-t">About</div></div>
         <div class="card" style="margin-bottom:14px;font-size:13px;color:var(--tx2);line-height:1.6">${t.description}</div>
@@ -6574,22 +6586,144 @@ function renderTournDetail(id) {
     <!-- SCHEDULE TAB -->
     <div id="tdt-schedule" style="${_tDetailTab==='schedule'?'':'display:none'}">
       <div style="margin-top:16px"></div>
-      ${scheduleSection}
+      ${gko ? gkoMemberSchedule(t, myTeamObj?myTeamObj.id:null) : `${scheduleSection}
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">Round Robin</div></div>
       ${RR_ROUNDS.map((r,i)=>matchCard(matches.find(x=>x.round===r),'Game '+(i+1))).join('')}
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">Finals</div></div>
       ${matchCard(matches.find(x=>x.round==='final'),'Championship','🏆')}
-      ${matchCard(matches.find(x=>x.round==='3rd'),'3rd Place Match')}
+      ${matchCard(matches.find(x=>x.round==='3rd'),'3rd Place Match')}`}
     </div>
 
     <!-- STANDINGS TAB -->
     <div id="tdt-standings" style="${_tDetailTab==='standings'?'':'display:none'}">
       <div style="margin-top:16px"></div>
-      ${standingsHtml||`<div class="card" style="margin-bottom:14px;background:var(--b2);text-align:center;padding:24px"><i class="ti ti-list-numbers" style="font-size:28px;color:var(--tx3);display:block;margin-bottom:8px"></i><div style="font-size:13px;color:var(--tx3)">Standings will appear once games are played.</div></div>`}
+      ${(gko ? gkoMemberStandings(t, myTeamObj?myTeamObj.id:null) : standingsHtml)||`<div class="card" style="margin-bottom:14px;background:var(--b2);text-align:center;padding:24px"><i class="ti ti-list-numbers" style="font-size:28px;color:var(--tx3);display:block;margin-bottom:8px"></i><div style="font-size:13px;color:var(--tx3)">Standings will appear once ${gko?'the groups are drawn':'games are played'}.</div></div>`}
       ${tournLbSection}
       ${topPerformersHtml}
     </div>
   `;
+}
+
+// ── GROUPS + KNOCKOUT (member views) ──────────────────────────
+// Shared math lives in tournament-format.js (TF).
+function gkoMemberSchedule(t, myTeamId){
+  const teams = t.teams||[], ms = t.matches||[];
+  if (!ms.length) return `<div class="card" style="margin-bottom:14px;background:var(--b2);text-align:center;padding:24px"><i class="ti ti-calendar" style="font-size:28px;color:var(--tx3);display:block;margin-bottom:8px"></i><div style="font-size:13px;color:var(--tx3)">The schedule will appear once the groups are drawn.</div></div>`;
+  const nameOf = id => (teams.find(x=>x.id===id)||{}).name;
+  const side = (id, src, won) => `<span style="font-size:13px;font-weight:${won?800:500};color:${won?'var(--tx)':'var(--tx2)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${id ? feedEsc(nameOf(id)||'Team') : `<span style="color:var(--tx3)">${feedEsc(TF.srcLabel(src))}</span>`}</span>`;
+  const mine = myTeamId ? ms.filter(m=>m.teamA===myTeamId||m.teamB===myTeamId) : [];
+  const row = m => {
+    const isMine = myTeamId && (m.teamA===myTeamId||m.teamB===myTeamId);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMine?'background:rgba(212,175,55,.06);margin:0 -14px;padding:10px 14px':''}">
+      <div style="width:74px;flex-shrink:0">
+        <div style="font-size:12px;font-weight:700;color:${m.stage==='final'?'var(--gold)':'var(--tx2)'}">${TF.fmtTime(m.time)}</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">${feedEsc(m.court||'')}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${feedEsc(TF.matchLabel(m))}</div>
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          ${side(m.teamA,m.srcA,m.winner==='A')}
+          ${m.winner?`<span style="font-size:12px;color:var(--tx3);flex-shrink:0">${m.scoreA}–${m.scoreB}</span>`:'<span style="font-size:11px;color:var(--tx3);flex-shrink:0">vs</span>'}
+          ${side(m.teamB,m.srcB,m.winner==='B')}
+        </div>
+      </div>
+      ${m.winner?'<span style="font-size:10px;font-weight:700;color:var(--gr);flex-shrink:0">FINAL</span>':''}
+    </div>`;
+  };
+  const group = ms.filter(m=>m.stage==='group'), ko = ms.filter(m=>m.stage!=='group');
+  return (mine.length ? `<div class="sec-h" style="margin-top:4px"><div class="sec-t">My Games</div></div>
+      <div class="card" style="margin-bottom:14px;padding:0 14px">${mine.map(row).join('')}</div>` : '')
+    + `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Group Stage</div></div>
+      <div class="card" style="margin-bottom:14px;padding:0 14px">${group.map(row).join('')}</div>
+      <div class="sec-h" style="margin-top:4px"><div class="sec-t">Knockout</div></div>
+      <div class="card" style="margin-bottom:14px;padding:0 14px">${ko.map(row).join('')}</div>`;
+}
+
+function gkoMemberStandings(t, myTeamId){
+  const c = TF.cfg(t);
+  const letters = TF.groupLettersOf(t);
+  if (!letters.length) return '';
+  const tables = letters.map(L=>{
+    const st = TF.groupStandings(t, L);
+    return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Group ${L}</div>${TF.groupComplete(t,L)?'<span style="font-size:11px;color:var(--gr);font-weight:700">FINAL</span>':''}</div>
+    <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+          <th style="padding:8px 12px;text-align:left">#</th><th style="padding:8px 12px;text-align:left">Team</th>
+          <th style="padding:8px 4px;text-align:center">W</th><th style="padding:8px 4px;text-align:center">L</th><th style="padding:8px 10px;text-align:center">+/-</th></tr></thead>
+        <tbody>${st.map((r,i)=>`<tr style="border-top:1px solid var(--b)${i<c.advance?';background:rgba(0,200,100,.04)':''}">
+          <td style="padding:10px 12px;font-weight:700;color:${i<c.advance?'var(--gr)':'var(--tx3)'}">${i+1}</td>
+          <td style="padding:10px 12px;font-weight:${r.id===myTeamId||i<c.advance?700:500}">${feedEsc(r.name)}${r.id===myTeamId?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</td>
+          <td style="padding:10px 4px;text-align:center;color:var(--gr);font-weight:700">${r.w}</td>
+          <td style="padding:10px 4px;text-align:center;color:var(--tx3)">${r.l}</td>
+          <td style="padding:10px 10px;text-align:center;color:${r.diff>=0?'var(--gr)':'var(--danger,#e53e3e)'}">${r.diff>0?'+':''}${r.diff}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+  }).join('');
+  const teams = t.teams||[];
+  const nameOf = id => (teams.find(x=>x.id===id)||{}).name;
+  const ko = (t.matches||[]).filter(m=>m.stage!=='group');
+  const stages = ['r16','qf','sf','3rd','final'].filter(s=>ko.some(m=>m.stage===s));
+  const bracket = stages.map(s=>`<div style="font-size:10px;font-weight:700;color:${s==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">${TF.STAGE_LABEL[s]}</div>
+    ${ko.filter(m=>m.stage===s).map(m=>{
+      const nm = (id, src) => id ? feedEsc(nameOf(id)||'Team') : `<span style="color:var(--tx3)">${feedEsc(TF.srcLabel(src))}</span>`;
+      const w = TF.winnerId(m);
+      return `<div style="background:var(--b2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-weight:${w&&w===m.teamA?800:500}">${nm(m.teamA,m.srcA)}</span><span style="font-weight:700">${m.winner?m.scoreA:''}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:8px;margin-top:4px"><span style="font-weight:${w&&w===m.teamB?800:500}">${nm(m.teamB,m.srcB)}</span><span style="font-weight:700">${m.winner?m.scoreB:''}</span></div>
+      </div>`;
+    }).join('')}`).join('');
+  return tables + `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Knockout Bracket</div></div><div class="card" style="margin-bottom:14px">${bracket}</div>`;
+}
+
+// Payment block shown on a pending registration (pay before your slot).
+function gkoRegPaymentHtml(t, reg){
+  const fee = TF.teamFee(t);
+  const pays = _tournPayments.filter(p=>p.team_id==='reg-'+reg.id);
+  const verified = pays.filter(p=>p.status==='verified').reduce((s,p)=>s+Number(p.amount||0),0);
+  const sent = pays.filter(p=>p.status!=='rejected').reduce((s,p)=>s+Number(p.amount||0),0);
+  if (fee <= 0) return `<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The team fee hasn't been set yet &mdash; you'll be able to pay here once it is.</div>`;
+  const list = pays.map(p=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--b)">
+      <span>&#8369;${Number(p.amount).toLocaleString()}</span>
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)'}">${p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Checking'}</span></div>`).join('');
+  const methods = LC.arr('payment_methods').filter(m=>(m.sport===t.sport||m.sport==='all')&&m.payment_type!=='game_day'&&m.active!==false);
+  const methodsHtml = methods.length ? methods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:700;font-size:13px">${feedEsc(m.label)}</div><div style="font-size:13px;color:var(--tx2)">${feedEsc(m.account_num||m.account_number||'')} · ${feedEsc(m.account_name||'')}</div></div>`).join('') : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
+  const remaining = Math.max(0, fee - sent);
+  return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b)">
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;margin-bottom:6px"><span>Team fee</span><span>&#8369;${fee.toLocaleString()}</span></div>
+      ${verified>=fee ? `<div style="padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Payment verified &mdash; the organizer will confirm your slot.</div>`
+        : `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Your team's slot is secured once your payment is verified. Slots go to teams in the order they're confirmed.</div>`}
+      ${list}
+      ${remaining>0 ? `<div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Send payment to</div>${methodsHtml}
+        <label class="lbl" style="margin-top:10px" for="trp-amount">Amount sent (&#8369;)</label>
+        <input type="number" class="inp" id="trp-amount" inputmode="decimal" value="${remaining}">
+        <label class="lbl" style="margin-top:10px" for="trp-file">Proof of payment (screenshot)</label>
+        <input type="file" id="trp-file" accept="image/*" style="margin-top:4px">
+        <button type="button" class="btn" id="trp-submit" style="margin-top:12px" onclick="submitRegPayment('${t.id}','${reg.id}')"><i class="ti ti-send"></i>Submit Payment</button>` : ''}
+    </div>`;
+}
+
+async function submitRegPayment(tournId, regId){
+  const amt = Number(document.getElementById('trp-amount')?.value||0);
+  const file = document.getElementById('trp-file')?.files?.[0];
+  if (!amt || amt <= 0) return toast('Enter the amount you sent','er');
+  if (!file) return toast('Attach a screenshot of your payment','er');
+  if (!/^image\//.test(file.type) || file.size > 5*1024*1024) return toast('The proof must be an image under 5 MB','er');
+  const btn = document.getElementById('trp-submit'); if (btn) btn.disabled = true;
+  try {
+    const path = 'tourn-'+tournId+'-reg-'+regId+'-'+Date.now()+'.'+((file.type.split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,''));
+    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, { method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':file.type,'x-upsert':'true'}, body:file });
+    if (!r.ok) throw new Error('upload');
+    const proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+    const id = await rpc('member_submit_reg_payment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_reg_id:regId,p_amount:amt,p_proof_url:proofUrl});
+    if (!id) throw new Error('save');
+    toast('Payment sent — the organizer will check it');
+    const fresh = await dbGet('tournament_payments','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
+    if (Array.isArray(fresh)) _tournPayments = fresh;
+    renderTournDetail(tournId);
+  } catch(e) {
+    toast(e.message==='upload' ? 'Couldn\'t upload the screenshot — try again' : 'Couldn\'t submit the payment — try again','er');
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function submitTournPayment(tournId, teamId, totalFee) {
@@ -6894,10 +7028,20 @@ function renderLiveNowBanner() {
 }
 
 // ── TOURNAMENT TEAM REGISTRATION ──────────────────────────────
+let _tregCtx = null; // { size, taken:Set } for groups_ko tournaments
 function openTournRegForm(tournId) {
   const t = LC.arr('tournaments').find(x=>x.id===tournId);
   if (!t) return;
   _tournRegPlayers = ME ? [ME.id] : [];
+  _tregCtx = null;
+  if (TF.isGroupsKO(t)) {
+    // Players already on a team or in an active registration can't be picked.
+    const taken = new Set();
+    (t.teams||[]).forEach(tm=>(tm.players||[]).forEach(pid=>taken.add(pid)));
+    _tournRegs.filter(r=>r.status==='pending'||r.status==='approved').forEach(r=>(Array.isArray(r.players)?r.players:[]).forEach(pid=>taken.add(pid)));
+    taken.delete(ME && ME.id);
+    _tregCtx = { size: TF.cfg(t).roster_size, taken };
+  }
   const el = document.getElementById('tourn-detail');
   const list = document.getElementById('tourn-list');
   list.style.display = 'none';
@@ -6918,7 +7062,8 @@ function openTournRegForm(tournId) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
-          <div style="font-size:12px;color:var(--tx3);margin-top:2px">You're auto-included as team owner</div>
+          <div style="font-size:12px;color:var(--tx3);margin-top:2px">${_tregCtx ? `Pick exactly ${_tregCtx.size} players including you. Players already on another team are hidden.` : "You're auto-included as team owner"}</div>
+          ${_tregCtx ? `<input type="search" id="treg-search" class="inp" placeholder="Search players…" oninput="_renderTregPills()" style="margin-top:8px">` : ''}
         </div>
         <span id="treg-count" style="font-size:12px;font-weight:700;background:var(--b2);border-radius:20px;padding:4px 10px;color:var(--tx2)">1</span>
       </div>
@@ -6941,7 +7086,10 @@ function openTournRegForm(tournId) {
 function _renderTregPills() {
   const container = document.getElementById('treg-pills');
   if (!container) return;
+  const q = (document.getElementById('treg-search')?.value||'').trim().toLowerCase();
   const allPlayers = (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players'))
+    .filter(p=>!_tregCtx || !_tregCtx.taken.has(p.id))
+    .filter(p=>!q || _tournRegPlayers.includes(p.id) || ((p.firstName||'')+' '+(p.lastName||'')).toLowerCase().includes(q))
     .slice().sort((a,b)=>{
       const an=(a.firstName+' '+(a.lastName||'')).toLowerCase();
       const bn=(b.firstName+' '+(b.lastName||'')).toLowerCase();
@@ -6949,7 +7097,7 @@ function _renderTregPills() {
     });
   const count = _tournRegPlayers.length;
   const countEl = document.getElementById('treg-count');
-  if (countEl) { countEl.textContent = count; }
+  if (countEl) { countEl.textContent = _tregCtx ? count+'/'+_tregCtx.size : count; countEl.style.color = _tregCtx && count===_tregCtx.size ? 'var(--gr)' : ''; }
 
   container.innerHTML = allPlayers.map(p => {
     const isSelf = ME && p.id === ME.id;
@@ -6972,6 +7120,7 @@ function _toggleTregPlayer(pid) {
   if (idx >= 0) {
     _tournRegPlayers.splice(idx, 1);
   } else {
+    if (_tregCtx && _tournRegPlayers.length >= _tregCtx.size) { toast('A team has '+_tregCtx.size+' players — remove someone first','er'); return; }
     _tournRegPlayers.push(pid);
   }
   _renderTregPills();
@@ -6989,12 +7138,14 @@ async function submitTournReg(tournId) {
   const name = nameEl ? nameEl.value.trim() : '';
   if (!name) return toast('Enter a team name','er');
   if (_tournRegPlayers.length < 1) return toast('Add at least one player','er');
+  if (_tregCtx && _tournRegPlayers.length !== _tregCtx.size) return toast('Your team needs exactly '+_tregCtx.size+' players (you have '+_tournRegPlayers.length+')','er');
   if (!document.getElementById('treg-waiver')?.checked) return toast('Please confirm the health & liability declaration','er');
   if (!ME) return toast('You must be logged in','er');
 
   const ok = await rpc('member_submit_tournament_reg',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_tournament_id:tournId,p_team_name:name,p_players:_tournRegPlayers,p_status:'pending'});
-  if (!ok) return toast('Submission failed','er');
-  toast('Team registered — pending organizer approval');
+  if (!ok) return toast(_tregCtx ? 'Registration failed — a player may have just joined another team. Refresh and try again.' : 'Submission failed','er');
+  toast(_tregCtx ? 'Team registered — send your payment below to secure your slot' : 'Team registered — pending organizer approval');
+  _tregCtx = null;
   _tournRegPlayers = [];
   const fresh = await dbGet('tournament_registrations','select=*&tournament_id=eq.'+tournId).catch(()=>[]);
   if (Array.isArray(fresh)) _tournRegs = fresh;
