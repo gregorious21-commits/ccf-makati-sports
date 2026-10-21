@@ -1878,7 +1878,7 @@ select.fi{
           </label>
           <input type="file" id="tf-banner-file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="uploadTournBanner(this)">
 
-          <label class="waiver-chk" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:14px;background:var(--bg2);padding:12px 14px;border-radius:8px;border:1px solid var(--b)">
+          <label class="waiver-chk" id="tf-pool-row" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:14px;background:var(--bg2);padding:12px 14px;border-radius:8px;border:1px solid var(--b)">
             <input type="checkbox" id="tf-pool-enabled" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer" checked>
             <div>
               <div style="font-size:13px;font-weight:700">Enable Player Pool</div>
@@ -6580,8 +6580,8 @@ function renderAdminTournaments() {
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournStats('${t.id}')" style="flex:1"><i class="ti ti-chart-bar"></i>Stats</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPayments('${t.id}')" style="flex:1"><i class="ti ti-cash"></i>Payments</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')" style="flex:1"><i class="ti ti-edit"></i>Edit</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openTournPool('${t.id}')" style="flex:1;position:relative"><i class="ti ti-users-group"></i>Pool${(t.player_pool&&t.player_pool.length)?`<span style="position:absolute;top:-4px;right:-4px;background:var(--gold);color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${t.player_pool.length}</span>`:''}</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="openDraftManager('${t.id}')" style="flex:1"><i class="ti ti-clipboard-list"></i>Draft</button>
+        ${TF.isGroupsKO(t)?'':`<button type="button" class="btn btn-ghost btn-sm" onclick="openTournPool('${t.id}')" style="flex:1;position:relative"><i class="ti ti-users-group"></i>Pool${(t.player_pool&&t.player_pool.length)?`<span style="position:absolute;top:-4px;right:-4px;background:var(--gold);color:#000;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${t.player_pool.length}</span>`:''}</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openDraftManager('${t.id}')" style="flex:1"><i class="ti ti-clipboard-list"></i>Draft</button>`}
         <button type="button" class="btn btn-sm" style="flex:1;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)" onclick="deleteTournament('${t.id}')"><i class="ti ti-trash"></i>Delete</button>
       </div>
     </div>`;
@@ -7830,6 +7830,8 @@ function onTournFormatChange(){
   document.getElementById('tf-gko').style.display = gko ? '' : 'none';
   document.getElementById('tf-gko-sched-card').style.display = gko ? '' : 'none';
   document.getElementById('tf-fees-card').style.display = gko ? 'none' : '';
+  // Groups events: captains register their own full team, so no player pool / draft.
+  document.getElementById('tf-pool-row').style.display = gko ? 'none' : '';
   document.getElementById('tf-bracket-card').style.display = gko ? 'none' : '';
   // A new tournament starts with 4 placeholder teams for the legacy format;
   // a groups event gets its teams from registrations instead.
@@ -8052,7 +8054,7 @@ async function saveTournament() {
     description:   document.getElementById('tf-description').value.trim()||null,
     rules:         document.getElementById('tf-rules').value.split('\n').map(s=>s.trim()).filter(Boolean),
     banner_url:    document.getElementById('tf-banner-url').value.trim()||null,
-    pool_enabled:  document.getElementById('tf-pool-enabled').checked,
+    pool_enabled:  gko ? false : document.getElementById('tf-pool-enabled').checked,
     fee_breakdown: gko ? [] : _tFees.filter(f=>f.label),
     captains:      _tCaptains,
     teams:         _tTeams,

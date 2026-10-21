@@ -6537,7 +6537,7 @@ function renderTournDetail(id) {
 
       <!-- PLAYER POOL SECTION -->
       ${(()=>{
-        if (t.pool_enabled === false) return '';
+        if (t.pool_enabled === false || TF.isGroupsKO(t)) return '';
         const pool = Array.isArray(t.player_pool) ? t.player_pool : [];
         const poolClosed = false;
         const inPool = ME ? pool.some(p=>p.id===ME.id) : false;
