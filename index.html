@@ -2140,8 +2140,11 @@ footer a:hover{color:var(--text-1)}
         <label class="fl" for="dgl-leader-mobile">Leader's mobile number</label>
         <input class="fi" id="dgl-leader-mobile" type="tel" inputmode="tel" maxlength="20" placeholder="09XX XXX XXXX (if you know it)">
       </div>
-      <label class="fl" for="dgl-start">When did you start in this Dgroup? *</label>
-      <select class="fi-sel" id="dgl-start"></select>
+      <label class="fl" for="dgl-start-m">When did you start in this Dgroup? *</label>
+      <div style="display:grid;grid-template-columns:3fr 2fr;gap:10px">
+        <select class="fi-sel" id="dgl-start-m" aria-label="Start month"></select>
+        <select class="fi-sel" id="dgl-start-y" aria-label="Start year"></select>
+      </div>
       <label class="fl" for="dgl-nickname">Nickname</label>
       <input class="fi" id="dgl-nickname" maxlength="40">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -3207,17 +3210,25 @@ let _dgJoin;              // undefined = not loaded; {none:true} = never logged
 let _dgJoinLoading = false;
 const DGL_FIELDS = { nickname:'dgl-nickname', gender:'dgl-gender', age:'dgl-age', occupation:'dgl-occupation', marital_status:'dgl-marital',
   glc_level:'dgl-glc', role:'dgl-role', dgroup_profile:'dgl-profile', schedule_day:'dgl-day', schedule_time:'dgl-time', mode:'dgl-mode',
-  location:'dgl-location', remarks:'dgl-remarks', start_date:'dgl-start' };
+  location:'dgl-location', remarks:'dgl-remarks' };
 
-// Matches the sheet's "Dgroup Start Date" dropdown: this year's months up
-// to now (newest first), then "Prior <year>".
-function dglStartOptions(){
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const now = new Date(), y = now.getFullYear();
-  const opts = [];
-  for (let m = now.getMonth(); m >= 0; m--) opts.push(months[m]+' '+y);
-  opts.push('Prior '+y);
-  return opts;
+// Dgroup start date: month + year pickers, saved as "March 2024" to match
+// the sheet's "Dgroup Start Date" wording.
+const DGL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function dglFillStart(value){
+  const now = new Date(), cy = now.getFullYear();
+  const m = /^([A-Za-z]+) (\d{4})$/.exec(value||'');
+  const selM = m && DGL_MONTHS.includes(m[1]) ? m[1] : DGL_MONTHS[now.getMonth()];
+  const selY = m ? Number(m[2]) : cy;
+  document.getElementById('dgl-start-m').innerHTML = DGL_MONTHS.map(x=>`<option${x===selM?' selected':''}>${x}</option>`).join('');
+  const years = []; for (let y = cy; y >= 2000; y--) years.push(y);
+  document.getElementById('dgl-start-y').innerHTML = years.map(y=>`<option${y===selY?' selected':''}>${y}</option>`).join('');
+}
+function dglReadStart(){
+  const m = document.getElementById('dgl-start-m').value, y = Number(document.getElementById('dgl-start-y').value);
+  const now = new Date();
+  if (y > now.getFullYear() || (y === now.getFullYear() && DGL_MONTHS.indexOf(m) > now.getMonth())) return null; // future
+  return m+' '+y;
 }
 
 async function loadDgJoin(){
@@ -3271,13 +3282,11 @@ function openDgLog(){
   document.getElementById('dgl-leaders').innerHTML = [...names].sort().map(n=>`<option value="${feedEsc(n)}"></option>`).join('');
   document.getElementById('dgl-leader').value = j ? (j.leader_name||'') : (ME.dgroupLeader||'');
   document.getElementById('dgl-leader-mobile').value = j ? (j.leader_mobile||'') : '';
-  const startOpts = dglStartOptions();
-  if (d.start_date && !startOpts.includes(d.start_date)) startOpts.unshift(d.start_date);
-  document.getElementById('dgl-start').innerHTML = startOpts.map(o=>`<option value="${feedEsc(o)}">${feedEsc(o.startsWith('Prior')?'Before '+o.slice(6):o)}</option>`).join('');
+  dglFillStart(d.start_date);
   const locked = j && j.status==='confirmed';
   document.getElementById('dgl-leader').disabled = !!locked;
   document.getElementById('dgl-leader-mobile').disabled = !!locked;
-  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined||v==='') ? (k==='role'?'DMember':k==='start_date'?startOpts[0]:'') : v; });
+  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined||v==='') ? (k==='role'?'DMember':'') : v; });
   if (!d.nickname && !j) document.getElementById('dgl-nickname').value = ME.firstName || '';
   document.getElementById('ovl-dglog').classList.add('open');
 }
@@ -3286,6 +3295,9 @@ function closeDgLog(){ document.getElementById('ovl-dglog').classList.remove('op
 async function saveDgLog(){
   const details = {};
   Object.entries(DGL_FIELDS).forEach(([k,id])=>{ details[k] = (document.getElementById(id).value||'').trim(); });
+  const start = dglReadStart();
+  if (!start) return toast("The start date can't be in the future",'er');
+  details.start_date = start;
   const leader = (document.getElementById('dgl-leader').value||'').trim();
   const leaderMobile = (document.getElementById('dgl-leader-mobile').value||'').trim();
   const missing = [];
