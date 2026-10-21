@@ -2084,6 +2084,7 @@ footer a:hover{color:var(--text-1)}
         </div>
       </div>
 
+      <div id="dg-log-card"></div>
       <div id="dg-join-card" style="display:none"></div>
 
       <div class="sec-h" style="margin-top:18px"><div class="sec-t">Account</div></div>
@@ -2127,6 +2128,51 @@ footer a:hover{color:var(--text-1)}
 </div>
 
 <!-- EDIT PROFILE MODAL -->
+<div class="ovl" id="ovl-dglog">
+  <div class="mdl">
+    <div class="mdl-h"><div class="mdl-ht">Log my Dgroup</div><button type="button" class="x-btn" onclick="closeDgLog()" aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <div class="mdl-b">
+      <div style="font-size:13px;color:var(--tx2);line-height:1.6;margin-bottom:14px">CCF keeps a list of everyone who joined a Dgroup through Sports Ministry. Fill this in once &mdash; the Dgroup coordinator checks your leader, then it's sent to CCF for you.</div>
+      <div id="dgl-leader-wrap">
+        <label class="fl" for="dgl-leader">Dgroup leader's full name *</label>
+        <input class="fi" id="dgl-leader" list="dgl-leaders" maxlength="80" autocomplete="off" placeholder="Start typing your leader's name">
+        <datalist id="dgl-leaders"></datalist>
+        <label class="fl" for="dgl-leader-mobile">Leader's mobile number</label>
+        <input class="fi" id="dgl-leader-mobile" type="tel" inputmode="tel" maxlength="20" placeholder="09XX XXX XXXX (if you know it)">
+      </div>
+      <label class="fl" for="dgl-nickname">Nickname</label>
+      <input class="fi" id="dgl-nickname" maxlength="40">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="fl" for="dgl-gender">Gender *</label>
+          <select class="fi-sel" id="dgl-gender"><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+        <div><label class="fl" for="dgl-age">Age *</label>
+          <input class="fi" id="dgl-age" type="number" inputmode="numeric" min="5" max="120"></div>
+      </div>
+      <label class="fl" for="dgl-occupation">Occupation</label>
+      <input class="fi" id="dgl-occupation" maxlength="80">
+      <label class="fl" for="dgl-marital">Marital status *</label>
+      <select class="fi-sel" id="dgl-marital"><option value="">Select</option><option>Single</option><option>Married</option><option>Single Parent</option><option>Separated/Annulled</option><option>Widow/er</option></select>
+      <label class="fl" for="dgl-glc">GLC level</label>
+      <select class="fi-sel" id="dgl-glc"><option value="">Not yet</option><option value="Committed to finish GLC">Committed to finish GLC</option><option>GLC 1</option><option>GLC 2</option><option>GLC 3</option></select>
+      <label class="fl" for="dgl-role">Your role in the Dgroup *</label>
+      <select class="fi-sel" id="dgl-role"><option value="DMember">Member</option><option value="Timothy">Timothy &mdash; being trained to lead</option><option value="DLeader">Leader &mdash; I lead the group</option></select>
+      <label class="fl" for="dgl-profile">Dgroup profile *</label>
+      <select class="fi-sel" id="dgl-profile"><option value="">Select</option><option>Men (Singles)</option><option>Women (Singles)</option><option value="Couples (Husband and Wife)">Couples (Husband &amp; Wife)</option><option>Men (Married)</option><option>Women (Married)</option><option>Others</option></select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="fl" for="dgl-day">Meeting day</label><input class="fi" id="dgl-day" maxlength="40" placeholder="e.g. Saturday"></div>
+        <div><label class="fl" for="dgl-time">Meeting time</label><input class="fi" id="dgl-time" maxlength="40" placeholder="e.g. 7PM"></div>
+      </div>
+      <label class="fl" for="dgl-mode">How do you meet? *</label>
+      <select class="fi-sel" id="dgl-mode"><option value="">Select</option><option>Face to face</option><option>Online</option><option>Hybrid</option></select>
+      <label class="fl" for="dgl-location">Location</label>
+      <input class="fi" id="dgl-location" maxlength="80" placeholder="e.g. CCF Makati, a café in BGC">
+      <label class="fl" for="dgl-remarks">Anything else?</label>
+      <textarea class="fi-b" id="dgl-remarks" maxlength="300" style="min-height:70px;resize:vertical;padding:12px 14px"></textarea>
+      <button type="button" class="btn btn-g" id="dgl-save" style="margin-top:16px" onclick="saveDgLog()"><i class="ti ti-check"></i>Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="ovl" id="ovl-profile">
   <div class="mdl">
     <div class="mdl-h"><div class="mdl-ht">Edit My Profile</div><button type="button" class="x-btn" onclick="closeEditProfile()"><i class="ti ti-x"></i></button></div>
@@ -3082,7 +3128,7 @@ async function doConfirmReset() {
 
 // ── LOGOUT ────────────────────────────────────────────────────
 function doLogout() {
-  ME=null; _dgFormStatus=undefined; stopRefresh(); localStorage.removeItem('session');
+  ME=null; _dgFormStatus=undefined; _dgJoin=undefined; stopRefresh(); localStorage.removeItem('session');
   AUTH.clear();
   document.getElementById('view-dash').style.display='none';
   document.getElementById('view-landing').style.display='flex';
@@ -3148,6 +3194,106 @@ function renderProfile() {
   const stack = document.getElementById('my-team-stack');
   if (stack) stack.innerHTML = renderTeamStackHtml(myCurrentTeamEntries(ME.id));
   renderDgroupJoinCard();
+  renderDgLogCard();
+}
+
+// ── LOG MY DGROUP (Lifestage Ministry sheet) ──────────────────
+// Members who joined a Dgroup through Sports Ministry log it here. The
+// Dgroup coordinator confirms the leader, then the server adds the row to
+// CCF's Lifestage Ministry sheet (edge function "dgroup-sheet").
+let _dgJoin;              // undefined = not loaded; {none:true} = never logged
+let _dgJoinLoading = false;
+const DGL_FIELDS = { nickname:'dgl-nickname', gender:'dgl-gender', age:'dgl-age', occupation:'dgl-occupation', marital_status:'dgl-marital',
+  glc_level:'dgl-glc', role:'dgl-role', dgroup_profile:'dgl-profile', schedule_day:'dgl-day', schedule_time:'dgl-time', mode:'dgl-mode',
+  location:'dgl-location', remarks:'dgl-remarks' };
+
+async function loadDgJoin(){
+  if (!ME || _dgJoinLoading) return;
+  _dgJoinLoading = true;
+  const j = await rpc('member_get_dgroup_join', { p_phone:AUTH.phone(), p_pin:AUTH.pin() });
+  _dgJoinLoading = false;
+  if (j) { _dgJoin = j; renderDgLogCard(); }
+}
+
+async function sendDgJoinToSheet(joinId){
+  try {
+    const r = await fetch(SB+'/functions/v1/dgroup-sheet', { method:'POST',
+      headers:{ 'apikey':KEY, 'Authorization':'Bearer '+KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ action:'send', phone:AUTH.phone(), pin:AUTH.pin(), join_id:joinId }) });
+    return await r.json();
+  } catch(e) { return { ok:false, error:'Could not reach the server' }; }
+}
+
+function renderDgLogCard(){
+  const el = document.getElementById('dg-log-card');
+  if (!el || !ME) return;
+  if (_dgJoin === undefined) { loadDgJoin(); el.innerHTML = ''; return; }
+  const j = _dgJoin.none ? null : _dgJoin;
+  let body;
+  if (!j || j.status==='rejected') {
+    body = `<div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:14px">Joined a Dgroup through someone in Sports Ministry? Log it so CCF can welcome you into their Dgroup records.</div>
+      ${j && j.status==='rejected' ? `<div style="font-size:12px;color:var(--danger,#e53e3e);margin-bottom:12px">Your last entry wasn't confirmed${j.review_note?': '+feedEsc(j.review_note):''}. You can log it again.</div>` : ''}
+      <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-users-group"></i>Log my Dgroup</button>`;
+  } else {
+    const leader = feedEsc(j.leader_name||'');
+    let status;
+    if (j.status==='pending') status = `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
+    else if (!j.complete) status = `<i class="ti ti-alert-circle" style="color:var(--gold)"></i> <strong style="color:var(--tx)">Finish your Dgroup details</strong> so we can log you with CCF.`;
+    else if (j.sheet_status==='sent' || j.sheet_status==='duplicate') status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
+    else status = `<i class="ti ti-send" style="color:var(--gold)"></i> Confirmed &mdash; sending to CCF. The coordinator will follow up if anything's missing.`;
+    const canEdit = !(j.sheet_status==='sent' || j.sheet_status==='duplicate');
+    body = `<div style="font-size:13px;color:var(--tx3);margin-bottom:6px">Leader: <strong style="color:var(--tx)">${leader}</strong></div>
+      <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:${canEdit?'14px':'0'}">${status}</div>
+      ${canEdit ? `<button type="button" class="btn ${j.status==='confirmed'&&!j.complete?'btn-g':'btn-ghost'}" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-edit"></i>${j.status==='confirmed'&&!j.complete?'Add my details':'Edit details'}</button>` : ''}`;
+  }
+  el.innerHTML = `<div class="sec-h" style="margin-top:18px"><div class="sec-t">My Dgroup</div></div><div class="card">${body}</div>`;
+}
+
+function openDgLog(){
+  const j = _dgJoin && !_dgJoin.none && _dgJoin.status!=='rejected' ? _dgJoin : null;
+  const d = (j && j.details) || {};
+  // Leader suggestions: everyone on the roster plus leader names already in use.
+  const names = new Set();
+  (LC.arr('roster').length ? LC.arr('roster') : LC.arr('players')).forEach(p=>{ const n=((p.firstName||'')+' '+(p.lastName||'')).trim(); if (n) names.add(n); });
+  document.getElementById('dgl-leaders').innerHTML = [...names].sort().map(n=>`<option value="${feedEsc(n)}"></option>`).join('');
+  document.getElementById('dgl-leader').value = j ? (j.leader_name||'') : (ME.dgroupLeader||'');
+  document.getElementById('dgl-leader-mobile').value = j ? (j.leader_mobile||'') : '';
+  const locked = j && j.status==='confirmed';
+  document.getElementById('dgl-leader').disabled = !!locked;
+  document.getElementById('dgl-leader-mobile').disabled = !!locked;
+  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined) ? (k==='role'?'DMember':'') : v; });
+  if (!d.nickname && !j) document.getElementById('dgl-nickname').value = ME.firstName || '';
+  document.getElementById('ovl-dglog').classList.add('open');
+}
+function closeDgLog(){ document.getElementById('ovl-dglog').classList.remove('open'); }
+
+async function saveDgLog(){
+  const details = {};
+  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ details[k] = (document.getElementById(id).value||'').trim(); });
+  const leader = (document.getElementById('dgl-leader').value||'').trim();
+  const leaderMobile = (document.getElementById('dgl-leader-mobile').value||'').trim();
+  const missing = [];
+  if (!document.getElementById('dgl-leader').disabled && !leader) missing.push("your leader's name");
+  if (!details.gender) missing.push('gender');
+  if (!/^\d{1,3}$/.test(details.age) || +details.age < 5 || +details.age > 120) missing.push('age');
+  if (!details.marital_status) missing.push('marital status');
+  if (!details.dgroup_profile) missing.push('Dgroup profile');
+  if (!details.mode) missing.push('how you meet');
+  if (missing.length) return toast('Please add '+missing.join(', '),'er');
+  const btn = document.getElementById('dgl-save'); btn.disabled = true;
+  const j = await rpc('member_save_dgroup_join', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_leader_name:leader, p_leader_mobile:leaderMobile, p_details:details });
+  btn.disabled = false;
+  if (!j || j.error) return toast((j && j.error) || "Couldn't save — check your connection and try again",'er');
+  _dgJoin = j;
+  closeDgLog();
+  renderDgLogCard();
+  if (j.status==='confirmed' && j.complete) {
+    const r = await sendDgJoinToSheet(j.id);
+    if (r && r.ok) { _dgJoin.sheet_status = r.status==='added'?'sent':'duplicate'; renderDgLogCard(); toast('Logged with CCF — thank you!'); }
+    else toast('Saved. The coordinator will finish logging it with CCF.','in');
+  } else {
+    toast(j.status==='pending' ? 'Sent to the Dgroup coordinator to confirm' : 'Saved');
+  }
 }
 
 // ── JOIN A DGROUP (CCF's Jotform) ─────────────────────────────

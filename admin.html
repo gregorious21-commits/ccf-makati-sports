@@ -1330,6 +1330,7 @@ select.fi{
         <div class="dp-views" role="tablist" aria-label="View">
           <button type="button" role="tab" id="dp-view-people" class="fin-pill on" aria-selected="true" onclick="dpSetView('people')"><i class="ti ti-users"></i> People</button>
           <button type="button" role="tab" id="dp-view-leaders" class="fin-pill" aria-selected="false" onclick="dpSetView('leaders')"><i class="ti ti-crown"></i> Dgroup Leaders</button>
+          <button type="button" role="tab" id="dp-view-log" class="fin-pill" aria-selected="false" onclick="dpSetView('log')"><i class="ti ti-table-export"></i> Lifestage Log</button>
         </div>
         <div id="dp-people-view">
         <div class="note"><div>Everyone who plays with us moves through four steps: <strong>Gospel shared &rarr; Invited to CCF &rarr; Attended CCF &rarr; In a Dgroup</strong>. Each person shows at the furthest step they've reached. Tap <strong>Next step</strong> when they move forward, and set who's following up with them.</div></div>
@@ -1344,6 +1345,7 @@ select.fi{
         <div id="dp-hint" class="dp-hint"></div>
         <div id="dp-list"><div class="empty">Loading&hellip;</div></div>
         </div>
+        <div id="dp-log-view" style="display:none"></div>
         <div id="dp-leaders-view" style="display:none">
           <div class="note">Every Dgroup leader and who's under them. Leader names were typed in by hand, so the app flags names that look like the same person &mdash; merge them so each leader's group is counted once.</div>
           <div id="dp-ld-summary" class="dp-summary"></div>
@@ -2085,6 +2087,9 @@ select.fi{
       <label class="fl" for="dp-leader-input">Dgroup leader</label>
       <input class="fi" id="dp-leader-input" list="dl-roster-names" placeholder="Start typing a name&hellip;" autocomplete="off" maxlength="80" onkeydown="if(event.key==='Enter')dpConfirmLeader()">
       <div style="font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.5">Pick from the list so the leader links to their profile. If the leader isn't in the app, type their full name.</div>
+      <label class="fl" for="dp-leader-mobile">Leader's mobile <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(for CCF's sheet)</span></label>
+      <input class="fi" id="dp-leader-mobile" type="tel" maxlength="20" placeholder="09XX XXX XXXX">
+      <label class="waiver-chk" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:12px"><input type="checkbox" id="dp-leader-log" style="width:16px;height:16px;accent-color:var(--gold);margin-top:2px"><span style="font-size:13px;line-height:1.5">New join through Sports Ministry &mdash; log it on CCF's Lifestage sheet <span class="dp-meta">(they'll be asked to add their details in the app)</span></span></label>
     </div>
     <div class="modal-f">
       <button type="button" class="btn btn-ghost" onclick="closeModal('dp-leader')">Cancel</button>
@@ -9880,10 +9885,11 @@ async function renderDiscipleshipPanel(){
   if (!ok && firstLoad) toast('Couldn\'t load gospel-share records — showing the rest','er');
   const ae = document.activeElement;
   const busy = ae && document.getElementById('panel-discipleship').contains(ae)
-    && (ae.tagName==='SELECT' || !!ae.closest('#dp-ld-dupes'));
+    && (ae.tagName==='SELECT' || !!ae.closest('#dp-ld-dupes, #dp-log-view'));
   if (busy) return;
   dpRenderControls();
   if (dpView==='leaders') { dpRenderLeaders(); return; }
+  if (dpView==='log') { dpRenderLog(true); return; }
   dpRenderList();
   dpRenderShareLog();
 }
@@ -10096,6 +10102,9 @@ function dpOpenLeader(pid){
   document.getElementById('dp-leader-who').innerHTML = `Who leads <strong>${feedEsc(dpFullName(p))}</strong>'s Dgroup?`;
   const input = document.getElementById('dp-leader-input');
   input.value = p.dgroupLeader || '';
+  const lp = LC.arr('players').find(x=>dpLeaderKey(dpFullName(x))===dpLeaderKey(p.dgroupLeader||''));
+  document.getElementById('dp-leader-mobile').value = lp && lp.phone ? lp.phone : '';
+  document.getElementById('dp-leader-log').checked = !p.hasDgroup;
   document.getElementById('dp-leader-save').disabled = false;
   document.getElementById('modal-dp-leader').classList.add('open');
   setTimeout(()=>input.focus(), 50);
@@ -10114,6 +10123,14 @@ async function dpConfirmLeader(){
   if (!ok) return;
   closeModal('dp-leader');
   dpLeaderFor = null;
+  if (document.getElementById('dp-leader-log').checked) {
+    let mobile = (document.getElementById('dp-leader-mobile').value||'').trim();
+    if (!mobile) { const lp = LC.arr('players').find(x=>dpLeaderKey(dpFullName(x))===dpLeaderKey(leader)); if (lp && lp.phone) mobile = lp.phone; }
+    const j = await rpc('admin_create_dgroup_join', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_player_id:pid, p_leader_name:leader, p_leader_mobile:mobile });
+    if (!j || j.error) toast('Placed, but couldn\'t add them to the Lifestage log: '+((j&&j.error)||'try again'),'er');
+    else if (j.complete) await dpSendJoin(j.id, true);
+    dpJoins = null;
+  }
   toast((p ? dpFullName(p) : 'Player')+' is now in '+leader+'\'s Dgroup','in');
 }
 
@@ -10221,6 +10238,142 @@ async function dpSetFormStatus(pid, status){
   toast(set ? dpFullName(p)+' marked as form submitted' : 'Form status cleared','in');
 }
 
+// ── LIFESTAGE LOG (CCF's Lifestage Ministry sheet, Sports tab) ──────────
+// New Dgroup joins through Sports Ministry. Members log them (or the
+// coordinator places someone); the coordinator confirms the leader is a real
+// Dgroup leader; once the member's details are in, the server function
+// "dgroup-sheet" adds the row to the sheet. Only joins from Oct 2026 on.
+let dpJoins = null;       // null = not loaded
+let dpSheetPing = null;   // null = not checked, 'loading', or the ping reply
+
+async function dpLoadJoins(){
+  const rows = await rpc('admin_list_dgroup_joins', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin() });
+  if (Array.isArray(rows)) dpJoins = rows;
+  else if (dpJoins===null) dpJoins = [];
+}
+
+async function dpSheetCall(body){
+  try {
+    const r = await fetch(SB+'/functions/v1/dgroup-sheet', { method:'POST',
+      headers:{ 'apikey':KEY, 'Authorization':'Bearer '+KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify(Object.assign({ phone:AUTH.phone(), pin:AUTH.pin() }, body)) });
+    return await r.json();
+  } catch(e) { return { ok:false, error:'Could not reach the server' }; }
+}
+
+function dpJoinStage(j){
+  if (j.status==='rejected') return 'rejected';
+  if (j.status==='pending') return 'confirm';
+  if (j.sheet_status==='sent' || j.sheet_status==='duplicate') return 'logged';
+  if (!j.complete) return 'details';
+  return 'send';
+}
+
+async function dpRenderLog(force){
+  const el = document.getElementById('dp-log-view');
+  if (!el) return;
+  if (dpJoins===null || force) {
+    if (dpJoins===null) el.innerHTML = '<div class="empty">Loading&hellip;</div>';
+    await dpLoadJoins();
+  }
+  if (dpSheetPing===null) {
+    dpSheetPing = 'loading';
+    dpSheetCall({ action:'ping' }).then(r=>{ dpSheetPing = r || { ok:false }; if (dpView==='log') dpRenderLog(); });
+  }
+  dpFillRosterDatalist();
+  const players = LC.arr('players');
+  const rosterIdx = new Map(); players.forEach(p=>{ const k=dpLeaderKey(dpFullName(p)); if (k && !rosterIdx.has(k)) rosterIdx.set(k, p); });
+  const groups = dpLeaderGroups(players.filter(p=>p.isActive!==false));
+  const leaderCheck = name => {
+    const k = dpLeaderKey(name), inApp = rosterIdx.get(k), g = groups.get(k);
+    const bits = [];
+    if (inApp) bits.push('<span style="color:var(--gr)">has an app account</span>');
+    if (g) bits.push(`already leads ${g.members.length} ${g.members.length===1?'person':'people'} in the app`);
+    return bits.length ? bits.join(' &middot; ') : '<span style="color:var(--am)">new name &mdash; please check this is a real Dgroup leader</span>';
+  };
+  const det = d => {
+    if (!d) return '';
+    const parts = [d.gender, d.age?d.age+' yrs':'', d.marital_status, d.dgroup_profile, d.mode, [d.schedule_day,d.schedule_time].filter(Boolean).join(' '), d.location, d.glc_level, ({DMember:'Member',Timothy:'Timothy',DLeader:'Leader'})[d.role]].filter(Boolean);
+    return parts.map(feedEsc).join(' &middot; ');
+  };
+  const sections = { confirm:[], send:[], details:[], logged:[], rejected:[] };
+  (dpJoins||[]).forEach(j=>sections[dpJoinStage(j)].push(j));
+
+  const card = j => {
+    const st = dpJoinStage(j);
+    const leaderInApp = rosterIdx.get(dpLeaderKey(j.leader_name));
+    const when = j.created_at ? new Date(j.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
+    let actions = '';
+    if (st==='confirm') {
+      actions = `<div class="dp-follow" style="flex-wrap:wrap"><label for="dpj-l-${j.id}">Leader</label><input class="fi" id="dpj-l-${j.id}" value="${feedEsc(j.leader_name||'')}" list="dl-roster-names" maxlength="80"></div>
+        <div class="dp-follow"><label for="dpj-m-${j.id}">Leader's mobile</label><input class="fi" id="dpj-m-${j.id}" type="tel" value="${feedEsc(j.leader_mobile || (leaderInApp && leaderInApp.phone) || '')}" maxlength="20" placeholder="09XX XXX XXXX"></div>
+        <div class="dp-actions"><button type="button" class="btn btn-w btn-sm" onclick="dpReviewJoin('${j.id}','confirm')"><i class="ti ti-check"></i>Leader confirmed</button>
+          <button type="button" class="dp-link" onclick="dpReviewJoin('${j.id}','reject')">Not a real Dgroup</button></div>`;
+    } else if (st==='send') {
+      actions = `${j.sheet_status==='failed'?`<div class="dp-meta" style="color:var(--rd)">Last try failed: ${feedEsc(j.sheet_error||'unknown error')}</div>`:''}
+        <div class="dp-actions"><button type="button" class="btn btn-w btn-sm" onclick="dpSendJoin('${j.id}')"><i class="ti ti-send"></i>${j.sheet_status==='failed'?'Retry':'Send to sheet'}</button></div>`;
+    } else if (st==='details') {
+      actions = `<div class="dp-meta"><i class="ti ti-clock-hour-4"></i> Waiting for them to add their details in the app (My Profile &rarr; My Dgroup). It's sent automatically when they do.</div>`;
+    } else if (st==='logged') {
+      actions = `<div class="dp-meta" style="color:var(--gr)"><i class="ti ti-circle-check"></i> ${j.sheet_status==='duplicate'?'Already on the Sports tab':'Added to the Sports tab'}${j.sheet_row?' (row '+j.sheet_row+')':''}${j.sheet_at?' &middot; '+new Date(j.sheet_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}):''}</div>`;
+    } else if (st==='rejected') {
+      actions = `<div class="dp-meta">Not confirmed${j.review_note?': '+feedEsc(j.review_note):''}${j.reviewed_by?' &middot; '+feedEsc(j.reviewed_by):''}</div>`;
+    }
+    return `<div class="dp-card">
+      <div class="dp-card-top"><button type="button" class="dp-name" onclick="openEditPlayer('${j.player_id}')">${feedEsc(j.player_name||'Member')}</button>
+        <span class="dp-meta">${j.source==='coordinator'?'placed by coordinator':'logged by member'} &middot; ${when}</span></div>
+      <div class="dp-meta">${j.player_phone?`<a href="tel:${encodeURIComponent(j.player_phone)}">${feedEsc(j.player_phone)}</a>`:'No phone'}${j.player_email?' &middot; '+feedEsc(j.player_email):''}</div>
+      ${st!=='confirm'?`<div class="dp-meta">Leader: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong>${j.leader_mobile?' &middot; '+feedEsc(j.leader_mobile):''}</div>`:`<div class="dp-meta">Leader they named: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong> &mdash; ${leaderCheck(j.leader_name)}</div>`}
+      ${j.complete?`<div class="dp-meta">${det(j.details)}</div>`:''}
+      ${actions}
+    </div>`;
+  };
+  const section = (key, title, hint) => sections[key].length ? `<div style="font-size:13px;font-weight:700;margin:14px 0 8px">${title} <span class="dp-meta" style="font-weight:400">&middot; ${sections[key].length}${hint?' &middot; '+hint:''}</span></div><div class="dp-grid">${sections[key].map(card).join('')}</div>` : '';
+
+  const ping = dpSheetPing;
+  const conn = ping==='loading' || ping===null ? '<span class="dp-meta">Checking the sheet connection&hellip;</span>'
+    : ping.connected ? `<span class="badge b-on">Sheet connected</span> <span class="dp-meta">${feedEsc(ping.sheet||'Sports')} tab</span>`
+    : `<span class="badge b-rd">Sheet not connected</span> <span class="dp-meta">${feedEsc(ping.error||'')}</span>`;
+  const total = (dpJoins||[]).length;
+  el.innerHTML = `<div class="note"><div>New Dgroup joins through Sports Ministry are logged on CCF's <strong>Lifestage Ministry sheet</strong> (Sports tab). Members log their Dgroup in the app; you confirm the leader is a real Dgroup leader; once their details are in, it's sent automatically.</div></div>
+    <div class="dp-actions" style="justify-content:space-between;margin-bottom:6px">${conn}<button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="dpSheetPing=null;dpRenderLog(true)"><i class="ti ti-refresh"></i>Refresh</button></div>
+    ${total ? '' : '<div class="empty">No Dgroup joins logged yet. They appear here when a member logs one in the app, or when you place someone and tick &ldquo;log this join&rdquo;.</div>'}
+    ${section('confirm','Check the leader','confirm it\'s a real Dgroup leader')}
+    ${section('send','Ready to send')}
+    ${section('details','Waiting for member details')}
+    ${section('logged','Logged with CCF')}
+    ${section('rejected','Not confirmed')}`;
+}
+
+async function dpReviewJoin(id, action){
+  let note = null;
+  const leader = (document.getElementById('dpj-l-'+id)?.value||'').trim();
+  const mobile = (document.getElementById('dpj-m-'+id)?.value||'').trim();
+  if (action==='reject') {
+    note = prompt('Why isn\'t this confirmed? (shown to the member)', 'We couldn\'t confirm this Dgroup leader');
+    if (note===null) return;
+  } else if (!leader) return toast('Enter the leader\'s name','er');
+  const j = await rpc('admin_review_dgroup_join', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_join_id:id, p_action:action, p_leader_name:leader, p_leader_mobile:mobile, p_note:note });
+  if (!j || j.error) return toast((j&&j.error)||'Couldn\'t save — try again','er');
+  if (action==='confirm') {
+    const players = LC.arr('players'); const p = players.find(x=>x.id===j.player_id);
+    if (p) { p.hasDgroup = true; p.attendedCCF = true; p.invited = true; p.dgroupLeader = j.leader_name; LC.set('players', players); }
+    toast('Leader confirmed','in');
+    if (j.complete) await dpSendJoin(id, true); else { await dpLoadJoins(); dpRenderLog(); }
+  } else {
+    toast('Marked as not confirmed','in');
+    await dpLoadJoins(); dpRenderLog();
+  }
+}
+
+async function dpSendJoin(id, quiet){
+  const r = await dpSheetCall({ action:'send', join_id:id });
+  if (r && r.ok) toast(r.status==='duplicate' ? 'Already on the Sports tab — marked as logged' : 'Added to the Sports tab'+(r.row?' (row '+r.row+')':''),'in');
+  else if (!quiet || !(r && /details|confirm/i.test(r.error||''))) toast((r&&r.error)||'Couldn\'t send — try again','er');
+  await dpLoadJoins(); dpRenderLog();
+}
+
+
 // ── DGROUP LEADERS VIEW ─────────────────────────────────────────────────
 // Leader names are free text typed per member, so one leader can appear
 // under several spellings. Names that differ only by case/spacing/
@@ -10235,13 +10388,14 @@ function dpSetView(v){
   dpView = v;
   document.getElementById('dp-people-view').style.display = v==='people' ? '' : 'none';
   document.getElementById('dp-leaders-view').style.display = v==='leaders' ? '' : 'none';
+  document.getElementById('dp-log-view').style.display = v==='log' ? '' : 'none';
   document.getElementById('dp-log-card').style.display = v==='people' ? '' : 'none';
-  ['people','leaders'].forEach(k=>{
+  ['people','leaders','log'].forEach(k=>{
     const b = document.getElementById('dp-view-'+k);
     b.classList.toggle('on', k===v);
     b.setAttribute('aria-selected', String(k===v));
   });
-  if (v==='leaders') dpRenderLeaders(); else dpRenderList();
+  if (v==='leaders') dpRenderLeaders(); else if (v==='log') dpRenderLog(); else dpRenderList();
 }
 
 // Letters only, lowercase — "Francis sta. Maria" and "francis sta.maria" share a key.
