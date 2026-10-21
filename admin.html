@@ -10293,7 +10293,7 @@ async function dpRenderLog(force){
   };
   const det = d => {
     if (!d) return '';
-    const parts = [d.gender, d.age?d.age+' yrs':'', d.marital_status, d.dgroup_profile, d.mode, [d.schedule_day,d.schedule_time].filter(Boolean).join(' '), d.location, d.glc_level, ({DMember:'Member',Timothy:'Timothy',DLeader:'Leader'})[d.role]].filter(Boolean);
+    const parts = [d.start_date?'started '+d.start_date:'', d.gender, d.age?d.age+' yrs':'', d.marital_status, d.dgroup_profile, d.mode, [d.schedule_day,d.schedule_time].filter(Boolean).join(' '), d.location, d.glc_level, ({DMember:'Member',Timothy:'Timothy',DLeader:'Leader'})[d.role]].filter(Boolean);
     return parts.map(feedEsc).join(' &middot; ');
   };
   const sections = { confirm:[], send:[], details:[], logged:[], rejected:[] };

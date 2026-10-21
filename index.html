@@ -2140,6 +2140,8 @@ footer a:hover{color:var(--text-1)}
         <label class="fl" for="dgl-leader-mobile">Leader's mobile number</label>
         <input class="fi" id="dgl-leader-mobile" type="tel" inputmode="tel" maxlength="20" placeholder="09XX XXX XXXX (if you know it)">
       </div>
+      <label class="fl" for="dgl-start">When did you start in this Dgroup? *</label>
+      <select class="fi-sel" id="dgl-start"></select>
       <label class="fl" for="dgl-nickname">Nickname</label>
       <input class="fi" id="dgl-nickname" maxlength="40">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -3205,7 +3207,18 @@ let _dgJoin;              // undefined = not loaded; {none:true} = never logged
 let _dgJoinLoading = false;
 const DGL_FIELDS = { nickname:'dgl-nickname', gender:'dgl-gender', age:'dgl-age', occupation:'dgl-occupation', marital_status:'dgl-marital',
   glc_level:'dgl-glc', role:'dgl-role', dgroup_profile:'dgl-profile', schedule_day:'dgl-day', schedule_time:'dgl-time', mode:'dgl-mode',
-  location:'dgl-location', remarks:'dgl-remarks' };
+  location:'dgl-location', remarks:'dgl-remarks', start_date:'dgl-start' };
+
+// Matches the sheet's "Dgroup Start Date" dropdown: this year's months up
+// to now (newest first), then "Prior <year>".
+function dglStartOptions(){
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now = new Date(), y = now.getFullYear();
+  const opts = [];
+  for (let m = now.getMonth(); m >= 0; m--) opts.push(months[m]+' '+y);
+  opts.push('Prior '+y);
+  return opts;
+}
 
 async function loadDgJoin(){
   if (!ME || _dgJoinLoading) return;
@@ -3258,10 +3271,13 @@ function openDgLog(){
   document.getElementById('dgl-leaders').innerHTML = [...names].sort().map(n=>`<option value="${feedEsc(n)}"></option>`).join('');
   document.getElementById('dgl-leader').value = j ? (j.leader_name||'') : (ME.dgroupLeader||'');
   document.getElementById('dgl-leader-mobile').value = j ? (j.leader_mobile||'') : '';
+  const startOpts = dglStartOptions();
+  if (d.start_date && !startOpts.includes(d.start_date)) startOpts.unshift(d.start_date);
+  document.getElementById('dgl-start').innerHTML = startOpts.map(o=>`<option value="${feedEsc(o)}">${feedEsc(o.startsWith('Prior')?'Before '+o.slice(6):o)}</option>`).join('');
   const locked = j && j.status==='confirmed';
   document.getElementById('dgl-leader').disabled = !!locked;
   document.getElementById('dgl-leader-mobile').disabled = !!locked;
-  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined) ? (k==='role'?'DMember':'') : v; });
+  Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined||v==='') ? (k==='role'?'DMember':k==='start_date'?startOpts[0]:'') : v; });
   if (!d.nickname && !j) document.getElementById('dgl-nickname').value = ME.firstName || '';
   document.getElementById('ovl-dglog').classList.add('open');
 }
