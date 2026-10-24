@@ -3248,7 +3248,7 @@ async function sendDgJoinToSheet(joinId){
 }
 
 function openDgLog(){
-  const j = _dgJoin && !_dgJoin.none && _dgJoin.status!=='rejected' ? _dgJoin : null;
+  const j = _dgJoin && !_dgJoin.none && _dgJoin.status!=='rejected' && _dgJoin.status!=='withdrawn' ? _dgJoin : null;
   const d = (j && j.details) || {};
   // Leader suggestions: everyone on the roster plus leader names already in use.
   const names = new Set();
@@ -3347,7 +3347,7 @@ function renderDgroupSection(){
   if (_dgJoin === undefined) loadDgJoin();
   if (_dgFormStatus === undefined && !ME.hasDgroup) loadDgroupFormStatus();
   const j = _dgJoin && !_dgJoin.none ? _dgJoin : null;
-  const activeJoin = j && j.status !== 'rejected';
+  const activeJoin = j && j.status !== 'rejected' && j.status !== 'withdrawn';
   const head = t => `<div class="sec-h" style="margin-top:18px"><div class="sec-t">${t}</div></div>`;
 
   if (activeJoin) {

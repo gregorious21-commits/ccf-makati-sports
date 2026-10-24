@@ -10262,7 +10262,7 @@ async function dpSheetCall(body){
 }
 
 function dpJoinStage(j){
-  if (j.status==='rejected') return 'rejected';
+  if (j.status==='rejected' || j.status==='withdrawn') return 'rejected';
   if (j.status==='pending') return 'confirm';
   if (j.sheet_status==='sent' || j.sheet_status==='duplicate') return 'logged';
   if (!j.complete) return 'details';
@@ -10317,7 +10317,7 @@ async function dpRenderLog(force){
     } else if (st==='logged') {
       actions = `<div class="dp-meta" style="color:var(--gr)"><i class="ti ti-circle-check"></i> ${j.sheet_status==='duplicate'?'Already on the Sports tab':'Added to the Sports tab'}${j.sheet_row?' (row '+j.sheet_row+')':''}${j.sheet_at?' &middot; '+new Date(j.sheet_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}):''}</div>`;
     } else if (st==='rejected') {
-      actions = `<div class="dp-meta">Not confirmed${j.review_note?': '+feedEsc(j.review_note):''}${j.reviewed_by?' &middot; '+feedEsc(j.reviewed_by):''}</div>`;
+      actions = `<div class="dp-meta">${j.status==='withdrawn'?'Withdrawn':'Not confirmed'}${j.review_note?': '+feedEsc(j.review_note):''}${j.reviewed_by&&j.status!=='withdrawn'?' &middot; '+feedEsc(j.reviewed_by):''}</div>`;
     }
     return `<div class="dp-card">
       <div class="dp-card-top"><button type="button" class="dp-name" onclick="openEditPlayer('${j.player_id}')">${feedEsc(j.player_name||'Member')}</button>
@@ -10342,7 +10342,7 @@ async function dpRenderLog(force){
     ${section('send','Ready to send')}
     ${section('details','Waiting for member details')}
     ${section('logged','Logged with CCF')}
-    ${section('rejected','Not confirmed')}`;
+    ${section('rejected','Not confirmed or withdrawn')}`;
 }
 
 async function dpReviewJoin(id, action){
