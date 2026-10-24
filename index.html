@@ -2139,6 +2139,7 @@ footer a:hover{color:var(--text-1)}
         <datalist id="dgl-leaders"></datalist>
         <label class="fl" for="dgl-leader-mobile">Leader's mobile number</label>
         <input class="fi" id="dgl-leader-mobile" type="tel" inputmode="tel" maxlength="20" placeholder="09XX XXX XXXX (if you know it)">
+        <div id="dgl-leader-note" style="display:none;font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.5">Changing your leader sends your entry back to the Dgroup coordinator to confirm.</div>
       </div>
       <label class="fl" for="dgl-start-m">When did you start in this Dgroup? *</label>
       <div style="display:grid;grid-template-columns:3fr 2fr;gap:10px">
@@ -3257,9 +3258,9 @@ function openDgLog(){
   document.getElementById('dgl-leader').value = j ? (j.leader_name||'') : (ME.dgroupLeader||'');
   document.getElementById('dgl-leader-mobile').value = j ? (j.leader_mobile||'') : '';
   dglFillStart(d.start_date);
-  const locked = j && j.status==='confirmed';
-  document.getElementById('dgl-leader').disabled = !!locked;
-  document.getElementById('dgl-leader-mobile').disabled = !!locked;
+  document.getElementById('dgl-leader').disabled = false;
+  document.getElementById('dgl-leader-mobile').disabled = false;
+  document.getElementById('dgl-leader-note').style.display = j && j.status==='confirmed' ? '' : 'none';
   Object.entries(DGL_FIELDS).forEach(([k,id])=>{ const v = d[k]; document.getElementById(id).value = (v===null||v===undefined||v==='') ? (k==='role'?'DMember':'') : v; });
   if (!d.nickname && !j) document.getElementById('dgl-nickname').value = ME.firstName || '';
   document.getElementById('ovl-dglog').classList.add('open');
@@ -3289,10 +3290,14 @@ async function saveDgLog(){
   _dgJoin = j;
   closeDgLog();
   renderDgLogCard();
-  if (j.status==='confirmed' && j.complete) {
+  const isLogged = j.sheet_status==='sent' || j.sheet_status==='duplicate';
+  if (j.status==='confirmed' && j.complete && (!isLogged || j.sheet_update_pending)) {
     const r = await sendDgJoinToSheet(j.id);
-    if (r && r.ok) { _dgJoin.sheet_status = r.status==='added'?'sent':'duplicate'; renderDgLogCard(); toast('Logged with CCF — thank you!'); }
-    else toast('Saved. The coordinator will finish logging it with CCF.','in');
+    if (r && r.ok) {
+      if (isLogged) { _dgJoin.sheet_update_pending = false; toast("Updated on CCF's Lifestage sheet"); }
+      else { _dgJoin.sheet_status = r.status==='added'?'sent':'duplicate'; toast('Logged with CCF — thank you!'); }
+      renderDgLogCard();
+    } else toast(isLogged ? 'Saved. The coordinator will update CCF\'s sheet.' : 'Saved. The coordinator will finish logging it with CCF.','in');
   } else {
     toast(j.status==='pending' ? 'Sent to the Dgroup coordinator to confirm' : 'Saved');
   }
@@ -3353,15 +3358,19 @@ function renderDgroupSection(){
   if (activeJoin) {
     const leader = feedEsc(j.leader_name||'');
     let status;
-    if (j.status==='pending') status = `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
+    const logged = j.sheet_status==='sent' || j.sheet_status==='duplicate';
+    if (j.status==='pending') status = logged
+      ? `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> You changed your leader &mdash; waiting for the Dgroup coordinator to confirm. Your CCF record updates after.`
+      : `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
     else if (!j.complete) status = `<i class="ti ti-alert-circle" style="color:var(--gold)"></i> <strong style="color:var(--tx)">Finish your Dgroup details</strong> so we can log you with CCF.`;
-    else if (j.sheet_status==='sent' || j.sheet_status==='duplicate') status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
+    else if (logged && j.sheet_update_pending) status = `<i class="ti ti-refresh" style="color:var(--gold)"></i> Your changes are being sent to CCF. The coordinator will follow up if it doesn't go through.`;
+    else if (logged) status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
     else status = `<i class="ti ti-send" style="color:var(--gold)"></i> Confirmed &mdash; sending to CCF. The coordinator will follow up if anything's missing.`;
-    const canEdit = !(j.sheet_status==='sent' || j.sheet_status==='duplicate');
+    const canEdit = true;
     el.innerHTML = head('My Dgroup') + `<div class="card">
       <div style="font-size:13px;color:var(--tx3);margin-bottom:6px">Leader: <strong style="color:var(--tx)">${leader}</strong></div>
       <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:${canEdit?'14px':'0'}">${status}</div>
-      ${canEdit ? `<button type="button" class="btn ${j.status==='confirmed'&&!j.complete?'btn-g':'btn-ghost'}" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-edit"></i>${j.status==='confirmed'&&!j.complete?'Add my details':'Edit details'}</button>` : ''}
+      ${canEdit ? `<button type="button" class="btn ${j.status==='confirmed'&&!j.complete?'btn-g':'btn-ghost'}" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-edit"></i>${j.status==='confirmed'&&!j.complete?'Add my details':'Edit my Dgroup details'}</button>` : ''}
     </div>`;
     return;
   }

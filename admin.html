@@ -10264,7 +10264,7 @@ async function dpSheetCall(body){
 function dpJoinStage(j){
   if (j.status==='rejected' || j.status==='withdrawn') return 'rejected';
   if (j.status==='pending') return 'confirm';
-  if (j.sheet_status==='sent' || j.sheet_status==='duplicate') return 'logged';
+  if ((j.sheet_status==='sent' || j.sheet_status==='duplicate') && !j.sheet_update_pending) return 'logged';
   if (!j.complete) return 'details';
   return 'send';
 }
@@ -10310,8 +10310,10 @@ async function dpRenderLog(force){
         <div class="dp-actions"><button type="button" class="btn btn-w btn-sm" onclick="dpReviewJoin('${j.id}','confirm')"><i class="ti ti-check"></i>Leader confirmed</button>
           <button type="button" class="dp-link" onclick="dpReviewJoin('${j.id}','reject')">Not a real Dgroup</button></div>`;
     } else if (st==='send') {
-      actions = `${j.sheet_status==='failed'?`<div class="dp-meta" style="color:var(--rd)">Last try failed: ${feedEsc(j.sheet_error||'unknown error')}</div>`:''}
-        <div class="dp-actions"><button type="button" class="btn btn-w btn-sm" onclick="dpSendJoin('${j.id}')"><i class="ti ti-send"></i>${j.sheet_status==='failed'?'Retry':'Send to sheet'}</button></div>`;
+      const isUpdate = j.sheet_update_pending && (j.sheet_status==='sent' || j.sheet_status==='duplicate');
+      actions = `${isUpdate?`<div class="dp-meta">They edited their details &mdash; their row (${j.sheet_row?'row '+j.sheet_row:'on the Sports tab'}) needs updating.</div>`:''}
+        ${(j.sheet_status==='failed' || (isUpdate && j.sheet_error))?`<div class="dp-meta" style="color:var(--rd)">Last try failed: ${feedEsc(j.sheet_error||'unknown error')}</div>`:''}
+        <div class="dp-actions"><button type="button" class="btn btn-w btn-sm" onclick="dpSendJoin('${j.id}')"><i class="ti ti-send"></i>${isUpdate?'Update sheet':j.sheet_status==='failed'?'Retry':'Send to sheet'}</button></div>`;
     } else if (st==='details') {
       actions = `<div class="dp-meta"><i class="ti ti-clock-hour-4"></i> Waiting for them to add their details in the app (My Profile &rarr; My Dgroup). It's sent automatically when they do.</div>`;
     } else if (st==='logged') {
@@ -10323,7 +10325,7 @@ async function dpRenderLog(force){
       <div class="dp-card-top"><button type="button" class="dp-name" onclick="openEditPlayer('${j.player_id}')">${feedEsc(j.player_name||'Member')}</button>
         <span class="dp-meta">${j.source==='coordinator'?'placed by coordinator':'logged by member'} &middot; ${when}</span></div>
       <div class="dp-meta">${j.player_phone?`<a href="tel:${encodeURIComponent(j.player_phone)}">${feedEsc(j.player_phone)}</a>`:'No phone'}${j.player_email?' &middot; '+feedEsc(j.player_email):''}</div>
-      ${st!=='confirm'?`<div class="dp-meta">Leader: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong>${j.leader_mobile?' &middot; '+feedEsc(j.leader_mobile):''}</div>`:`<div class="dp-meta">Leader they named: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong> &mdash; ${leaderCheck(j.leader_name)}</div>`}
+      ${st!=='confirm'?`<div class="dp-meta">Leader: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong>${j.leader_mobile?' &middot; '+feedEsc(j.leader_mobile):''}</div>`:`<div class="dp-meta">${(j.sheet_status==='sent'||j.sheet_status==='duplicate')?'<strong style="color:var(--am)">Leader change</strong> &middot; new leader':'Leader they named'}: <strong style="color:var(--tx)">${feedEsc(j.leader_name)}</strong> &mdash; ${leaderCheck(j.leader_name)}</div>`}
       ${j.complete?`<div class="dp-meta">${det(j.details)}</div>`:''}
       ${actions}
     </div>`;
@@ -10368,7 +10370,7 @@ async function dpReviewJoin(id, action){
 
 async function dpSendJoin(id, quiet){
   const r = await dpSheetCall({ action:'send', join_id:id });
-  if (r && r.ok) toast(r.status==='duplicate' ? 'Already on the Sports tab — marked as logged' : 'Added to the Sports tab'+(r.row?' (row '+r.row+')':''),'in');
+  if (r && r.ok) toast(r.status==='duplicate' ? 'Already on the Sports tab — marked as logged' : r.status==='updated' ? 'Updated their row on the Sports tab'+(r.row?' (row '+r.row+')':'') : 'Added to the Sports tab'+(r.row?' (row '+r.row+')':''),'in');
   else if (!quiet || !(r && /details|confirm/i.test(r.error||''))) toast((r&&r.error)||'Couldn\'t send — try again','er');
   await dpLoadJoins(); dpRenderLog();
 }
