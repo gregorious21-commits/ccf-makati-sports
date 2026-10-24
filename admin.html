@@ -10210,7 +10210,7 @@ function dgroupFormLink(p){
 }
 function dpFormStatusText(p){
   const when = p.dgFormAt ? new Date(p.dgFormAt).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
-  if (p.dgFormStatus==='submitted') return `<strong style="color:var(--gr)">submitted</strong>${when?' '+when:''}${p.dgFormBy && p.dgFormBy!=='member' ? ' &middot; marked by '+feedEsc(p.dgFormBy) : ''}`;
+  if (p.dgFormStatus==='submitted') return `<strong style="color:var(--gr)">submitted</strong>${when?' '+when:''}${p.dgFormBy==='jotform' ? ' &middot; detected from CCF&rsquo;s form' : p.dgFormBy==='member' ? ' &middot; confirmed by them' : p.dgFormBy ? ' &middot; marked by '+feedEsc(p.dgFormBy) : ''}`;
   if (p.dgFormStatus==='opened') return `opened by them${when?' '+when:''}, not confirmed yet`;
   if (p.dgFormStatus==='sent') return `link sent${when?' '+when:''}${p.dgFormBy?' by '+feedEsc(p.dgFormBy):''}`;
   return 'not sent yet';

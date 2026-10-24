@@ -3198,8 +3198,7 @@ function renderProfile() {
   if (ME.bio) { bio.style.display=''; bio.textContent=ME.bio; } else bio.style.display='none';
   const stack = document.getElementById('my-team-stack');
   if (stack) stack.innerHTML = renderTeamStackHtml(myCurrentTeamEntries(ME.id));
-  renderDgroupJoinCard();
-  renderDgLogCard();
+  renderDgroupSection();
 }
 
 // ── LOG MY DGROUP (Lifestage Ministry sheet) ──────────────────
@@ -3236,7 +3235,7 @@ async function loadDgJoin(){
   _dgJoinLoading = true;
   const j = await rpc('member_get_dgroup_join', { p_phone:AUTH.phone(), p_pin:AUTH.pin() });
   _dgJoinLoading = false;
-  if (j) { _dgJoin = j; renderDgLogCard(); }
+  if (j) { _dgJoin = j; renderDgroupSection(); }
 }
 
 async function sendDgJoinToSheet(joinId){
@@ -3246,31 +3245,6 @@ async function sendDgJoinToSheet(joinId){
       body: JSON.stringify({ action:'send', phone:AUTH.phone(), pin:AUTH.pin(), join_id:joinId }) });
     return await r.json();
   } catch(e) { return { ok:false, error:'Could not reach the server' }; }
-}
-
-function renderDgLogCard(){
-  const el = document.getElementById('dg-log-card');
-  if (!el || !ME) return;
-  if (_dgJoin === undefined) { loadDgJoin(); el.innerHTML = ''; return; }
-  const j = _dgJoin.none ? null : _dgJoin;
-  let body;
-  if (!j || j.status==='rejected') {
-    body = `<div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:14px">Joined a Dgroup through someone in Sports Ministry? Log it so CCF can welcome you into their Dgroup records.</div>
-      ${j && j.status==='rejected' ? `<div style="font-size:12px;color:var(--danger,#e53e3e);margin-bottom:12px">Your last entry wasn't confirmed${j.review_note?': '+feedEsc(j.review_note):''}. You can log it again.</div>` : ''}
-      <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-users-group"></i>Log my Dgroup</button>`;
-  } else {
-    const leader = feedEsc(j.leader_name||'');
-    let status;
-    if (j.status==='pending') status = `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
-    else if (!j.complete) status = `<i class="ti ti-alert-circle" style="color:var(--gold)"></i> <strong style="color:var(--tx)">Finish your Dgroup details</strong> so we can log you with CCF.`;
-    else if (j.sheet_status==='sent' || j.sheet_status==='duplicate') status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
-    else status = `<i class="ti ti-send" style="color:var(--gold)"></i> Confirmed &mdash; sending to CCF. The coordinator will follow up if anything's missing.`;
-    const canEdit = !(j.sheet_status==='sent' || j.sheet_status==='duplicate');
-    body = `<div style="font-size:13px;color:var(--tx3);margin-bottom:6px">Leader: <strong style="color:var(--tx)">${leader}</strong></div>
-      <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:${canEdit?'14px':'0'}">${status}</div>
-      ${canEdit ? `<button type="button" class="btn ${j.status==='confirmed'&&!j.complete?'btn-g':'btn-ghost'}" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-edit"></i>${j.status==='confirmed'&&!j.complete?'Add my details':'Edit details'}</button>` : ''}`;
-  }
-  el.innerHTML = `<div class="sec-h" style="margin-top:18px"><div class="sec-t">My Dgroup</div></div><div class="card">${body}</div>`;
 }
 
 function openDgLog(){
@@ -3358,32 +3332,82 @@ async function loadDgroupFormStatus(){
   _dgFormStatus = st || null;
   renderDgroupJoinCard();
 }
-function renderDgroupJoinCard(){
-  const el = document.getElementById('dg-join-card');
+// ── DGROUP SECTION (My Profile) ───────────────────────────────
+// One card, two paths:
+//   1. "I want to join a Dgroup"  → CCF's Jotform, pre-filled. Submissions are
+//      detected automatically (jotform-webhook) or confirmed by the member.
+//   2. "I already joined one through Sports Ministry" → Lifestage details form,
+//      confirmed by the coordinator, then sent to CCF's Lifestage sheet.
+// Once a Lifestage entry exists, the card shows its status instead.
+function renderDgroupSection(){
+  const el = document.getElementById('dg-log-card');
+  const legacy = document.getElementById('dg-join-card');
+  if (legacy) legacy.style.display = 'none';
   if (!el || !ME) return;
-  if (ME.hasDgroup) { el.style.display = 'none'; return; }
-  el.style.display = '';
-  if (_dgFormStatus === undefined) loadDgroupFormStatus();
+  if (_dgJoin === undefined) loadDgJoin();
+  if (_dgFormStatus === undefined && !ME.hasDgroup) loadDgroupFormStatus();
+  const j = _dgJoin && !_dgJoin.none ? _dgJoin : null;
+  const activeJoin = j && j.status !== 'rejected';
+  const head = t => `<div class="sec-h" style="margin-top:18px"><div class="sec-t">${t}</div></div>`;
+
+  if (activeJoin) {
+    const leader = feedEsc(j.leader_name||'');
+    let status;
+    if (j.status==='pending') status = `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
+    else if (!j.complete) status = `<i class="ti ti-alert-circle" style="color:var(--gold)"></i> <strong style="color:var(--tx)">Finish your Dgroup details</strong> so we can log you with CCF.`;
+    else if (j.sheet_status==='sent' || j.sheet_status==='duplicate') status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
+    else status = `<i class="ti ti-send" style="color:var(--gold)"></i> Confirmed &mdash; sending to CCF. The coordinator will follow up if anything's missing.`;
+    const canEdit = !(j.sheet_status==='sent' || j.sheet_status==='duplicate');
+    el.innerHTML = head('My Dgroup') + `<div class="card">
+      <div style="font-size:13px;color:var(--tx3);margin-bottom:6px">Leader: <strong style="color:var(--tx)">${leader}</strong></div>
+      <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:${canEdit?'14px':'0'}">${status}</div>
+      ${canEdit ? `<button type="button" class="btn ${j.status==='confirmed'&&!j.complete?'btn-g':'btn-ghost'}" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-edit"></i>${j.status==='confirmed'&&!j.complete?'Add my details':'Edit details'}</button>` : ''}
+    </div>`;
+    return;
+  }
+
+  const rejected = j && j.status==='rejected'
+    ? `<div style="font-size:12px;color:var(--danger,#e53e3e);margin-bottom:10px">Your last entry wasn't confirmed${j.review_note?': '+feedEsc(j.review_note):''}. You can log it again.</div>` : '';
+  const optTitle = (icon, t) => `<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--tx);margin-bottom:6px"><i class="ti ${icon}" style="color:var(--gold)"></i>${t}</div>`;
+  const logOption = (title, text) => `${optTitle('ti-users-group', title)}
+    <div style="font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:12px">${text}</div>
+    ${rejected}
+    <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-forms"></i>Fill in my Dgroup details</button>`;
+
+  if (ME.hasDgroup) {
+    el.innerHTML = head('My Dgroup') + `<div class="card">${logOption('Joined a new Dgroup through Sports Ministry?', 'Fill in a few details for CCF&rsquo;s Lifestage Ministry records. The Dgroup coordinator confirms your leader first.')}</div>`;
+    return;
+  }
+
   const link = feedEsc(dgroupFormLink(ME));
-  const openBtn = (label, cls) => `<a href="${link}" target="_blank" rel="noopener" class="btn ${cls}" style="width:100%;justify-content:center;text-decoration:none" onclick="dgFormOpened()"><i class="ti ti-forms"></i>${label}</a>`;
-  let body;
+  let joinOption;
   if (_dgFormStatus === 'submitted') {
-    body = `<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px">
-        <span style="font-size:22px;color:var(--success,#22C55E)"><i class="ti ti-circle-check"></i></span>
-        <div style="font-size:14px;line-height:1.6;color:var(--tx2)"><strong style="color:var(--tx)">You've signed up for a Dgroup.</strong> CCF's Dgroup team will connect you with a group within 1&ndash;2 weeks.</div>
-      </div>
-      <div style="font-size:12px;color:var(--tx3);text-align:center">Didn't finish it after all? <button type="button" onclick="dgFormUndo()" style="background:none;border:none;color:var(--tx2);text-decoration:underline;cursor:pointer;font-size:12px;padding:6px 2px">Open it again</button></div>`;
+    joinOption = `${optTitle('ti-circle-check', 'You&rsquo;ve signed up for a Dgroup')}
+      <div style="font-size:13px;line-height:1.6;color:var(--tx2)">CCF&rsquo;s Dgroup team will connect you with a group within 1&ndash;2 weeks.</div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:8px">Didn&rsquo;t finish it? <button type="button" onclick="dgFormUndo()" style="background:none;border:none;color:var(--tx2);text-decoration:underline;cursor:pointer;font-size:12px;padding:6px 2px">Open it again</button></div>`;
   } else {
-    body = `<div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:16px">A Dgroup is a small group that meets regularly to grow in faith and do life together. Sign up through CCF's Dgroup form &mdash; your name, mobile and email are already filled in.</div>
-      ${openBtn(_dgFormStatus==='opened' ? 'Continue the sign-up form' : 'Sign up for a Dgroup', 'btn-g')}
-      ${_dgFormStatus==='opened' ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-          <span style="font-size:13px;color:var(--tx2)">Finished and submitted the form?</span>
-          <button type="button" class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px" onclick="dgFormSubmitted()"><i class="ti ti-check"></i>Yes, I submitted it</button>
+    joinOption = `${optTitle('ti-heart-handshake', 'I want to join a Dgroup')}
+      <div style="font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:12px">A Dgroup is a small group that meets regularly to grow in faith together. Sign up through CCF&rsquo;s form &mdash; your name, mobile and email are already filled in, and CCF will connect you with a group.</div>
+      <a href="${link}" target="_blank" rel="noopener" class="btn btn-g" style="width:100%;justify-content:center;text-decoration:none" onclick="dgFormOpened()"><i class="ti ti-forms"></i>${_dgFormStatus==='opened' ? 'Continue the sign-up form' : 'Sign up for a Dgroup'}</a>
+      ${_dgFormStatus==='opened' ? `<div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--tx3)">Submitted it? It updates here automatically, or</span>
+          <button type="button" class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:12px" onclick="dgFormSubmitted()"><i class="ti ti-check"></i>Yes, I submitted it</button>
         </div>` : ''}`;
   }
-  el.innerHTML = `<div class="sec-h" style="margin-top:18px"><div class="sec-t">Join a Dgroup</div></div>
-    <div class="card">${body}</div>`;
+  el.innerHTML = head('Dgroup') + `<div class="card">
+      ${joinOption}
+      <div style="display:flex;align-items:center;gap:10px;margin:18px 0 16px;color:var(--tx3);font-size:11px;font-weight:700;letter-spacing:.08em"><span style="flex:1;height:1px;background:var(--b)"></span>OR<span style="flex:1;height:1px;background:var(--b)"></span></div>
+      ${logOption('I already joined a Dgroup through Sports Ministry', 'Found a Dgroup leader in Sports Ministry? Fill in a few details for CCF&rsquo;s Lifestage Ministry records. The Dgroup coordinator confirms your leader first.')}
+    </div>`;
 }
+function renderDgLogCard(){ renderDgroupSection(); }
+// Coming back to the app after the Jotform tab: re-check, so a submission
+// detected by the webhook shows up without a manual refresh.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && ME && _dgFormStatus === 'opened') loadDgroupFormStatus();
+});
+function renderDgroupJoinCard(){ renderDgroupSection(); }
+
 function dgFormOpened(){
   if (_dgFormStatus === 'submitted') return;
   _dgFormStatus = 'opened';
