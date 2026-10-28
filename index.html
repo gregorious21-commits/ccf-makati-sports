@@ -1835,6 +1835,9 @@ footer a:hover{color:var(--text-1)}
           <button type="button" class="tog on" id="ccf-no" onclick="setCCF(false)">First Time</button>
           <button type="button" class="tog" id="ccf-yes" onclick="setCCF(true)">Attended Before</button>
       </div>
+        <label class="fl" for="r-church">Which church do you attend?</label>
+        <select class="fi-sel" id="r-church"><option value="">Select</option><option value="ccf">CCF</option><option value="other_christian">Another Christian church</option><option value="other_faith">Another faith</option><option value="none">None yet</option><option value="prefer_not">Prefer not to say</option></select>
+        <div class="hint">Only the ministry team sees this.</div>
         <label class="fl">Set Your PIN</label>
         <input type="password" class="pin-fi" id="r-pin" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" placeholder="••••">
         <div class="hint">You'll use this every week to sign in</div>
@@ -1924,7 +1927,7 @@ footer a:hover{color:var(--text-1)}
             <button type="button" class="paytype-pill on" id="pt-online" onclick="setPayType('online')">Pay Online</button>
             <button type="button" class="paytype-pill" id="pt-reclub" onclick="setPayType('reclub')" style="display:none">Paid via Reclub</button>
             <button type="button" class="paytype-pill" id="pt-cash" onclick="setPayType('cash')">Request Cash</button>
-            <button type="button" class="paytype-pill" id="pt-first" onclick="setPayType('first')">First Timer</button>
+            <button type="button" class="paytype-pill" id="pt-first" onclick="setPayType('first')">New Player</button>
         </div>
 
           <!-- ONLINE PAY PATH -->
@@ -2128,6 +2131,17 @@ footer a:hover{color:var(--text-1)}
 </div>
 
 <!-- EDIT PROFILE MODAL -->
+<div class="ovl" id="ovl-church">
+  <div class="mdl" style="max-width:420px">
+    <div class="mdl-h"><div class="mdl-ht">Quick question</div><button type="button" class="x-btn" onclick="churchAskLater()" aria-label="Ask me later"><i class="ti ti-x"></i></button></div>
+    <div class="mdl-b">
+      <div style="font-size:16px;font-weight:700;color:var(--tx);margin-bottom:6px">Which church do you attend?</div>
+      <div style="font-size:13px;line-height:1.6;color:var(--tx2)">This helps CCF Makati Sports know who we're reaching. Only the ministry team sees your answer &mdash; never other players.</div>
+      <div id="church-opts" style="margin-top:8px"></div>
+      <button type="button" onclick="churchAskLater()" style="display:block;margin:14px auto 0;background:none;border:none;color:var(--tx3);text-decoration:underline;cursor:pointer;font-size:13px;padding:8px">Ask me later</button>
+    </div>
+  </div>
+</div>
 <div class="ovl" id="ovl-dglog">
   <div class="mdl">
     <div class="mdl-h"><div class="mdl-ht">Log my Dgroup</div><button type="button" class="x-btn" onclick="closeDgLog()" aria-label="Close"><i class="ti ti-x"></i></button></div>
@@ -2239,6 +2253,9 @@ footer a:hover{color:var(--text-1)}
         <button type="button" class="tog on" id="ep-ccf-no" onclick="setEpCCF(false)">First Time</button>
         <button type="button" class="tog" id="ep-ccf-yes" onclick="setEpCCF(true)">Attended Before</button>
     </div>
+      <label class="fl" for="ep-church">Which church do you attend?</label>
+      <select class="fi-sel" id="ep-church"><option value="">Select</option><option value="ccf">CCF</option><option value="other_christian">Another Christian church</option><option value="other_faith">Another faith</option><option value="none">None yet</option><option value="prefer_not">Prefer not to say</option></select>
+      <div class="hint">Only the ministry team sees this.</div>
   </div>
     <div class="mdl-f">
       <button type="button" class="btn btn-ghost" style="margin-top:0;width:auto;padding:12px 18px" onclick="closeEditProfile()">Cancel</button>
@@ -2866,6 +2883,7 @@ function loginSuccess(p) {
   syncAll().then(()=>checkDraftNotification()); startRefresh(); startLiveQueuePoll();
   _handleHash();
   toast('Welcome back, '+p.firstName+'!');
+  setTimeout(checkChurchPrompt, 1500);
 }
 
 function checkDraftNotification() {
@@ -2922,6 +2940,8 @@ async function doRegister() {
   if (!ph)               { toast('Enter your phone number','er'); return; }
   if (!em||!em.includes('@')) { toast('Enter a valid email','er'); return; }
   if (pin.length!==4)    { toast('Set a 4-digit PIN','er'); return; }
+  const churchVal = document.getElementById('r-church').value || '';
+  if (!churchVal)        { toast('Tell us which church you attend (or "Prefer not to say")','er'); document.getElementById('r-church').focus(); return; }
   // Must pick at least one sport
   if (!regSports.basketball && !regSports.pickleball && !regSports.running && !regSports.badminton && !regSports.dragonboat){
     toast('Pick at least one sport','er'); return;
@@ -3005,6 +3025,8 @@ async function doRegister() {
     };
     // Auto-login the new user.
     AUTH.set(ph, pin, 'member');
+    player.church = churchVal;
+    rpc('member_church', { p_phone: ph, p_pin: pin, p_value: churchVal });
     const players = LC.arr('players'); players.push(player); LC.set('players', players);
     // Also seed roster so the "All" tab picks up the new account immediately
     const roster = LC.arr('roster');
@@ -3134,7 +3156,7 @@ async function doConfirmReset() {
 
 // ── LOGOUT ────────────────────────────────────────────────────
 function doLogout() {
-  ME=null; _dgFormStatus=undefined; _dgJoin=undefined; stopRefresh(); localStorage.removeItem('session');
+  ME=null; _dgFormStatus=undefined; _dgJoin=undefined; try{sessionStorage.removeItem('church_later')}catch(e){} stopRefresh(); localStorage.removeItem('session');
   AUTH.clear();
   document.getElementById('view-dash').style.display='none';
   document.getElementById('view-landing').style.display='flex';
@@ -3200,6 +3222,50 @@ function renderProfile() {
   const stack = document.getElementById('my-team-stack');
   if (stack) stack.innerHTML = renderTeamStackHtml(myCurrentTeamEntries(ME.id));
   renderDgroupSection();
+}
+
+// ── CHURCH QUESTION ("Which church do you attend?") ──────────
+// Sensitive (religious affiliation): stored privately, read/written only
+// through member_church; used for the ministry's First-Timer count.
+const CHURCH_OPTS = [
+  ['ccf', 'CCF'],
+  ['other_christian', 'Another Christian church'],
+  ['other_faith', 'Another faith'],
+  ['none', 'None yet'],
+  ['prefer_not', 'Prefer not to say'],
+];
+const CHURCH_WHY = "This helps CCF Makati Sports know who we're reaching. Only the ministry team sees your answer &mdash; never other players.";
+function churchSelectHtml(id, value){
+  return `<select class="fi-sel" id="${id}"><option value="">Select</option>${CHURCH_OPTS.map(([v,l])=>`<option value="${v}"${v===value?' selected':''}>${l}</option>`).join('')}</select>`;
+}
+async function saveMyChurch(value){
+  const r = await rpc('member_church', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_value:value });
+  if (!r || r === 'error') return false;
+  if (ME) ME.church = r;
+  return true;
+}
+// One-time prompt after login for members who haven't answered.
+// "Ask me later" hides it until the app is opened again.
+async function checkChurchPrompt(){
+  if (!ME) return;
+  const r = await rpc('member_church', { p_phone:AUTH.phone(), p_pin:AUTH.pin() });
+  if (!r || r === 'error' || !ME) return;
+  ME.church = r === 'unanswered' ? '' : r;
+  if (r !== 'unanswered') return;
+  try { if (sessionStorage.getItem('church_later') === ME.id) return; } catch(e) {}
+  document.getElementById('church-opts').innerHTML = CHURCH_OPTS.map(([v,l])=>
+    `<button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="answerChurchPrompt('${v}')">${l}</button>`).join('');
+  document.getElementById('ovl-church').classList.add('open');
+}
+async function answerChurchPrompt(value){
+  document.querySelectorAll('#church-opts button').forEach(b=>b.disabled=true);
+  const ok = await saveMyChurch(value);
+  document.getElementById('ovl-church').classList.remove('open');
+  if (ok) toast('Thanks!'); else toast("Couldn't save — we'll ask again next time",'er');
+}
+function churchAskLater(){
+  try { sessionStorage.setItem('church_later', ME ? ME.id : '1'); } catch(e) {}
+  document.getElementById('ovl-church').classList.remove('open');
 }
 
 // ── LOG MY DGROUP (Lifestage Ministry sheet) ──────────────────
@@ -4222,6 +4288,7 @@ function openEditProfile() {
   document.getElementById('ep-dgl').value = ME.dgroupLeader || '';
   setEpDG(!!ME.hasDgroup);
   setEpCCF(!!ME.attendedCCF);
+  document.getElementById('ep-church').value = ME.church || '';
   document.getElementById('ep-dupr').value = (ME.dupr!=null?ME.dupr:'');
   document.getElementById('ep-pos-row').style.display   = epSports.basketball ? '' : 'none';
   document.getElementById('ep-skill-row').style.display = epSports.pickleball ? '' : 'none';
@@ -4322,6 +4389,9 @@ async function saveProfile(){
   closeEditProfile();
   renderProfile();
   if (ok) toast('Profile updated'); else toast('Saved locally, sync failed','er');
+  // Church answer (private) — only when it changed
+  const churchNew = document.getElementById('ep-church').value || '';
+  if (churchNew && churchNew !== (ME.church||'')) saveMyChurch(churchNew);
   // Persist D-group + CCF-attended (member-editable discipleship fields)
   await rpc('member_set_discipleship',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_has_dgroup:epDG,p_dgroup_leader:dglVal,p_attended_ccf:epCCF});
   // Persist DUPR separately (its own RPC). Only when pickleball is selected.
@@ -4902,7 +4972,7 @@ document.getElementById('btn-submit-first').addEventListener('click', async func
   const regs=LC.arr('regs');
   const hasPrior = regs.some(r=>r.playerId===ME.id && !['cancelled','waitlist'].includes((r.status||'').toLowerCase())) || ME.isFirstGame===false;
   if (hasPrior) {
-    toast('First-timer pricing has already been used on this profile — please choose another payment method.','er');
+    toast('The free first game has already been used on this profile — please choose another payment method.','er');
     setPayType('online');
     return;
   }
@@ -4912,7 +4982,7 @@ document.getElementById('btn-submit-first').addEventListener('click', async func
     phone:ME.phone, email:ME.email||'',
     gameId:g.id, gameLabel:g.label, gameTime:g.time||'',
     fee:0, payType:'firsttimer',
-    refNum:'First-timer claim',
+    refNum:'New player claim',
     hasProof:false, proofUrl:'',
     status:'pending', paid:false, isFirstTimer:true,
     registered:new Date().toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}),

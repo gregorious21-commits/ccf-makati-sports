@@ -1679,7 +1679,7 @@ select.fi{
 
     <!-- WEEKLY ROSTER -->
     <div class="panel" id="panel-weekly">
-      <div class="note">Pick a week to see everyone on that run's roster. Add extra players even past the cap, and tag first-timers. This is your historical attendance record.</div>
+      <div class="note">Pick a week to see everyone on that run's roster. Add extra players even past the cap, and tag new players. This is your historical attendance record.</div>
       <div class="s-bar">
         <select class="fi" id="wk-game" onchange="onWeekSelect()" style="flex:1"></select>
         <button type="button" class="btn btn-w" onclick="openAddToWeek()" style="white-space:nowrap"><i class="ti ti-user-plus"></i>Add Player</button>
@@ -1692,7 +1692,7 @@ select.fi{
         <button type="button" class="btn btn-w" onclick="saveWeekRemarks()"><i class="ti ti-check"></i>Save</button>
       </div>
       <div class="card tbl-wrap" style="padding:0">
-        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>First-Timer</th><th>Volunteer</th><th>Gospel</th><th>Status</th><th>Actions</th></tr></thead>
+        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>New Player</th><th>Volunteer</th><th>Gospel</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="weekly-tbody"></tbody></table>
     </div>
   </div>
@@ -1744,6 +1744,29 @@ select.fi{
 
     <!-- SUMMARY -->
     <div class="panel" id="panel-summary">
+      <div class="card">
+        <div class="card-h">
+          <div class="card-t"><i class="ti ti-report-analytics"></i>Roster Summary</div>
+          <button type="button" class="btn btn-w btn-sm" onclick="exportRosterSummaryCSV()"><i class="ti ti-download"></i>Export CSV</button>
+        </div>
+        <div class="note"><div><strong>New Players</strong> = first time at our games (the roster tag). <strong>First-Timers</strong> = never attended CCF, not in a Dgroup, and no church or another faith. <strong>CCF Members</strong> = attended CCF and in a Dgroup.</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+          <div id="rs-periods" style="display:flex;gap:6px">
+            <button type="button" class="fin-pill" data-p="week" onclick="rsSetPeriod('week')">Week</button>
+            <button type="button" class="fin-pill on" data-p="month" onclick="rsSetPeriod('month')">Month</button>
+            <button type="button" class="fin-pill" data-p="quarter" onclick="rsSetPeriod('quarter')">Quarter</button>
+            <button type="button" class="fin-pill" data-p="year" onclick="rsSetPeriod('year')">Year</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="rsShift(-1)" aria-label="Previous period"><i class="ti ti-chevron-left"></i></button>
+            <div id="rs-label" style="font-weight:700;min-width:150px;text-align:center"></div>
+            <button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="rsShift(1)" aria-label="Next period"><i class="ti ti-chevron-right"></i></button>
+            <button type="button" class="dp-link" onclick="rsToday()">Today</button>
+          </div>
+          <select class="fi" style="width:auto;min-width:140px" onchange="rsSetSport(this.value)" aria-label="Sport"><option value="all">All sports</option><option value="basketball">Basketball</option><option value="pickleball">Pickleball</option><option value="badminton">Badminton</option><option value="running">Running</option><option value="dragonboat">Dragonboat</option></select>
+        </div>
+        <div id="rs-body"><div class="empty">Loading&hellip;</div></div>
+      </div>
       <div class="card">
         <div class="card-h">
           <div class="card-t"><i class="ti ti-table"></i>Attendance by Sport</div>
@@ -2218,6 +2241,8 @@ select.fi{
         <button type="button" class="st-btn" id="e-ccf-no" onclick="setEditCCF(false)">First Time</button>
         <button type="button" class="st-btn" id="e-ccf-yes" onclick="setEditCCF(true)">Attended Before</button>
     </div>
+      <label class="fl" for="e-church">Church <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-3)">(private — only admins see this)</span></label>
+      <select class="fi" id="e-church"><option value="">Not answered</option><option value="ccf">CCF</option><option value="other_christian">Another Christian church</option><option value="other_faith">Another faith</option><option value="none">None yet</option><option value="prefer_not">Prefer not to say</option></select>
       <div class="g2" style="margin-top:14px">
         <div><label class="fl">Wins</label><input type="number" class="fi" id="e-wins" min="0"></div>
         <div><label class="fl">Games Played</label><input type="number" class="fi" id="e-games" min="0"></div>
@@ -2349,7 +2374,7 @@ select.fi{
       <input class="fi" id="aw-ph" inputmode="numeric" placeholder="So they can log in later">
       <label class="waiver-chk" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:16px;background:var(--bg2);padding:12px 14px;border-radius:8px;border:1px solid var(--b)">
         <input type="checkbox" id="aw-ft" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer">
-        <span style="font-size:13px;font-weight:600"> Tag as first-timer for this run</span>
+        <span style="font-size:13px;font-weight:600"> Tag as new player for this run</span>
     </label>
   </div>
     <div class="modal-f">
@@ -2397,6 +2422,19 @@ async function rpc(fnName, args) {
 // Roles allowed into the admin panel. dgc = Dgroup Coordinator (manager-level
 // access, lands on Dgroup Management). Server-side checks mirror this list.
 const ADMIN_ROLES = ['owner','manager','gdm','dgc'];
+
+// ── Ministry classifications (used by Weekly Roster + Summary) ──
+// "New Player" = first time at our games (the roster tag, r.isFirstTimer).
+// Below are about a person's church background, from their profile:
+const CHURCH_LABEL = { ccf:'CCF', other_christian:'Another Christian church', other_faith:'Another faith', none:'None yet', prefer_not:'Prefer not to say' };
+function plAttendedCCF(p){ return !!p && (!!p.attendedCCF || p.church==='ccf'); }
+// CCF Member = has attended CCF AND is in a Dgroup.
+function plIsCcfMember(p){ return plAttendedCCF(p) && !!p.hasDgroup; }
+// First-Timer = never attended CCF, no Dgroup, and no church or another faith
+// (people in another Christian church don't count).
+function plIsFirstTimer(p){ return !!p && !plAttendedCCF(p) && !p.hasDgroup && (p.church==='none' || p.church==='other_faith'); }
+// Can't tell yet: no church answer (or prefer not to say) and nothing else rules them out.
+function plChurchUnknown(p){ return !p || (!plAttendedCCF(p) && !p.hasDgroup && (!p.church || p.church==='prefer_not')); }
 function adminHomePanel(role){ return role==='gdm' ? 'gameday' : role==='dgc' ? 'discipleship' : 'dashboard'; }
 
 const AUTH = {
@@ -2442,7 +2480,7 @@ const LC={get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return nu
 const mapGame=g=>({id:g.id,date:g.date,label:g.label,time:g.game_time||'7:00 AM',venue:g.venue||'',venueUrl:g.venue_url||'',route:g.route||'',weatherNote:g.weather_note||'',spots:g.spots||20,fee:g.fee||200,status:g.status||'tbd',cancelReason:g.cancel_reason||'',sport:g.sport||'basketball',courtCost:g.court_cost||0,startAt:g.start_at||null,remarks:g.remarks||'',collectedOverride:g.collected_override!=null?g.collected_override:null});
 const mapReg=r=>({id:r.id,playerId:r.player_id,playerName:r.player_name,phone:r.phone||'',email:r.email||'',gameId:r.game_id,gameLabel:r.game_label||'',gameTime:r.game_time||'',fee:r.fee!=null?r.fee:200,payType:r.pay_type||'cash',refNum:r.ref_num||'',hasProof:r.has_proof||false,proofUrl:r.proof_url||'',status:r.status||'pending',registered:r.registered||'',isFirstTimer:r.is_first_timer||false,sport:r.sport||'basketball',paid:r.paid===true,attended:r.attended===true,attendedAt:r.attended_at||'',isVolunteer:r.is_volunteer===true});
 const spiTag=s=>s==='pickleball'?'<span class="spi spi-p"></span>':s==='running'?'<span class="spi spi-r"></span>':s==='badminton'?'<span class="spi spi-bd"></span>':s==='dragonboat'?'<span class="spi spi-db"></span>':'<span class="spi spi-b"></span>';
-const payLabel=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'First Timer (Free)':'Cash request';
+const payLabel=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'New Player (Free)':'Cash request';
 const mapDev=d=>d?{votdRef:d.votd_ref||'',votdText:d.votd_text||'',votdPublished:d.votd_published||false,devotionTitle:d.devotion_title||'',verseRef:d.verse_ref||'',verseText:d.verse_text||'',q1:d.q1||'',q2:d.q2||'',devotionText:d.devotion_text||'',devPublished:d.dev_published||false,monthlyTheme:d.monthly_theme||''}:null;
 
 const COLORS=['#1B5E8C','#C0392B','#1A7A45','#7D3C98','#B7770D','#0E7490','#C05621','#1A3A5C'];
@@ -2518,7 +2556,8 @@ async function doFullSync() {
       lastLoginAt: sp.last_login_at || null,
       isActive: sp.is_active !== false,
       placedAt: sp.dgroup_placed_at || null, sheetSyncedAt: sp.sheet_synced_at || null,
-      dgFormStatus: sp.dgroup_form_status || null, dgFormAt: sp.dgroup_form_at || null, dgFormBy: sp.dgroup_form_by || ''
+      dgFormStatus: sp.dgroup_form_status || null, dgFormAt: sp.dgroup_form_at || null, dgFormBy: sp.dgroup_form_by || '',
+      church: sp.church_affiliation || ''
     })));
   }
   if(Array.isArray(dev)&&dev[0]) LC.set('devotion',mapDev(dev[0]));
@@ -3101,7 +3140,7 @@ function renderRegs(){
         : r.payType==='free'
           ? '<span class="badge b-nv">Free</span>'
           : r.payType==='firsttimer'
-            ? '<span class="badge" style="background:rgba(253,184,39,.2);color:var(--gold)">First Timer</span>'+((r.refNum||'').indexOf('FLAG')===0?' <span class="badge b-rd" title="'+r.refNum+'">⚠ Has prior</span>':'')
+            ? '<span class="badge" style="background:rgba(253,184,39,.2);color:var(--gold)">New Player</span>'+((r.refNum||'').indexOf('FLAG')===0?' <span class="badge b-rd" title="'+r.refNum+'">⚠ Has prior</span>':'')
             : '<span class="badge b-gd">Cash request</span>';
     const paidBadge = (r.payType==='free'||r.payType==='firsttimer')
       ? '<span class="badge b-nv">Free</span>'
@@ -3341,6 +3380,7 @@ function openEditPlayer(id){
   document.getElementById('e-skill-row').style.display=editSports.pickleball?'':'none';
   setEditDG(!!p.hasDgroup);
   setEditCCF(!!p.attendedCCF);
+  document.getElementById('e-church').value = p.church || '';
   const roleEl = document.getElementById('e-role');
   if (roleEl) roleEl.value = p.role || 'member';
   openModal('edit-player');
@@ -3411,6 +3451,11 @@ async function saveEditPlayer(){
       has_dgroup:editDG,dgroup_leader:p.dgroupLeader,attended_ccf:editCCF,
       wins,games_played:games
     });
+  }
+  const churchNew = document.getElementById('e-church').value || '';
+  if (churchNew !== (p.church||'')) {
+    const cok = await rpc('admin_set_church',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_target_id:p.id,p_value:churchNew||null});
+    if (cok===true) { p.church = churchNew; LC.set('players',players); } else toast('Church answer not saved — try again','er');
   }
   // Save pickleball skill rating override if pickleball is selected and a value is set
   if(editSports.pickleball){
@@ -3796,7 +3841,7 @@ function renderRunAttendance(){
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b);border-radius:10px;margin-bottom:8px">
       <div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${feedEsc(r.playerName||'Runner')}</div><div style="font-size:11px;color:var(--tx3)">${feedEsc(r.phone||'')}</div></div>
       <div style="display:flex;gap:6px;flex:none">
-        <button type="button" class="chip-ft ${r.isFirstTimer?'ft-on':''}" onclick="toggleFirstTimerGd('${r.id}',${!r.isFirstTimer})" data-tip="${r.isFirstTimer?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${r.isFirstTimer?'-filled':''}"></i>${r.isFirstTimer?' 1st':''}</button>
+        <button type="button" class="chip-ft ${r.isFirstTimer?'ft-on':''}" onclick="toggleFirstTimerGd('${r.id}',${!r.isFirstTimer})" data-tip="${r.isFirstTimer?'Remove new-player tag':'Mark as new player'}"><i class="ti ti-star${r.isFirstTimer?'-filled':''}"></i>${r.isFirstTimer?' 1st':''}</button>
         <button type="button" class="st-btn ${on?'sel-on':''}" onclick="toggleRunAttended('${r.id}',${on?'false':'true'})">${on?'<i class="ti ti-check"></i> Present':'Mark present'}</button>
         <button type="button" class="btn btn-rd btn-sm" onclick="removeRunReg('${r.id}')" data-tip="Remove from this session"><i class="ti ti-x"></i></button>
       </div>
@@ -3921,7 +3966,7 @@ function renderGameDay(){
     const ftReg = next ? regs.find(r=>r.gameId===next.id&&r.playerId===p.id&&r.status!=='cancelled') : null;
     const ftOn  = ftReg && ftReg.isFirstTimer;
     const ftBtn = ftReg
-      ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" data-tip="${ftOn?'Remove first-timer tag':'Mark as first-timer'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
+      ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" data-tip="${ftOn?'Remove new-player tag':'Mark as new player'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
       : '';
     return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')">${ini(p.firstName,p.lastName)} ${p.firstName} ${p.lastName}${skTag}${statusTag}${ftBtn}${
       (sessionLive || teamsLive) && (cssClass.indexOf(' on') > -1)
@@ -3946,7 +3991,7 @@ async function toggleFirstTimerGd(regId, makeFirst){
   r.isFirstTimer=makeFirst; LC.set('regs',regs);
   renderGameDay();
   await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:regId,p_status:r.status||'confirmed',p_paid:r.paid||false,p_is_first_timer:makeFirst,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
-  toast(makeFirst?'Marked as first-timer':'First-timer tag removed','in');
+  toast(makeFirst?'Marked as new player':'New-player tag removed','in');
 }
 let gdSport = 'basketball';
 const GD_SPORT_META = {
@@ -8361,9 +8406,9 @@ function exportPlayerReport(){
   if(!regs.length){ toast('No registrations in this period/sport','er'); return; }
 
   const yn=v=>v?'Yes':'No';
-  const cleanPay=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'First Timer':'Cash';
+  const cleanPay=pt=>pt==='advance'?'Advance':pt==='walkin'?'Walk-in':pt==='free'?'Free':pt==='firsttimer'?'New Player':'Cash';
 
-  const rows=[['Date','Sport','Schedule','Player','Phone','Attended','Paid','Payment Type','First-Timer Claim','Attended CCF','Has D-Group','D-Group Leader']];
+  const rows=[['Date','Sport','Schedule','Player','Phone','Attended','Paid','Payment Type','New Player Claim','Attended CCF','Has D-Group','D-Group Leader']];
   // Sort by date then player name for a readable report
   regs.sort((a,b)=>{
     const ga=gameById.get(a.gameId), gb=gameById.get(b.gameId);
@@ -8410,6 +8455,103 @@ function setSummaryPeriod(p){
   document.querySelectorAll('[data-period]').forEach(b=>b.classList.toggle('on',b.dataset.period===p));
   renderSummary();
 }
+
+// ── ROSTER SUMMARY (Summary page) ─────────────────────────────
+// Week / month / quarter / year report of who came, one row per game.
+//   New Players   = tagged "New Player" on that game's roster (first time at our games)
+//   First-Timers  = church background: never attended CCF, no Dgroup, no
+//                   church or another faith (plIsFirstTimer)
+//   CCF Members   = attended CCF and in a Dgroup (plIsCcfMember)
+// Classifications use each person's current profile.
+let rsPeriod = 'month', rsAnchor = new Date(), rsSport = 'all', rsLastRows = null;
+const RS_SPORT_LABEL = { basketball:'Basketball', pickleball:'Pickleball', badminton:'Badminton', running:'Running', dragonboat:'Dragonboat' };
+
+function rsIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function rsRange(){
+  const a = new Date(rsAnchor.getFullYear(), rsAnchor.getMonth(), rsAnchor.getDate());
+  const y = a.getFullYear(), m = a.getMonth();
+  const fmt = (d,o) => d.toLocaleDateString('en-PH', o);
+  let from, to, label;
+  if (rsPeriod === 'week') {
+    from = new Date(a); from.setDate(a.getDate() - ((a.getDay()+6)%7)); // Monday
+    to = new Date(from); to.setDate(from.getDate()+6);
+    label = fmt(from,{month:'short',day:'numeric'})+' – '+fmt(to,{month:'short',day:'numeric',year:'numeric'});
+  } else if (rsPeriod === 'quarter') {
+    const q = Math.floor(m/3); from = new Date(y, q*3, 1); to = new Date(y, q*3+3, 0); label = 'Q'+(q+1)+' '+y;
+  } else if (rsPeriod === 'year') {
+    from = new Date(y, 0, 1); to = new Date(y, 11, 31); label = String(y);
+  } else {
+    from = new Date(y, m, 1); to = new Date(y, m+1, 0); label = fmt(from,{month:'long',year:'numeric'});
+  }
+  return { from: rsIso(from), to: rsIso(to), label };
+}
+function rsSetPeriod(p){ rsPeriod = p; renderRosterSummary(); }
+function rsSetSport(s){ rsSport = s; renderRosterSummary(); }
+function rsShift(dir){
+  const a = new Date(rsAnchor);
+  if (rsPeriod === 'week') a.setDate(a.getDate() + 7*dir);
+  else { a.setDate(1); a.setMonth(a.getMonth() + (rsPeriod==='quarter'?3:rsPeriod==='year'?12:1)*dir); }
+  rsAnchor = a; renderRosterSummary();
+}
+function rsToday(){ rsAnchor = new Date(); renderRosterSummary(); }
+
+// Who counts as having come to a game — same rule as the rest of Summary.
+function rsAttendees(g){
+  const sp = g.sport || 'basketball';
+  const regs = LC.arr('regs').filter(r => r.gameId === g.id && ((sp==='running'||sp==='dragonboat')
+    ? ((r.status||'').toLowerCase()!=='cancelled' && r.attended===true) : r.status==='confirmed'));
+  const seen = new Set();
+  return regs.filter(r => { const k = r.playerId || r.id; if (seen.has(k)) return false; seen.add(k); return true; });
+}
+
+function renderRosterSummary(){
+  const el = document.getElementById('rs-body');
+  if (!el) return;
+  if (!gsLoaded && !gsLoading && Date.now()-gsLastTry>30000) { gsLoading = true; gsLastTry = Date.now(); gsLoadAllShared().finally(()=>{ gsLoading = false; if (gsLoaded) renderRosterSummary(); }); }
+  const { from, to, label } = rsRange();
+  document.getElementById('rs-label').textContent = label;
+  document.querySelectorAll('#rs-periods .fin-pill').forEach(b => b.classList.toggle('on', b.dataset.p === rsPeriod));
+  const players = LC.arr('players');
+  const byId = new Map(players.map(p => [String(p.id), p]));
+  const games = LC.arr('games')
+    .filter(g => g.status!=='cancelled' && (g.date||'') >= from && (g.date||'') <= to && (rsSport==='all' || (g.sport||'basketball')===rsSport))
+    .sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.sport||'').localeCompare(b.sport||''));
+  const shared = p => !!p && (gsShared.has(String(p.id)) || !!p.hasDgroup);
+  const KEYS = ['total','newp','ft','ccf','vol','gospel','dg','unk'];
+  const tot = Object.fromEntries(KEYS.map(k=>[k,0]));
+  const uniq = Object.fromEntries(KEYS.map(k=>[k,new Set()]));
+  const rows = games.map(g => {
+    const att = rsAttendees(g);
+    const c = Object.fromEntries(KEYS.map(k=>[k,0]));
+    att.forEach(r => {
+      const id = String(r.playerId || r.id), p = byId.get(String(r.playerId));
+      const hit = { total:true, newp:!!r.isFirstTimer, ft:plIsFirstTimer(p), ccf:plIsCcfMember(p), vol:!!r.isVolunteer, gospel:shared(p), dg:!!(p&&p.hasDgroup), unk:plChurchUnknown(p) };
+      KEYS.forEach(k => { if (hit[k]) { c[k]++; tot[k]++; uniq[k].add(id); } });
+    });
+    return { g, c };
+  });
+  rsLastRows = { rows, tot, uniq, label, KEYS };
+  if (!rows.length) { el.innerHTML = `<div class="empty">No games in ${feedEsc(label)}${rsSport!=='all'?' for '+RS_SPORT_LABEL[rsSport]:''}.</div>`; return; }
+  const n = v => `<td style="text-align:center;font-variant-numeric:tabular-nums">${v}</td>`;
+  const head = `<tr><th>Date</th><th>Game</th><th style="text-align:center">Total</th><th style="text-align:center">New Players</th><th style="text-align:center">First-Timers</th><th style="text-align:center">CCF Members</th><th style="text-align:center">Volunteers</th><th style="text-align:center">Gospel Shared</th><th style="text-align:center">In Dgroup</th><th style="text-align:center" data-tip="Church not answered yet, so we can't tell if they're a first-timer">No church answer</th></tr>`;
+  const body = rows.map(({g,c}) => `<tr><td style="white-space:nowrap">${feedEsc(new Date((g.date||'')+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}))}</td>
+      <td>${spiTag(g.sport||'basketball')} ${feedEsc(RS_SPORT_LABEL[g.sport||'basketball']||g.sport||'')}</td>${KEYS.map(k=>n(c[k])).join('')}</tr>`).join('');
+  const totRow = `<tr style="border-top:2px solid var(--b2);font-weight:700"><td colspan="2">Total attendance</td>${KEYS.map(k=>n(tot[k])).join('')}</tr>
+    <tr style="font-weight:700;color:var(--gold2)"><td colspan="2">Unique people</td>${KEYS.map(k=>n(uniq[k].size)).join('')}</tr>`;
+  el.innerHTML = `<div class="tbl-wrap" style="border:1px solid var(--b);border-radius:12px"><table class="tbl"><thead>${head}</thead><tbody>${body}${totRow}</tbody></table></div>
+    <div class="dp-meta" style="margin-top:8px">${rows.length} game${rows.length===1?'':'s'}. <strong>Total attendance</strong> counts someone each time they came; <strong>unique people</strong> counts them once. Uses each person's current profile.</div>`;
+}
+
+function exportRosterSummaryCSV(){
+  if (!rsLastRows || !rsLastRows.rows.length) return toast('Nothing to export for this period','er');
+  const { rows, tot, uniq, label, KEYS } = rsLastRows;
+  const out = [['Date','Sport','Total','New Players','First-Timers','CCF Members','Volunteers','Gospel Shared','In Dgroup','No church answer']];
+  rows.forEach(({g,c}) => out.push([g.date, RS_SPORT_LABEL[g.sport||'basketball']||g.sport, ...KEYS.map(k=>String(c[k]))]));
+  out.push(['Total attendance','', ...KEYS.map(k=>String(tot[k]))]);
+  out.push(['Unique people','', ...KEYS.map(k=>String(uniq[k].size))]);
+  dlCSV('roster-summary-'+label.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'')+'.csv', out);
+}
+
 function summaryRange(){
   const now=new Date();
   if(summaryPeriod==='all') return {from:'0000-01-01', label:'All Time'};
@@ -8434,6 +8576,7 @@ function gameAttendedCount(gameId, sport){
   return new Set(regs.filter(r=>r.gameId===gameId && r.status==='confirmed').map(r=>r.playerId||r.id)).size;
 }
 function renderSummary(){
+  renderRosterSummary();
   renderAttendanceMatrix();
   const {label}=summaryRange();
   const games=summaryGames();
@@ -8468,7 +8611,7 @@ function renderSummary(){
     const playersAll2=LC.arr('players');
     const playerFor2=pid=>playersAll2.find(p=>p.id===pid);
     const allRegs=LC.arr('regs');
-    let mCcf=0,mFt=0,mVol=0,mDgroup=0;
+    let mCcf=0,mFt=0,mMft=0,mVol=0,mDgroup=0;
     games.forEach(g=>{
       const sp=g.sport||'basketball';
       const qualifying=(sp==='running'||sp==='dragonboat')
@@ -8480,7 +8623,8 @@ function renderSummary(){
         if(seen.has(key)) return;
         seen.add(key);
         const p=playerFor2(r.playerId);
-        if(p&&p.attendedCCF) mCcf++;
+        if(plIsCcfMember(p)) mCcf++;
+        if(plIsFirstTimer(p)) mMft++;
         if(p&&p.hasDgroup) mDgroup++;
         if(r.isFirstTimer) mFt++;
         if(r.isVolunteer) mVol++;
@@ -8489,7 +8633,7 @@ function renderSummary(){
     const mPct=totalAttendance?Math.round(mDgroup/totalAttendance*100):0;
     const mEl=document.getElementById('sum-ministry-stats');
     if(mEl) mEl.innerHTML=[
-      ['CCF Member',mCcf],['First Timer',mFt],['Volunteers',mVol],['Placed in Dgroup',mDgroup],['% Placement',mPct+'%'],
+      ['New Players',mFt],['First-Timers',mMft],['CCF Members',mCcf],['Volunteers',mVol],['Placed in Dgroup',mDgroup],['% Placement',mPct+'%'],
     ].map(([lbl,val])=>`<div class="fin-stat"><div class="n">${val}</div><div class="l">${lbl}</div></div>`).join('');
   })();
   statsEl.innerHTML=`
@@ -8693,7 +8837,8 @@ function renderWeekly(){
   // the Discipleship tracking section, so this needs no new schema.
   const playersAll=LC.arr('players');
   const playerFor=r=>playersAll.find(p=>p.id===r.playerId);
-  const ccfCount=active.filter(r=>{const p=playerFor(r);return p&&p.attendedCCF;}).length;
+  const ccfCount=active.filter(r=>plIsCcfMember(playerFor(r))).length;
+  const mftCount=active.filter(r=>plIsFirstTimer(playerFor(r))).length;
   const dgroupCount=active.filter(r=>{const p=playerFor(r);return p&&p.hasDgroup;}).length;
   const dgroupPct=active.length?Math.round(dgroupCount/active.length*100):0;
   const volCount=active.filter(r=>r.isVolunteer).length;
@@ -8717,8 +8862,9 @@ function renderWeekly(){
   if(statsEl){
     statsEl.innerHTML = !game ? '' : [
       ['Total', active.length, 'var(--tx)'],
-      ['CCF Member', ccfCount, 'var(--tx)'],
-      ['First Timer', ft, 'var(--gold2)'],
+      ['New Players', ft, 'var(--gold2)'],
+      ['First-Timers', mftCount, 'var(--gold2)'],
+      ['CCF Members', ccfCount, 'var(--tx)'],
       ['Volunteers', volCount, 'var(--tx)'],
       ['Gospel Shared', gsLoaded?sharedCount:'…', 'var(--gold2)'],
       ['Placed in Dgroup', dgroupCount, 'var(--tx)'],
@@ -8737,8 +8883,8 @@ function renderWeekly(){
     const st=r.status||'pending';
     const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':st==='waitlist'?'b-nv':'b-tbd';
     const ftBtn=r.isFirstTimer
-      ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleFirstTimer('${r.id}')"> First-Timer</button>`
-      : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleFirstTimer('${r.id}')">Tag First-Timer</button>`;
+      ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleFirstTimer('${r.id}')"><i class="ti ti-check"></i> New Player</button>`
+      : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleFirstTimer('${r.id}')">Tag New Player</button>`;
     const pl=playerFor(r);
     const gsBtn=!r.playerId ? '<span class="dp-meta">—</span>'
       : !gsLoaded ? '<span class="dp-meta">…</span>'
@@ -8773,7 +8919,7 @@ async function toggleFirstTimer(regId){
   r.isFirstTimer=!r.isFirstTimer;LC.set('regs',regs);
   renderWeekly();
   const ok=await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:regId,p_status:r.status||'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
-  if(ok) toast(r.isFirstTimer?'Tagged as first-timer':'First-timer tag removed','in');
+  if(ok) toast(r.isFirstTimer?'Tagged as new player':'New-player tag removed','in');
   else toast('Saved locally, sync failed','er');
 }
 // Gospel shared from the Weekly Roster — same lifetime record as Dgroup
