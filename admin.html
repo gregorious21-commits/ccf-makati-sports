@@ -1692,7 +1692,7 @@ select.fi{
         <button type="button" class="btn btn-w" onclick="saveWeekRemarks()"><i class="ti ti-check"></i>Save</button>
       </div>
       <div class="card tbl-wrap" style="padding:0">
-        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>First-Timer</th><th>Volunteer</th><th>Status</th><th>Actions</th></tr></thead>
+        <table class="tbl"><thead><tr><th></th><th>Player</th><th>Phone</th><th>Payment</th><th>First-Timer</th><th>Volunteer</th><th>Gospel</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody id="weekly-tbody"></tbody></table>
     </div>
   </div>
@@ -8697,6 +8697,12 @@ function renderWeekly(){
   const dgroupCount=active.filter(r=>{const p=playerFor(r);return p&&p.hasDgroup;}).length;
   const dgroupPct=active.length?Math.round(dgroupCount/active.length*100):0;
   const volCount=active.filter(r=>r.isVolunteer).length;
+  // Gospel shared is a lifetime, per-person record (gospel_shares); load it
+  // once, then re-render. Dgroup members count as shared.
+  if(!gsLoaded && !gsLoading && Date.now()-gsLastTry>30000){ gsLoading=true; gsLastTry=Date.now(); gsLoadAllShared().finally(()=>{ gsLoading=false; if(gsLoaded) renderWeekly(); }); }
+  const isShared=r=>{ const p=playerFor(r); return !!r.playerId && (gsShared.has(String(r.playerId)) || !!(p&&p.hasDgroup)); };
+  const sharedCount=active.filter(isShared).length;
+  const notShared=active.filter(r=>r.playerId && !isShared(r));
   const capNote=document.getElementById('wk-cap-note');
   if(capNote){
     const over=active.length>cap;
@@ -8714,15 +8720,17 @@ function renderWeekly(){
       ['CCF Member', ccfCount, 'var(--tx)'],
       ['First Timer', ft, 'var(--gold2)'],
       ['Volunteers', volCount, 'var(--tx)'],
+      ['Gospel Shared', gsLoaded?sharedCount:'…', 'var(--gold2)'],
       ['Placed in Dgroup', dgroupCount, 'var(--tx)'],
       ['% Placement', dgroupPct+'%', 'var(--tx)'],
-    ].map(([lbl,val,color])=>`<div class="fin-stat"><div class="n" style="color:${color}">${val}</div><div class="l">${lbl}</div></div>`).join('');
+    ].map(([lbl,val,color])=>`<div class="fin-stat"><div class="n" style="color:${color}">${val}</div><div class="l">${lbl}</div></div>`).join('')
+      + (gsLoaded && notShared.length ? `<div style="flex-basis:100%"><button type="button" class="btn btn-ghost btn-sm" style="width:auto" onclick="tagWeekGospelShared()"><i class="ti ti-checks"></i>Tag all ${notShared.length} not yet shared as Gospel Shared</button></div>` : '');
   }
   const remarksEl=document.getElementById('wk-remarks');
   if(remarksEl) remarksEl.value = game ? (game.remarks||'') : '';
   const tbody=document.getElementById('weekly-tbody');
   if(!tbody) return;
-  if(!regs.length){tbody.innerHTML='<tr><td colspan="8"><div class="empty">No players on this week\u2019s roster yet. Use <strong>Add Player</strong> to build it.</div></td></tr>';return}
+  if(!regs.length){tbody.innerHTML='<tr><td colspan="9"><div class="empty">No players on this week\u2019s roster yet. Use <strong>Add Player</strong> to build it.</div></td></tr>';return}
   // active first, cancelled last
   regs.sort((a,b)=>(a.status==='cancelled'?1:0)-(b.status==='cancelled'?1:0));
   tbody.innerHTML=regs.map((r,i)=>{
@@ -8731,6 +8739,14 @@ function renderWeekly(){
     const ftBtn=r.isFirstTimer
       ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleFirstTimer('${r.id}')"> First-Timer</button>`
       : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleFirstTimer('${r.id}')">Tag First-Timer</button>`;
+    const pl=playerFor(r);
+    const gsBtn=!r.playerId ? '<span class="dp-meta">—</span>'
+      : !gsLoaded ? '<span class="dp-meta">…</span>'
+      : (pl&&pl.hasDgroup&&!gsShared.has(String(r.playerId)))
+        ? `<span class="badge b-on" data-tip="Counts as shared — they're in a Dgroup"><i class="ti ti-users-group"></i> In Dgroup</span>`
+      : gsShared.has(String(r.playerId))
+        ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleGospelShared('${r.playerId}')" data-tip="Shared ${feedEsc((gsShared.get(String(r.playerId))||{}).date||'')} — tap to remove"><i class="ti ti-check"></i> Shared</button>`
+        : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleGospelShared('${r.playerId}')">Tag Shared</button>`;
     const volBtn=r.isVolunteer
       ? `<button type="button" class="btn btn-gd btn-sm" onclick="toggleVolunteer('${r.id}')"> Volunteer</button>`
       : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleVolunteer('${r.id}')">Tag Volunteer</button>`;
@@ -8741,6 +8757,7 @@ function renderWeekly(){
       <td><span class="badge ${r.payType==='advance'?'b-nv':'b-gd'}">${r.payType==='advance'?'Advance':r.payType==='walkin'?'Walk-in':'Cash'}</span></td>
       <td>${ftBtn}</td>
       <td>${volBtn}</td>
+      <td>${gsBtn}</td>
       <td><span class="badge ${bc}">${st}</span></td>
       <td><div style="display:flex;gap:5px">
         ${st==='pending'?`<button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Approve"><i class="ti ti-check"></i></button>`:''}
@@ -8758,6 +8775,37 @@ async function toggleFirstTimer(regId){
   const ok=await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:regId,p_status:r.status||'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:r.attended||false,p_attended_at:r.attendedAt||''});
   if(ok) toast(r.isFirstTimer?'Tagged as first-timer':'First-timer tag removed','in');
   else toast('Saved locally, sync failed','er');
+}
+// Gospel shared from the Weekly Roster — same lifetime record as Dgroup
+// Management (gospel_shares, via admin RPCs).
+async function toggleGospelShared(playerId){
+  const key=String(playerId);
+  const p=LC.arr('players').find(x=>String(x.id)===key);
+  const name=p?(p.firstName+' '+(p.lastName||'')).trim():'this player';
+  if(gsShared.has(key)){
+    if(!confirm('Remove the gospel-shared record for '+name+'? This clears their share history.')) return;
+    const ok=await rpc('admin_unmark_gospel_shared',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_player_id:key});
+    if(ok!==true) return toast('Couldn\'t update — try again','er');
+    toast('Gospel-shared tag removed','in');
+  } else {
+    const g=LC.arr('games').find(x=>x.id===weekGameId);
+    const n=await rpc('admin_mark_gospel_shared',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_player_ids:[key],p_context:'weekly roster'+(g?' '+g.date:'')});
+    if(typeof n!=='number') return toast('Couldn\'t update — try again','er');
+    toast(name+' tagged as Gospel Shared','in');
+  }
+  await gsLoadAllShared(); renderWeekly();
+}
+async function tagWeekGospelShared(){
+  const g=LC.arr('games').find(x=>x.id===weekGameId); if(!g) return;
+  const players=LC.arr('players');
+  const ids=[...new Set(LC.arr('regs').filter(r=>r.gameId===weekGameId && r.status!=='cancelled' && r.playerId)
+    .map(r=>String(r.playerId)))].filter(id=>{ const p=players.find(x=>String(x.id)===id); return !gsShared.has(id) && !(p&&p.hasDgroup); });
+  if(!ids.length) return toast('Everyone on this roster is already tagged','in');
+  if(!confirm('Tag '+ids.length+' player(s) on this roster as Gospel Shared?')) return;
+  const n=await rpc('admin_mark_gospel_shared',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_player_ids:ids,p_context:'weekly roster '+g.date});
+  if(typeof n!=='number') return toast('Couldn\'t update — try again','er');
+  toast('Tagged '+n+' player(s) as Gospel Shared','in');
+  await gsLoadAllShared(); renderWeekly();
 }
 async function toggleVolunteer(regId){
   const regs=LC.arr('regs');const r=regs.find(x=>x.id===regId);if(!r)return;
@@ -9715,12 +9763,14 @@ async function toggleDraftPause(draftId) {
 // Lifetime record: has the gospel ever been shared with this person?
 // The table isn't public — reads and writes go through admin RPCs.
 let gsShared = new Map();   // player_id (string) -> {date, sharedBy} — earliest share
+let gsLoaded = false, gsLoading = false, gsLastTry = 0;
 let gsRows = [];            // every share row, oldest first (feeds the log)
 
 async function gsLoadAllShared(){
   const rows = await rpc('admin_list_gospel_shares', { p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin() });
   if (!Array.isArray(rows)) return false;
   gsRows = rows;
+  gsLoaded = true;
   gsShared = new Map();
   rows.forEach(r => {
     const id = String(r.player_id);
