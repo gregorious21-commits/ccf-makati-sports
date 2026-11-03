@@ -4730,7 +4730,12 @@ function copyMethod(id){
 // means the block always self-clears after exactly one skipped game — a
 // blocked player is never stuck unable to ever clear it, since they were
 // blocked from the one game that would've cleared them.
+// Paused while managers aren't consistently taking attendance in the app —
+// an untaken roster leaves everyone attended=false. Flip back to true to
+// re-enable the block.
+const NO_SHOW_BLOCK_ENABLED = false;
 function isBlockedForGame(playerId, game) {
+  if (!NO_SHOW_BLOCK_ENABLED) return false;
   if (!game || (game.sport||'basketball') !== 'basketball') return false;
   const games = LC.arr('games');
   const regs  = LC.arr('regs');
