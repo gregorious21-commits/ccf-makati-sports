@@ -2522,9 +2522,30 @@ async function rpc(fnName, args) {
       headers: { ...SBW, 'Prefer': 'return=representation' },
       body: JSON.stringify(args || {})
     });
-    if (!r.ok) { console.error('RPC', fnName, r.status, await r.text()); return null; }
+    if (!r.ok) {
+      const body = await r.text();
+      console.error('RPC', fnName, r.status, body);
+      // The saved PIN no longer works (changed or reset elsewhere, or the
+      // role was removed). Wrong PINs now count toward the 15-minute lockout,
+      // so stop the background sync instead of retrying every 30 seconds.
+      if (/not authorized/i.test(body) && AUTH.isAuthed()) adminSessionExpired();
+      return null;
+    }
     return await r.json();
   } catch (e) { console.error('RPC', fnName, e); return null; }
+}
+let _adminExpiredShown = false;
+function adminSessionExpired(){
+  if (_adminExpiredShown) return;
+  _adminExpiredShown = true;
+  stop30s();
+  if (typeof sessionPoller !== 'undefined' && sessionPoller) { clearInterval(sessionPoller); sessionPoller = null; }
+  AUTH.clear();
+  document.getElementById('app').style.display='none';
+  document.getElementById('pin-screen').style.display='flex';
+  document.getElementById('pin-field').value='';
+  // Game Day state stays in memory, so signing back in picks up where you left off.
+  document.getElementById('pin-err').textContent = "Your PIN didn't match. Please sign in again.";
 }
 
 // Roles allowed into the admin panel. dgc = Dgroup Coordinator (manager-level
@@ -2749,6 +2770,7 @@ async function tryUnlock(){
       return;
     }
     AUTH.set(phone, val, role, (profile.first_name||'') + ' ' + (profile.last_name||''));
+    _adminExpiredShown = false;
     err.textContent = '';
     document.getElementById('pin-screen').style.display='none';
     document.getElementById('app').style.display='flex';
