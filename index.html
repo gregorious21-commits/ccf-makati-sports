@@ -2863,17 +2863,26 @@ function compressImage(file, maxDim, quality) {
 }
 
 // Upload file to Supabase Storage (compresses images first)
+// Payment screenshots live in the private "payment-proofs" bucket: members
+// can upload but nobody can list or open them with the public key. We store
+// "payment-proofs/<file>"; admins open it through a short-lived signed link.
+const PROOF_BUCKET = 'payment-proofs';
+function proofFileName(prefix, ...parts) {
+  return prefix + '-' + parts.map(p => String(p).replace(/[^A-Za-z0-9_-]/g, '')).join('-') + '-' + Date.now();
+}
+async function uploadToProofBucket(name, body, contentType) {
+  const r = await fetch(SB+'/storage/v1/object/'+PROOF_BUCKET+'/'+name, {
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':contentType},
+    body
+  });
+  if (!r.ok) { console.error('UPLOAD proof',r.status,await r.text()); return null; }
+  return PROOF_BUCKET+'/'+name;
+}
 async function uploadProof(file, regId) {
   try {
     const small = await compressImage(file, 1400, 0.72);
-    const path  = regId+'.jpg';
-    const r     = await fetch(SB+'/storage/v1/object/proofs/'+path, {
-      method:'POST',
-      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},
-      body: small
-    });
-    if (!r.ok) { console.error('UPLOAD proof',r.status,await r.text()); return null; }
-    return SB+'/storage/v1/object/public/proofs/'+path;
+    return await uploadToProofBucket(proofFileName('reg', regId)+'.jpg', small, 'image/jpeg');
   } catch(e) { console.error('UPLOAD proof',e); return null; }
 }
 
@@ -2940,7 +2949,7 @@ async function syncAll() {
     dbGet('announcements',   'select=*&active=eq.true&order=created_at.desc'),
     dbGet('notifications',   'select=*&order=created_at.desc&limit=20'),
     playersQuery,
-    dbGet('registrations',   'select=*&status=neq.cancelled&order=created_at.desc'),
+    dbGet('registrations_public', 'select=*&status=neq.cancelled&order=created_at.desc'),
     dbGet('payment_methods', 'select=*&active=eq.true&order=sport.asc,sort_order.asc,id.asc'),
     dbGet('game_history',    'select=*&order=created_at.desc&limit=20'),
     dbGet('tournaments',     'select=*&order=created_at.desc').catch(()=>[]),
@@ -4593,7 +4602,7 @@ document.getElementById('ep-file').addEventListener('change', async function(e){
   try {
     const small=await compressImage(file,512,0.8);
     const path='avatar-'+ME.id+'-'+Date.now()+'.jpg';
-    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},body:small});
+    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg'},body:small});
     if (r.ok) { epUploadedUrl=SB+'/storage/v1/object/public/proofs/'+path; document.getElementById('ep-remove').style.display=''; }
     else { toast('Upload failed','er'); }
   } catch(err){ toast('Upload failed','er'); }
@@ -5547,7 +5556,7 @@ async function onPostImage(e){
   if(!blob){ st.textContent='Could not read that image.'; return; }
   try{
     const path='post_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.jpg';
-    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},body:blob});
+    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg'},body:blob});
     if(!r.ok){ st.textContent='Upload failed — try again.'; return; }
     postImgUrl=SB+'/storage/v1/object/public/proofs/'+path;
     document.getElementById('fc-img').src=postImgUrl;
@@ -6621,7 +6630,7 @@ function renderTournDetail(id) {
         </div>
         <div style="text-align:right">
           <div style="font-weight:800;font-size:14px">₱${Number(p.amount).toLocaleString()}</div>
-          ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr)">View proof</a>`:''}
+          ${p.proof_url?`<span style="font-size:11px;color:var(--gr)">Proof sent</span>`:''}
         </div>
       </div>`;
     }).join('') : '';
@@ -7255,10 +7264,9 @@ async function submitRegPayment(tournId, regId){
   if (!/^image\//.test(file.type) || file.size > 5*1024*1024) return toast('The proof must be an image under 5 MB','er');
   const btn = document.getElementById('trp-submit'); if (btn) btn.disabled = true;
   try {
-    const path = 'tourn-'+tournId+'-reg-'+regId+'-'+Date.now()+'.'+((file.type.split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,''));
-    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, { method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':file.type,'x-upsert':'true'}, body:file });
-    if (!r.ok) throw new Error('upload');
-    const proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+    const small = await compressImage(file, 1400, 0.72);
+    const proofUrl = await uploadToProofBucket(proofFileName('tourn', tournId, 'reg', regId)+'.jpg', small, 'image/jpeg');
+    if (!proofUrl) throw new Error('upload');
     const id = await rpc('member_submit_reg_payment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_reg_id:regId,p_amount:amt,p_proof_url:proofUrl});
     if (!id) throw new Error('save');
     toast('Payment sent — the organizer will check it');
@@ -7277,12 +7285,8 @@ async function submitTournPayment(tournId, teamId, totalFee) {
   if (!amt || amt <= 0) return toast('Enter the amount sent','er');
   let proofUrl = null;
   if (_tournPayFile) {
-    const path = 'tourn-'+tournId+'-'+teamId+'-'+Date.now()+'.jpg';
-    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, {
-      method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':_tournPayFile.type,'x-upsert':'true'},
-      body: _tournPayFile
-    });
-    if (r.ok) proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+    const small = await compressImage(_tournPayFile, 1400, 0.72);
+    proofUrl = await uploadToProofBucket(proofFileName('tourn', tournId, teamId)+'.jpg', small, 'image/jpeg');
   }
   // always INSERT a new row — each submission is one installment
   const ok = await rpc('member_submit_tournament_payment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_tournament_id:tournId,p_team_id:teamId,p_amount:amt,p_proof_url:proofUrl||null});

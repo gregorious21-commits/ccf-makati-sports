@@ -2610,7 +2610,7 @@ async function doFullSync() {
     : dbGet('players', 'select=*');
   const [games,regs,players,dev,anns,notifs,hist,pmethods,tournaments] = await Promise.all([
     dbGet('games',           'select=*&order=date.asc'),
-    dbGet('registrations',   'select=*&status=neq.cancelled&order=created_at.desc'),
+    rpc('admin_list_registrations', { p_my_phone: AUTH.phone(), p_my_pin: AUTH.pin() }),
     playersPromise,
     dbGet('devotion',        'select=*&id=eq.1'),
     dbGet('announcements',   'select=*&order=created_at.desc'),
@@ -3264,12 +3264,14 @@ function renderRegs(){
   }).join('');
 }
 
-function viewProof(id){
+async function viewProof(id){
   const r=LC.arr('regs').find(x=>x.id===id);if(!r)return;
   document.getElementById('proof-title').textContent=(r.playerName||'Player')+' — Payment Proof';
   const body=document.getElementById('proof-body');
-  if(r.proofUrl){
-    body.innerHTML=`<img src="${r.proofUrl}" class="proof-img" alt="proof">
+  const src=r.proofUrl?await proofSrc(r.proofUrl):'';
+  if(r.proofUrl&&!src){ body.innerHTML='<div class="empty">Couldn\'t load the screenshot. Close this and try again.</div>'; }
+  else if(r.proofUrl){
+    body.innerHTML=`<img src="${src}" class="proof-img" alt="Payment screenshot">
       <div style="margin-top:14px;font-size:13px">
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Player</span><strong>${r.playerName||'—'}</strong></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Game</span><strong>${r.gameLabel||'—'}</strong></div>
@@ -3966,7 +3968,7 @@ function fmtWhen(iso){ try{ return new Date(iso).toLocaleDateString('en-PH',{mon
 async function renderRunRecords(){
   const el=document.getElementById('run-records'); if(!el) return;
   el.innerHTML='<div class="empty">Loading…</div>';
-  const rows=await dbGet('registrations','select=player_id,player_name,attended,attended_at,game_label&sport=eq.running&attended=eq.true&order=attended_at.desc');
+  const rows=await dbGet('registrations_public','select=player_id,player_name,attended,attended_at,game_label&sport=eq.running&attended=eq.true&order=attended_at.desc');
   const list=Array.isArray(rows)?rows:[];
   if(!list.length){ el.innerHTML='<div class="empty">No attendance recorded yet. Check runners in on Game Day.</div>'; return; }
   const byP={};
@@ -7564,7 +7566,7 @@ async function openTournPayments(id) {
           <span style="font-size:10px;font-weight:700;color:${sc};margin-left:8px">${sl}</span>
         </div>
         <span style="font-weight:700;font-size:13px">₱${Number(p.amount).toLocaleString()}</span>
-        ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr);flex-shrink:0">Proof</a>`:''}
+        ${p.proof_url?`<a href="#" onclick="openProofTab(event,'${p.proof_url}')" style="font-size:11px;color:var(--gr);flex-shrink:0">Proof</a>`:''}
         ${p.status==='pending'?`<button type="button" onclick="verifyTournPayment('${p.id}','${id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;background:var(--gr);color:#fff;border:none;cursor:pointer;flex-shrink:0">✓</button><button type="button" onclick="rejectTournPayment('${p.id}','${id}')" style="font-size:11px;padding:3px 8px;border-radius:6px;background:none;border:1px solid var(--b);color:var(--tx3);cursor:pointer;flex-shrink:0">✗</button>`:''}
       </div>`;
     }).join('');
@@ -9302,6 +9304,34 @@ async function deletePm(id){
   toast(label + ' removed');
 }
 
+// ── PAYMENT PROOFS ────────────────────────────────────────────
+// New screenshots are stored as "payment-proofs/<file>" in a private bucket.
+// The payment-proof edge function checks the admin's phone + PIN, then
+// returns a signed link (10 minutes) or deletes the file.
+async function paymentProofCall(action, stored){
+  try{
+    const r=await fetch(SB+'/functions/v1/payment-proof',{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},
+      body:JSON.stringify({phone:AUTH.phone(),pin:AUTH.pin(),action,path:stored})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) console.error('payment-proof',action,r.status,j);
+    return r.ok?j:null;
+  }catch(e){ console.error('payment-proof',action,e); return null; }
+}
+async function proofSrc(stored){
+  if(!stored) return '';
+  if(/^https?:\/\//.test(stored)) return stored;   // older public link
+  const j=await paymentProofCall('sign',stored);
+  return (j&&j.url)||'';
+}
+async function openProofTab(e,stored){
+  e.preventDefault();
+  const w=window.open('','_blank');               // open now so popup blockers allow it
+  const url=await proofSrc(stored);
+  if(url&&w) w.location=url;
+  else { if(w) w.close(); toast("Couldn't open the screenshot. Try again.",'er'); }
+}
+
 // ── STORAGE CLEANUP ───────────────────────────────────────────
 function renderProofCount(){
   const el=document.getElementById('proof-count'); if(!el) return;
@@ -9312,6 +9342,7 @@ function renderProofCount(){
     +(pending?` · <span style="color:var(--am)">${pending} pending will be kept</span>`:'');
 }
 async function deleteStorageObject(url){
+  if(url&&url.startsWith('payment-proofs/')){ const j=await paymentProofCall('delete',url); return !!(j&&j.ok); }
   try{
     const marker='/proofs/';
     const i=url.indexOf(marker);
@@ -9384,7 +9415,11 @@ async function downloadBackup(){
   const backup={ app:'CCF Makati Sports', exported_at:new Date().toISOString(), version:1 };
   let totalRows=0;
   for(const t of tables){
-    const rows=await dbGet(t,'select=*');
+    const rows = t==='registrations'
+      ? await rpc('admin_list_registrations', { p_my_phone: AUTH.phone(), p_my_pin: AUTH.pin(), p_include_cancelled: true })
+      : t==='players'
+      ? await rpc('admin_list_players', { p_phone: AUTH.phone(), p_pin: AUTH.pin() })
+      : await dbGet(t,'select=*');
     backup[t]=Array.isArray(rows)?rows:[];
     totalRows+=backup[t].length;
   }
