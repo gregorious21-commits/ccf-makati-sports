@@ -1621,12 +1621,13 @@ body{letter-spacing:0}
                 <button type="button" class="btn btn-ghost btn-sm" onclick="bbShuffleMatch()"><i class="ti ti-dice"></i>Shuffle Teams</button>
               </div>
             </div>
-            <div class="note">Move anyone between teams or the bench, or remove a player who left. Tap the winning team to record it and set up the next match.</div>
+            <div class="note">Move anyone between teams or the bench, or remove a player who left. Tap the winning team to record it and set up the next match. A draw sets up the next match without recording a result.</div>
             <div id="bb-match"></div>
             <div style="display:flex;gap:10px;margin-top:14px">
               <button type="button" class="btn btn-gr" style="flex:1;justify-content:center" onclick="bbRecordWinner('A')"><i class="ti ti-trophy"></i>Team A wins</button>
               <button type="button" class="btn btn-blue" style="flex:1;justify-content:center" onclick="bbRecordWinner('B')"><i class="ti ti-trophy"></i>Team B wins</button>
             </div>
+            <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="bbRecordWinner('draw')" data-tip="Next match is set up as usual; no wins, games or ratings are saved for this one"><i class="ti ti-equal"></i>Draw (not recorded)</button>
           </div>
           <div class="card">
             <div class="card-h"><div class="card-t"><i class="ti ti-list"></i>Session Log</div></div>
@@ -6614,6 +6615,9 @@ function renderBbRotation(){
   if(logEl){
     if(!bbRotation.log.length){ logEl.innerHTML='<div class="empty">No matches recorded yet.</div>'; }
     else logEl.innerHTML=bbRotation.log.slice().reverse().map(m=>{
+      if (m.winner==='draw'){
+        return `<div class="log-row"><div class="log-court">M${m.matchNum}</div><div class="log-result">Draw · <span style="color:var(--tx3)">not recorded</span> <span style="color:var(--tx3);font-size:12px">(${m.teamA.map(bbFirst).join(', ')} vs ${m.teamB.map(bbFirst).join(', ')})</span></div></div>`;
+      }
       const wNames=(m.winner==='A'?m.teamA:m.teamB).map(bbFirst).join(', ');
       const lNames=(m.winner==='A'?m.teamB:m.teamA).map(bbFirst).join(', ');
       return `<div class="log-row"><div class="log-court">M${m.matchNum}</div><div class="log-result"><strong>${wNames}</strong> beat ${lNames}</div></div>`;
@@ -6628,6 +6632,7 @@ function bbRecordWinner(side){
   // until you tap "End Game Day & Archive" — so a mis-tap or a discarded day
   // never leaves stray wins behind.
   const isFixedTeams = bbRotation.mode==='fixedTeams';
+  const isDraw = side==='draw';
   bbRotation.log.push({
     matchNum:bbRotation.matchNum, teamA:bbRotation.teamA.slice(), teamB:bbRotation.teamB.slice(), winner:side,
     teamAId: isFixedTeams ? bbRotation.currentTeamIds[0] : undefined,
@@ -6636,10 +6641,15 @@ function bbRecordWinner(side){
   });
   if (isFixedTeams){
     const [ai,bi] = bbRotation.currentTeamIds;
-    const winTeam = side==='A' ? bbRotation.teams[ai] : bbRotation.teams[bi];
-    const loseTeam = side==='A' ? bbRotation.teams[bi] : bbRotation.teams[ai];
-    winTeam.wins++; winTeam.played++;
-    loseTeam.losses++; loseTeam.played++;
+    if (isDraw){
+      // Counts as a turn on court for scheduling, but no win or loss.
+      bbRotation.teams[ai].played++; bbRotation.teams[bi].played++;
+    } else {
+      const winTeam = side==='A' ? bbRotation.teams[ai] : bbRotation.teams[bi];
+      const loseTeam = side==='A' ? bbRotation.teams[bi] : bbRotation.teams[ai];
+      winTeam.wins++; winTeam.played++;
+      loseTeam.losses++; loseTeam.played++;
+    }
     bbRotation.matchNum++;
     bbFormTeamMatch();
   } else {
@@ -6651,7 +6661,7 @@ function bbRecordWinner(side){
   renderBbRotation();
   renderBbTimer();
   touchSharedSession();
-  toast('Team '+side+' logged · Match '+bbRotation.matchNum+' ready');
+  toast((isDraw ? 'Draw, not recorded' : 'Team '+side+' logged')+' · Match '+bbRotation.matchNum+' ready');
 }
 
 // Undo the most recent logged match (before End Game Day). Reverses the play
@@ -6660,10 +6670,14 @@ function bbUndoLast(){
   if(!bbRotation || !bbRotation.log.length){ toast('No match to undo','er'); return; }
   const last=bbRotation.log.pop();
   if (bbRotation.mode==='fixedTeams' && last.teamAId!=null){
-    const winTeam = last.winner==='A' ? bbRotation.teams[last.teamAId] : bbRotation.teams[last.teamBId];
-    const loseTeam = last.winner==='A' ? bbRotation.teams[last.teamBId] : bbRotation.teams[last.teamAId];
-    winTeam.wins--; winTeam.played--;
-    loseTeam.losses--; loseTeam.played--;
+    if (last.winner==='draw'){
+      bbRotation.teams[last.teamAId].played--; bbRotation.teams[last.teamBId].played--;
+    } else {
+      const winTeam = last.winner==='A' ? bbRotation.teams[last.teamAId] : bbRotation.teams[last.teamBId];
+      const loseTeam = last.winner==='A' ? bbRotation.teams[last.teamBId] : bbRotation.teams[last.teamAId];
+      winTeam.wins--; winTeam.played--;
+      loseTeam.losses--; loseTeam.played--;
+    }
     bbRotation.currentTeamIds = [last.teamAId, last.teamBId];
     bbRotation.teamA = last.teamA.slice();
     bbRotation.teamB = last.teamB.slice();
@@ -6689,7 +6703,7 @@ function bbUndoLast(){
   }
   renderBbRotation();
   touchSharedSession();
-  toast('Match '+last.matchNum+' undone — pick the winner again');
+  toast('Match '+last.matchNum+' undone, pick the result again');
 }
 
 // The game actually happening today for a given sport, date-matched (not
@@ -6720,8 +6734,12 @@ async function markBasketballAttendance(){
 
 async function bbEndSession(){
   if(!bbRotation){ toast('No session running','er'); return; }
-  if(!bbRotation.log.length){
-    if(!confirm('No matches were recorded. End the session anyway? Nothing will be saved.')) return;
+  // Draws keep the rotation moving but are never saved (no wins, games,
+  // ratings or history entry).
+  const decided = bbRotation.log.filter(m => m.winner==='A' || m.winner==='B');
+  const draws = bbRotation.log.length - decided.length;
+  if(!decided.length){
+    if(!confirm((draws ? 'Only draws were played, and draws aren\'t recorded.' : 'No matches were recorded.')+' End the session anyway? Nothing will be saved.')) return;
     await endSharedSession();
     bbRotation=null; presentIds=[]; bbTimerStop();
     document.getElementById('bb-active').style.display='none';
@@ -6733,13 +6751,13 @@ async function bbEndSession(){
   }
   // Tally wins/games per player so the confirm can show what will be saved.
   const tally={};
-  bbRotation.log.forEach(m=>{
+  decided.forEach(m=>{
     const winIds=m.winner==='A'?m.teamA:m.teamB;
     const loseIds=m.winner==='A'?m.teamB:m.teamA;
     winIds.forEach(pid=>{ tally[pid]=tally[pid]||{w:0,g:0}; tally[pid].w++; tally[pid].g++; });
     loseIds.forEach(pid=>{ tally[pid]=tally[pid]||{w:0,g:0}; tally[pid].g++; });
   });
-  if(!confirm('End Game Day?\n\n'+bbRotation.log.length+' match(es) will be archived and wins/games saved to player records now. This is the only point where results are saved.')) return;
+  if(!confirm('End Game Day?\n\n'+decided.length+' match(es) will be archived and wins/games saved to player records now.'+(draws?' '+draws+' draw(s) won\'t be recorded.':'')+' This is the only point where results are saved.')) return;
 
   // NOW persist results — this is the single point where wins are written.
   const players=LC.arr('players');
@@ -6748,7 +6766,7 @@ async function bbEndSession(){
     if(p){ p.wins=(p.wins||0)+tally[pid].w; p.games=(p.games||0)+tally[pid].g; }
   });
   LC.set('players',players);
-  for(const m of bbRotation.log){
+  for(const m of decided){
     const winIds=(m.winner==='A'?m.teamA:m.teamB).slice();
     const loseIds=(m.winner==='A'?m.teamB:m.teamA).slice();
     await rpc('admin_record_match_result',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_winner_ids:winIds,p_loser_ids:loseIds});
@@ -6767,7 +6785,7 @@ async function bbEndSession(){
     // Keep raw player-id arrays (not just display-name strings) so each
     // player's match history can be looked up later, same as pickleball's
     // archive shape — teamAName/teamBName stay as a display-only convenience.
-    matches:bbRotation.log.map(m=>({
+    matches:decided.map(m=>({
       teamA:m.teamA.slice(),
       teamB:m.teamB.slice(),
       teamAName:m.teamA.map(bbFirst).join(' & '),
@@ -6785,7 +6803,7 @@ async function bbEndSession(){
   const hist=LC.arr('history');
   hist.unshift({id:entry.id,date:entry.game_date,playerCount:entry.player_count,teams:entry.teams,matches:entry.matches});
   LC.set('history',hist);
-  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+bbRotation.log.length+' matches',p_type:'success'});
+  await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+decided.length+' matches',p_type:'success'});
   toast('Game Day archived · wins saved!');
   await markBasketballAttendance(); // uses presentIds — must run before it's reset below
   await endSharedSession();
