@@ -1654,7 +1654,7 @@ footer a:hover{color:var(--text-1)}
 .rule-grp{margin-bottom:16px}
 .rule-grp:last-child{margin-bottom:0}
 .rule-h{font-family:var(--font-display);font-size:15px;letter-spacing:.5px;color:var(--tx);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-.rule-item{padding:5px 0 5px 14px;border-left:2px solid var(--gold-soft,rgba(9,37,87,.3));margin-bottom:6px}
+.rule-item{padding:4px 0;margin-bottom:6px}
 .rule-item:last-child{margin-bottom:0}
 .rule-item strong{color:var(--tx)}
 .lq-card{border:1px solid rgba(34,197,94,.4);background:linear-gradient(160deg,rgba(34,197,94,.07),transparent);margin-bottom:18px}
@@ -1732,10 +1732,13 @@ body{letter-spacing:0}
 .game-status .status-row + .status-row{border-top:1px solid rgba(255,255,255,.14)}
 .game-status .stext strong{color:#fff;font-size:15px}
 .game-status .stext span{color:rgba(255,255,255,.78);font-size:12.5px}
-.sdate{width:50px;flex:none;text-align:center;border-radius:10px;background:var(--hi);color:var(--hi-ink);padding:5px 0 6px}
+.sdate{width:50px;flex:none;text-align:center;border-radius:10px;background:var(--brand-soft);color:var(--brand);padding:5px 0 6px}
 .sdate b{display:block;font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
 .sdate span{display:block;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:.06em;line-height:1.2}
-.sdate.tbd{background:rgba(255,255,255,.14);color:#fff}
+.sdate.tbd{background:var(--surface-2);color:var(--text-2)}
+/* On navy surfaces the badge turns white */
+.game-status .sdate{background:#fff;color:var(--brand)}
+.game-status .sdate.tbd{background:rgba(255,255,255,.14);color:#fff}
 .auth-section{padding:var(--s-6) var(--s-5) var(--s-10)}
 
 /* Forms */
@@ -1848,6 +1851,70 @@ body{letter-spacing:0}
 .lq-bb-clock,.lq-result-score{font-weight:700;font-variant-numeric:tabular-nums}
 .lq-card{background:var(--surface-1)}
 
+/* Calmer motion: one quick fade, no slide on every screen */
+.fu,.fu1,.fu2,.fu3,.fu4{animation:fadeIn 220ms var(--ease-out) both}
+.tab-panel{animation:fadeIn 160ms var(--ease-out)}
+/* Elevation from shadow alone (no border + wide shadow together) */
+.mdl,.notif-drop{border:none}
+
+/* Heading sizes: section titles lead, card titles follow */
+.sec-t{font-size:20px}
+.game-label{font-size:17px}
+.dev-title{font-size:19px}
+
+/* Upcoming rows */
+.stext-cap{display:block;font-style:normal;font-size:12px;color:rgba(255,255,255,.7);margin-top:1px}
+.land-sub-wide{display:none}
+
+/* Game card: date badge + sport, capacity bar; your game is the navy card */
+.game-row{justify-content:flex-start;gap:var(--s-4);align-items:flex-start;margin-bottom:0}
+.game-info{flex:1;min-width:0}
+.game-label .spi{margin-right:6px;opacity:.8}
+.game-card .attendee-stack{margin-top:var(--s-4)}
+.game-cap{margin-top:var(--s-3)}
+.track{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.track i{display:block;height:100%;background:var(--brand);border-radius:3px}
+.game-note{padding:0 var(--s-5) var(--s-3);font-size:12px;color:var(--text-3)}
+.game-card.mine{background:var(--brand);border-color:var(--brand);color:#fff}
+.game-card.mine .sdate{background:#fff;color:var(--brand)}
+.game-card.mine .game-meta,.game-card.mine .game-meta a,.game-card.mine .game-spots,.game-card.mine .attendee-label,.game-card.mine .game-note{color:rgba(255,255,255,.8)!important}
+.game-card.mine .badge{background:rgba(255,255,255,.14);color:#fff}
+.game-card.mine .attendee-avatar,.game-card.mine .attendee-more{border-color:var(--brand)}
+.game-card.mine .track{background:rgba(255,255,255,.18)}
+.game-card.mine .track i{background:#fff}
+.game-card.mine .game-bot{background:rgba(255,255,255,.06);border-top-color:rgba(255,255,255,.12)}
+.game-card.mine .game-share-btn{border-color:rgba(255,255,255,.28);color:#fff}
+.game-card.mine .game-share-btn span{color:#fff}
+.game-card.mine:hover{border-color:var(--brand)}
+
+/* Today: verse and devotion read as text, not boxes */
+.votd-card,.dev-card{background:transparent;border:none;border-radius:0;padding:0;margin-bottom:0}
+.votd-card{padding-bottom:var(--s-5);border-bottom:1px solid var(--border)}
+.dev-card{padding-top:var(--s-5)}
+
+/* Laptop sign-in: one centered card, navy schedule beside the form */
+@media(min-width:960px){
+  #view-landing{min-height:100vh;justify-content:center}
+  .land-card{display:grid;grid-template-columns:1fr 1fr;width:min(940px,calc(100% - 64px));margin:48px auto 24px;
+    background:var(--surface-1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+  .land-card .hero{background:var(--brand);color:#fff;padding:36px}
+  .land-card .hero-in{padding:0;max-width:none;height:100%;display:flex;flex-direction:column}
+  .land-card .hero-nav{margin-bottom:var(--s-7)}
+  .land-card .logo-name{color:#fff}
+  .land-card .land-h{color:#fff;font-size:32px}
+  .land-card .land-sub{display:none}
+  .land-card .land-sub-wide{display:block;margin:0 0 var(--s-7);font-size:15px;color:rgba(255,255,255,.78);line-height:1.5}
+  .land-card .game-status{background:transparent;padding:0;margin-top:auto}
+  .land-card .gs-lbl{font-size:13px}
+  .land-card .sdate{width:64px;border-radius:12px;padding:7px 0 8px}
+  .land-card .sdate b{font-size:34px}
+  .land-card .sdate span{font-size:12.5px}
+  .land-card .game-status .stext strong{font-size:17px}
+  .land-card .auth-section{padding:36px;background:var(--surface-1)}
+  .land-card .auth-in{max-width:none}
+  #view-landing footer{border-top:none}
+}
+
 /* Home columns (stacked on phones) */
 .home-main,.home-side{min-width:0}
 .home-side > .sec-h:first-child{margin-top:var(--s-7)}
@@ -1898,6 +1965,7 @@ body{letter-spacing:0}
 
 <!-- ════ LANDING ════ -->
 <div id="view-landing" style="display:none;flex-direction:column">
+  <div class="land-card">
   <div class="hero">
     <div class="hero-in">
       <nav class="hero-nav fu">
@@ -1905,6 +1973,7 @@ body{letter-spacing:0}
       </nav>
       <h1 class="land-h fu1">Sign in to play</h1>
       <p class="land-sub fu1">Use the phone number you registered with. New here? Tap Register to create your player profile.</p>
+      <p class="land-sub-wide">Weekly basketball, pickleball and running for the CCF Makati community.</p>
       <div class="game-status fu2">
         <div class="gs-lbl">Upcoming games</div>
         <div id="hero-status">
@@ -1982,12 +2051,12 @@ body{letter-spacing:0}
       </div>
         <div id="r-pos-row">
           <label class="fl">Basketball Position</label>
-          <select class="fi-sel" id="r-pos"><option value="">— Select —</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
+          <select class="fi-sel" id="r-pos"><option value="">Select</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
       </div>
         <div id="r-skill-row" style="display:none">
           <label class="fl">Pickleball Skill Level</label>
           <select class="fi-sel" id="r-skill">
-            <option value="">— Select —</option>
+            <option value="">Select</option>
             <option value="newbie">Newbie · still learning</option>
             <option value="intermediate">Intermediate · regular player</option>
             <option value="expert">Expert · competitive level</option>
@@ -2036,10 +2105,11 @@ body{letter-spacing:0}
           <div class="waiver-txt">CCF Makati Sports collects your name, contact details, optional photo, and game activity to organize games, manage payments, and communicate with you. Your data is stored securely, never sold, and you can view, edit, or delete it anytime. Please review our <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Privacy Policy</a>, <a href="terms.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Terms of Service</a>, and <a href="community-guidelines.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Community Guidelines</a>.</div>
           <label class="waiver-chk"><input type="checkbox" id="r-privacy"><span>I have read and agree to the Privacy Policy, Terms of Service, and Community Guidelines, and consent to the collection and processing of my personal data. *</span></label>
       </div>
-        <button type="button" class="btn btn-g" id="btn-register"><i class="ti ti-check"></i>I Agree — Create Profile</button>
+        <button type="button" class="btn btn-g" id="btn-register"><i class="ti ti-check"></i>Agree and create profile</button>
     </div>
   </div>
 </div>
+  </div>
   <footer><p>CCF Makati Sports &nbsp;·&nbsp; <a href="privacy.html">Privacy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="community-guidelines.html">Guidelines</a> &nbsp;·&nbsp; <a href="admin.html">Admin</a></p></footer>
 </div>
 
@@ -2267,7 +2337,7 @@ body{letter-spacing:0}
       <div id="dg-join-card" style="display:none"></div>
 
       <div class="sec-h" style="margin-top:18px"><div class="sec-t">Account</div></div>
-      <div class="card" style="border-left:3px solid var(--danger,#e53e3e)">
+      <div class="card" style="border-color:rgba(185,28,28,.25)">
         <div style="font-weight:600;margin-bottom:4px">Disable My Account</div>
         <div style="font-size:13px;color:var(--text-3);margin-bottom:14px;line-height:1.5">You will be logged out and won't be able to use the app until you log back in. Your profile and game history are kept.</div>
         <button type="button" class="btn" style="background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e);width:auto;padding:9px 18px;font-size:13px" onclick="disableMyAccount()"><i class="ti ti-user-off"></i>Disable My Account</button>
@@ -2400,12 +2470,12 @@ body{letter-spacing:0}
     </div>
       <div id="ep-pos-row" style="display:none">
         <label class="fl">Basketball Position</label>
-        <select class="fi-sel" id="ep-pos"><option value="">— Select —</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
+        <select class="fi-sel" id="ep-pos"><option value="">Select</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
     </div>
       <div id="ep-skill-row" style="display:none">
         <label class="fl">Pickleball Skill Level</label>
         <select class="fi-sel" id="ep-skill">
-          <option value="">— Select —</option>
+          <option value="">Select</option>
           <option value="newbie">Newbie · still learning</option>
           <option value="intermediate">Intermediate · regular player</option>
           <option value="expert">Expert · competitive level</option>
@@ -2527,7 +2597,7 @@ body{letter-spacing:0}
 <div id="game-detail-modal" style="display:none;position:fixed;inset:0;z-index:9550;align-items:center;justify-content:center;padding:16px">
   <div onclick="closeGameDetail()" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
   <div style="position:relative;background:var(--surface-1);border:1px solid var(--b,rgba(255,255,255,.08));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
-    <button type="button" onclick="closeGameDetail()" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,.3);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;z-index:1"><i class="ti ti-x"></i></button>
+    <button type="button" onclick="closeGameDetail()" aria-label="Close" style="position:absolute;top:14px;right:14px;background:var(--surface-2);border:none;border-radius:50%;width:32px;height:32px;color:var(--text-2);font-size:16px;cursor:pointer;z-index:1"><i class="ti ti-x"></i></button>
     <div id="game-detail-inner" style="overflow-y:auto"></div>
   </div>
 </div>
@@ -2972,7 +3042,9 @@ function renderHeroStatus() {
     if (!g) return '';
     const ok   = g.status==='confirmed';
     const head = ok ? sportLabel : `${sportLabel} · to be confirmed`;
-    const sub  = ok ? `${g.time} · ${g.venue||'venue TBA'}` : (g.label||'Date pending');
+    const taken = new Set(LC.arr('regs').filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
+    const cap  = ok && g.spots && taken ? `<em class="stext-cap">${taken} of ${g.spots} spots taken</em>` : '';
+    const sub  = (ok ? `${g.time} · ${g.venue||'venue TBA'}` : (g.label||'Date pending')) + cap;
     return `<div class="status-row">
       ${heroDateBadge(g.date, ok)}
       <div class="stext"><strong>${head}</strong><span>${sub}</span></div>
@@ -4697,16 +4769,7 @@ function renderWeekGames() {
     const spots  =(g.spots||20)-count;
     const mySt   =myReg?(myReg.status||'pending'):'';
     const tClass =g.status==='confirmed'?'game-top g-on':g.status==='cancelled'?'game-top g-off':'game-top';
-    const sBadge =g.status==='confirmed'?'<span class="badge b-on">ON</span>':'<span class="badge b-tbd">TBD</span>';
-    const sportBadge = (g.sport||'basketball')==='running'
-      ? '<span class="badge b-nv"><span class="spi spi-r"></span>Running</span>'
-      : (g.sport||'basketball')==='pickleball'
-      ? '<span class="badge b-nv"><span class="spi spi-p"></span>Pickleball</span>'
-      : (g.sport||'basketball')==='badminton'
-      ? '<span class="badge b-nv"><span class="spi spi-bd"></span>Badminton</span>'
-      : (g.sport||'basketball')==='dragonboat'
-      ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
-      : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
+    const sBadge =g.status==='confirmed'?'<span class="badge b-on">Game on</span>':'<span class="badge b-tbd">To be confirmed</span>';
     const waitlistPos = mySt==='waitlist' ? regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort((a,b)=>(a.registered||'').localeCompare(b.registered||'')).findIndex(r=>r.playerId===ME.id)+1 : 0;
     const mBadge =mySt==='confirmed'?'<span class="badge b-on"> Confirmed</span>':mySt==='cancelled'?'<span class="badge b-rd"> Cancelled</span>':mySt==='waitlist'?`<span class="badge b-tbd">Waitlisted${waitlistPos?' #'+waitlistPos:''}</span>`:mySt?'<span class="badge b-tbd"> Pending</span>':'';
     const cancelBtn = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="game-share-btn" onclick="event.stopPropagation();cancelMyRegistration('${myReg.id}','${g.id}')" title="Cancel my slot" aria-label="Cancel my slot"><i class="ti ti-x"></i></button>` : '';
@@ -4730,18 +4793,25 @@ function renderWeekGames() {
       ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
       <span class="attendee-label">${attendees.length} signed up</span>
     </div>` : '';
+    const mine     = mySt==='confirmed'||mySt==='pending'||mySt==='waitlist';
+    const sportKey = g.sport||'basketball';
+    const sportName= {running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'}[sportKey]||'Basketball';
+    const spiCls   = {running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'}[sportKey]||'spi-b';
+    const capPct   = Math.min(100, Math.round(count / (g.spots||20) * 100));
     const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i><span>Invite</span></button>`;
-    return `<div class="game-card" id="game-card-${g.id}">
+    return `<div class="game-card${mine?' mine':''}" id="game-card-${g.id}">
       <div class="${tClass}" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
-        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
+        <div class="game-row">${heroDateBadge(g.date, g.status==='confirmed')}<div class="game-info"><div class="game-label"><span class="spi ${spiCls}"></span>${sportName}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
+        ${attendeeStack}
+        <div class="game-cap"><div class="track"><i style="width:${capPct}%"></i></div></div>
     </div>
       ${wxLine}
       <div class="game-bot">
         <div class="game-spots ${spots<=3&&!mySt?'warn':''}">${spots<=0&&!myReg?'Game full':spots+' slots left'}</div>
         <div style="display:flex;align-items:center;gap:8px">${shareBtn}${myReg?mBadge:jBtn}${cancelBtn}</div>
     </div>
-      ${mySt==='pending'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">Waiting for admin confirmation</div>':''}
-      ${mySt==='waitlist'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">You\'ll be automatically confirmed if a slot opens up</div>':''}
+      ${mySt==='pending'?'<div class="game-note">Waiting for admin confirmation</div>':''}
+      ${mySt==='waitlist'?'<div class="game-note">You\'ll be automatically confirmed if a slot opens up</div>':''}
   </div>`;
   }).join('');
   _maybeScrollToGame();
@@ -4802,16 +4872,9 @@ function openGameDetail(gameId){
   const spots = (g.spots||20)-count;
   const mySt = myReg ? (myReg.status||'pending') : '';
 
-  const sBadge = g.status==='confirmed' ? '<span class="badge b-on">ON</span>' : g.status==='cancelled' ? '<span class="badge b-rd">Cancelled</span>' : '<span class="badge b-tbd">TBD</span>';
-  const sportBadge = (g.sport||'basketball')==='running'
-    ? '<span class="badge b-nv"><span class="spi spi-r"></span>Running</span>'
-    : (g.sport||'basketball')==='pickleball'
-    ? '<span class="badge b-nv"><span class="spi spi-p"></span>Pickleball</span>'
-    : (g.sport||'basketball')==='badminton'
-    ? '<span class="badge b-nv"><span class="spi spi-bd"></span>Badminton</span>'
-    : (g.sport||'basketball')==='dragonboat'
-    ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
-    : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
+  const sBadge = g.status==='confirmed' ? '<span class="badge b-on">Game on</span>' : g.status==='cancelled' ? '<span class="badge b-rd">Cancelled</span>' : '<span class="badge b-tbd">To be confirmed</span>';
+  const _sk = g.sport||'basketball';
+  const sportBadge = `<span class="spi ${({running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'})[_sk]||'spi-b'}"></span>${({running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'})[_sk]||'Basketball'}`;
   const mBadge = mySt==='confirmed' ? '<span class="badge b-on"> Confirmed</span>' : mySt==='cancelled' ? '<span class="badge b-rd"> Cancelled</span>' : mySt==='waitlist' ? '<span class="badge b-tbd">Waitlisted</span>' : mySt ? '<span class="badge b-tbd"> Pending</span>' : '';
   const jBtn = !mySt&&spots>0&&ME ? `<button type="button" class="join-btn" onclick="closeGameDetail();startJoin('${g.id}')" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
     : !mySt&&spots<=0&&ME ? `<button type="button" class="join-btn" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--text-1)" onclick="closeGameDetail();startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>` : '';
@@ -4838,25 +4901,25 @@ function openGameDetail(gameId){
   const waitlistPlayers = waitlistIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
   const waitlistSection = waitlistPlayers.length ? `
     <div style="padding:0 20px 16px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
       <div style="max-height:200px;overflow-y:auto;margin-top:8px">${waitlistPlayers.map(rosterRow).join('')}</div>
     </div>` : '';
 
   document.getElementById('game-detail-inner').innerHTML = `
     <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-right:24px">
-        <div>
-          <div class="game-label" style="font-size:24px">${feedEsc(g.label)}</div>
+      <div class="game-row" style="padding-right:40px">
+        ${heroDateBadge(g.date, g.status==='confirmed')}
+        <div class="game-info">
+          <div class="game-label" style="font-size:20px">${sportBadge}</div>
           <div class="game-meta" style="margin-top:4px">${feedEsc(g.time)} · ${feedEsc(g.venue)}${venueLink}</div>
           ${routeLine}
         </div>
-        ${sBadge}
       </div>
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}${myReg?mBadge:''}</div>
+      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${sBadge}${myReg?mBadge:''}</div>
       ${wxLine}
     </div>
     <div style="padding:16px 20px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${spots<=0&&!myReg?'Game full':spots+' slots left'} · ${attendees.length} signed up</div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">${spots<=0&&!myReg?'Game full':spots+' slots left'} · ${attendees.length} signed up</div>
       <div style="max-height:260px;overflow-y:auto;margin-top:8px">${attendeeRows}</div>
     </div>
     ${waitlistSection}
@@ -5285,7 +5348,7 @@ function renderNotifs() {
     list.innerHTML=notifs.map(n=>`
       <div class="notif-row" style="padding:12px 16px">
         <div style="font-size:18px;flex-shrink:0">${icons[n.type]||''}</div>
-        <div><div style="font-size:13px;font-weight:700;margin-bottom:2px">${n.title||''}</div><div style="font-size:12px;color:var(--tx2)">${n.message||''}</div><div style="font-size:10px;color:var(--tx3);margin-top:3px;text-transform:uppercase;letter-spacing:.5px">${n.created_at||''}</div></div>
+        <div><div style="font-size:13px;font-weight:700;margin-bottom:2px">${n.title||''}</div><div style="font-size:12px;color:var(--tx2)">${n.message||''}</div><div style="font-size:10px;color:var(--tx3);margin-top:3px;">${n.created_at||''}</div></div>
     </div>`).join('');
   }
   // Badge = notifications beyond what's been seen
@@ -5793,7 +5856,7 @@ function renderDirectory() {
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div style="font-weight:800;font-size:16px;color:var(--tx)">${statVal}</div>
-        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px">${statLabel}</div>
+        <div style="font-size:10px;color:var(--tx3);">${statLabel}</div>
       </div>
     </div>`;
   }).join('');
@@ -5947,7 +6010,7 @@ function renderLeaderboard(){
       const wl=playerWL(p.id);
       const provisional=(wl.w+wl.l < 3);
       const provTag = provisional
-        ? ' <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
+        ? ' <span style="font-size:9px;font-weight:700;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
         : '';
       const wlLabel = wl.w+wl.l>0 ? wl.w+'W · '+wl.l+'L' : 'No matches yet';
       const metaLabel = provisional
@@ -6114,7 +6177,7 @@ function matchHistoryHtml(pid){
     return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:var(--surface-2);border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'} ${m.myScore}–${m.oppScore}</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${resultColor};background:${resultBg};padding:2px 8px;border-radius:20px">${m.court||''}</span>
+        <span style="font-size:10px;font-weight:700;color:${resultColor};background:${resultBg};padding:2px 8px;border-radius:20px">${m.court||''}</span>
       </div>
       <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt} ${partnerTxt?'· '+partnerTxt:''}</div>
       ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
@@ -6171,7 +6234,7 @@ function basketballMatchHistoryHtml(pid){
     return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:var(--surface-2);border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'}</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#f48c06;background:rgba(244,140,6,.14);padding:2px 8px;border-radius:20px"><span class="spi spi-b"></span> BASKETBALL</span>
+        <span style="font-size:10px;font-weight:700;color:#f48c06;background:rgba(244,140,6,.14);padding:2px 8px;border-radius:20px"><span class="spi spi-b"></span> BASKETBALL</span>
       </div>
       <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt}${teammateTxt?' · '+teammateTxt:''}</div>
       ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
@@ -6352,7 +6415,7 @@ function renderTournaments() {
         <!-- top row: status + sport label -->
         <div style="position:relative;display:flex;align-items:center;gap:8px;margin-bottom:12px">
           ${isActive?`<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 1.4s infinite;flex-shrink:0"></span>`:''}
-          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
+          <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
           ${!isCrossCourt?`<span style="font-size:11px;font-weight:700;background:rgba(0,0,0,.35);border-radius:6px;padding:3px 9px;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.08);margin-left:auto">${sportLabel}</span>`:''}
         </div>
         <!-- tournament name -->
@@ -6439,7 +6502,7 @@ function renderTournDetail(id) {
     if (!stats) return '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No stats entered yet.</div>';
     const tA = teams.find(x=>x.id===m.teamA)||{name:'Team A',players:[]};
     const tB = teams.find(x=>x.id===m.teamB)||{name:'Team B',players:[]};
-    const thead = `<tr style="background:var(--b2);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">
+    const thead = `<tr style="background:var(--b2);font-size:10px;color:var(--tx3);">
       <th style="padding:5px 8px;text-align:left;font-weight:700">Player</th>
       ${STAT_HDRS.map(h=>`<th style="padding:5px 4px;text-align:center;font-weight:700">${h}</th>`).join('')}
     </tr>`;
@@ -6454,7 +6517,7 @@ function renderTournDetail(id) {
         </tr>`;
       }).join('');
       if (!rows) return '';
-      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">${teamObj.name}</div>
+      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${teamObj.name}</div>
         <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}${rows}</table></div>`;
     };
     return teamRows(tA) + teamRows(tB);
@@ -6464,7 +6527,7 @@ function renderTournDetail(id) {
   const matchCard = (m, roundLabel, sublabel) => {
     if (!m) return `
       <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:8px;opacity:.5">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:8px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
         <div style="text-align:center;font-size:13px;color:var(--tx3)">Not scheduled yet</div>
       </div>`;
     const aName = m.teamA ? teamName(m.teamA) : 'TBD';
@@ -6473,7 +6536,7 @@ function renderTournDetail(id) {
     const statsId = 'tgstats-'+t.id+'-'+m.round;
     return `
       <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:8px">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px">
           <div style="text-align:right">
             <div style="font-weight:${aWon?'800':'600'};font-size:15px;color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
@@ -6541,7 +6604,7 @@ function renderTournDetail(id) {
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)">
         <div>
           <div style="font-size:13px;font-weight:600">Installment ${i+1}${dateStr?' · <span style="font-weight:400;color:var(--tx3)">'+dateStr+'</span>':''}</div>
-          <div style="font-size:11px;color:${sc};font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${sl}</div>
+          <div style="font-size:11px;color:${sc};font-weight:700;margin-top:2px">${sl}</div>
         </div>
         <div style="text-align:right">
           <div style="font-weight:800;font-size:14px">₱${Number(p.amount).toLocaleString()}</div>
@@ -6558,7 +6621,7 @@ function renderTournDetail(id) {
             <div style="font-weight:700;font-size:15px">${myTeam.name}</div>
             <div style="font-size:12px;color:var(--tx2);margin-top:2px">You are the team owner</div>
           </div>
-          <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+          <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
         </div>
         ${feeRows}
         <div style="border-top:1px solid var(--b);margin-top:4px;padding-top:8px">
@@ -6575,7 +6638,7 @@ function renderTournDetail(id) {
         ${installmentRows?`<div style="margin-top:12px;padding-top:4px">${installmentRows}</div>`:''}
         ${!fullyPaid ? `
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b)">
-            <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Send Payment To</div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:8px">Send Payment To</div>
             ${methodsList}
             <div style="margin-top:12px">
               <label class="lbl">Amount Sending (₱)${balance>0?' · Balance: ₱'+balance.toLocaleString():''}</label>
@@ -6608,7 +6671,7 @@ function renderTournDetail(id) {
       <div class="card" style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-weight:700;font-size:15px">${myReg.team_name}</div>
-          <span style="font-size:11px;font-weight:700;color:${regStatusColor};text-transform:uppercase;letter-spacing:.5px">${regStatusLabel}</span>
+          <span style="font-size:11px;font-weight:700;color:${regStatusColor};">${regStatusLabel}</span>
         </div>
         <div style="font-size:13px;color:var(--tx2);line-height:1.7">${regPlayerNames||'No players listed'}</div>
         ${myReg.status==='pending'?`<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The organizer will review and add your team to the bracket.</div>`:''}
@@ -6678,7 +6741,7 @@ function renderTournDetail(id) {
       const eligible = statPlayers.filter(p=>p.tracked[field]>0);
       const top = eligible.length ? [...eligible].sort((a,b)=>b[field]-a[field])[0] : null;
       return top ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b)">
-        <div style="font-size:13px"><span style="font-weight:700;color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">${field.toUpperCase()}</span>${_tpName(top.playerId)}</div>
+        <div style="font-size:13px"><span style="font-weight:700;color:var(--tx3);font-size:11px;margin-right:8px">${field.toUpperCase()}</span>${_tpName(top.playerId)}</div>
         <span style="font-weight:800;font-size:15px">${top[field]}</span>
       </div>` : '';
     };
@@ -6693,7 +6756,7 @@ function renderTournDetail(id) {
     <div class="card" style="margin-bottom:14px;padding:0;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead>
-          <tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+          <tr style="background:var(--b2);color:var(--tx3);font-size:11px;">
             <th style="padding:8px 12px;text-align:left;font-weight:700">#</th>
             <th style="padding:8px 12px;text-align:left;font-weight:700">Team</th>
             <th style="padding:8px 4px;text-align:center;font-weight:700">W</th>
@@ -6789,7 +6852,7 @@ function renderTournDetail(id) {
       <div style="padding:10px 0;border-bottom:1px solid var(--b)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div>
-            <span style="font-size:10px;font-weight:700;color:${g.round==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px">${g.label}</span>
+            <span style="font-size:10px;font-weight:700;color:${g.round==='final'?'var(--gold)':'var(--tx3)'};">${g.label}</span>
             ${g.dateStr?`<span style="font-size:10px;color:var(--tx3);margin-left:6px">${g.dateStr}</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -6801,7 +6864,7 @@ function renderTournDetail(id) {
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center">
           ${STAT_COLS.map(f=>`<div style="background:var(--b2);border-radius:6px;padding:5px 2px">
             <div style="font-size:15px;font-weight:800;color:${Number(g.stat[f])>0?'var(--tx)':'var(--tx3)'}">${g.stat[f]??'–'}</div>
-            <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px">${f}</div>
+            <div style="font-size:9px;color:var(--tx3);font-weight:700;">${f}</div>
           </div>`).join('')}
         </div>
       </div>`).join('') : '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No game stats recorded yet.</div>';
@@ -6814,11 +6877,11 @@ function renderTournDetail(id) {
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;padding-bottom:12px;border-bottom:1px solid var(--b);margin-bottom:4px">
           ${STAT_COLS.map(f=>`<div>
             <div style="font-size:20px;font-weight:800">${ms.tracked[f]>0?ms[f]:'–'}</div>
-            <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${f.toUpperCase()}</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:700;">${f.toUpperCase()}</div>
             <div style="font-size:11px;color:var(--tx3);margin-top:2px">${ms.tracked[f]>0?avg(ms[f],f)+' avg':'not tracked'}</div>
           </div>`).join('')}
         </div>
-        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px">Game Log</div>
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);margin:10px 0 4px">Game Log</div>
         ${gameLogRows}
       </div>`;
   }
@@ -6837,7 +6900,7 @@ function renderTournDetail(id) {
     const isMyGame = myTeamObj && m && (m.teamA===myTeamObj.id||m.teamB===myTeamObj.id);
     return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMyGame?'background:rgba(9,37,87,.04);margin:0 -14px;padding:10px 14px':''}">
       <div style="width:68px;flex-shrink:0">
-        <div style="font-size:10px;font-weight:700;color:${r==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.4px">${roundLabel[r]}</div>
+        <div style="font-size:10px;font-weight:700;color:${r==='final'?'var(--gold)':'var(--tx3)'};">${roundLabel[r]}</div>
         ${dateStr||timeStr?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">${dateStr}${dateStr&&timeStr?' · ':''}${timeStr}</div>`:''}
       </div>
       <div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">
@@ -6860,11 +6923,11 @@ function renderTournDetail(id) {
         const eligible=statPlayers.filter(p=>p.tracked[f]>0);
         const sorted=[...eligible].sort((a,b)=>b[f]-a[f]).slice(0,3);
         if (!sorted.length) return `<div style="padding:10px 14px;border-bottom:1px solid var(--b)">
-          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${f.toUpperCase()}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:6px">${f.toUpperCase()}</div>
           <div style="font-size:12px;color:var(--tx3)">Not tracked yet</div>
         </div>`;
         return `<div style="padding:10px 14px;border-bottom:1px solid var(--b)">
-          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${f.toUpperCase()}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:6px">${f.toUpperCase()}</div>
           ${sorted.map((s,i)=>{
             const isMe=ME&&s.playerId===ME.id;
             return `<div style="display:flex;align-items:center;gap:8px;${i>0?'margin-top:5px':''}">
@@ -6913,7 +6976,7 @@ function renderTournDetail(id) {
   const heroDs = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
   const heroDe = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
   const heroDate = heroDs && heroDe ? heroDs+' – '+heroDe : heroDs||heroDe||'Date TBD';
-  const heroStatus = t.status==='completed' ? 'COMPLETED' : t.status==='active' ? 'LIVE NOW' : 'UPCOMING';
+  const heroStatus = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Live now' : 'Upcoming';
   const heroStatusBg = t.status==='completed' ? 'rgba(255,255,255,.15)' : t.status==='active' ? '#e53e3e' : 'rgba(255,255,255,.15)';
   const filledSlots2 = teams.length;
   const totalSlots2  = t.max_teams || 4;
@@ -6923,7 +6986,7 @@ function renderTournDetail(id) {
     <!-- ══ BACK + LEAGUE ROW (above hero) ══ -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-bottom:10px">
       <button type="button" onclick="closeTournDetail()" style="background:var(--surface-1);border:1px solid var(--border-strong);border-radius:20px;padding:6px 14px;color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-arrow-left"></i>Back</button>
-      <span style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);background:var(--brand-soft);padding:5px 12px;border-radius:20px">${leagueBadgeLabel}</span>
+      <span style="font-size:10px;font-weight:800;color:var(--brand);background:var(--brand-soft);padding:5px 12px;border-radius:20px">${leagueBadgeLabel}</span>
     </div>
 
     <!-- ══ HERO BANNER ══ -->
@@ -6941,7 +7004,7 @@ function renderTournDetail(id) {
       <div style="position:relative;padding:16px 20px 18px;${t.banner_url?'margin-top:80px':''}">
         <!-- status badge -->
         <div style="margin-bottom:10px">
-          <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:${heroStatusBg};padding:4px 12px;border-radius:20px">${heroStatus}</span>
+          <span style="font-size:10px;font-weight:800;color:#fff;background:${heroStatusBg};padding:4px 12px;border-radius:20px">${heroStatus}</span>
         </div>
         <!-- tournament name -->
         <div style="font-family:var(--font-head);font-weight:700;font-size:clamp(22px,5.5vw,30px);letter-spacing:-.02em;color:#fff;line-height:1.1;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.3);word-break:break-word">${t.name}</div>
@@ -6966,7 +7029,7 @@ function renderTournDetail(id) {
           {id:'standings',icon:'ti-list-numbers',label:'Standings'},
         ].map(tab=>{
           const active = _tDetailTab===tab.id;
-          return `<button class="tdt-tab" data-tab="${tab.id}" onclick="switchTournTab('${tab.id}')" style="flex:1;background:none;border:none;border-bottom:2px solid ${active?'var(--hi)':'transparent'};color:${active?'#fff':'rgba(255,255,255,.55)'};font-size:9px;font-weight:${active?'700':'500'};letter-spacing:.03em;text-transform:uppercase;padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;overflow:hidden">
+          return `<button class="tdt-tab" data-tab="${tab.id}" onclick="switchTournTab('${tab.id}')" style="flex:1;background:none;border:none;border-bottom:2px solid ${active?'var(--hi)':'transparent'};color:${active?'#fff':'rgba(255,255,255,.55)'};font-size:9px;font-weight:${active?'700':'500'};padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;overflow:hidden">
             <i class="ti ${tab.icon}" style="font-size:15px;flex-shrink:0"></i><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${tab.label}</span>
           </button>`;
         }).join('')}
@@ -7089,7 +7152,7 @@ function gkoMemberSchedule(t, myTeamId){
         <div style="font-size:10px;color:var(--tx3);margin-top:2px">${feedEsc(m.court||'')}</div>
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${feedEsc(TF.matchLabel(m))}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:3px">${feedEsc(TF.matchLabel(m))}</div>
         <div style="display:flex;align-items:center;gap:6px;min-width:0">
           ${side(m.teamA,m.srcA,m.winner==='A')}
           ${m.winner?`<span style="font-size:12px;color:var(--tx3);flex-shrink:0">${m.scoreA}–${m.scoreB}</span>`:'<span style="font-size:11px;color:var(--tx3);flex-shrink:0">vs</span>'}
@@ -7117,7 +7180,7 @@ function gkoMemberStandings(t, myTeamId){
     return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Group ${L}</div>${TF.groupComplete(t,L)?'<span style="font-size:11px;color:var(--gr);font-weight:700">FINAL</span>':''}</div>
     <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;">
           <th style="padding:8px 12px;text-align:left">#</th><th style="padding:8px 12px;text-align:left">Team</th>
           <th style="padding:8px 4px;text-align:center">W</th><th style="padding:8px 4px;text-align:center">L</th><th style="padding:8px 10px;text-align:center">+/-</th></tr></thead>
         <tbody>${st.map((r,i)=>`<tr style="border-top:1px solid var(--b)${i<c.advance?';background:rgba(0,200,100,.04)':''}">
@@ -7132,7 +7195,7 @@ function gkoMemberStandings(t, myTeamId){
   const nameOf = id => (teams.find(x=>x.id===id)||{}).name;
   const ko = (t.matches||[]).filter(m=>m.stage!=='group');
   const stages = ['r16','qf','sf','3rd','final'].filter(s=>ko.some(m=>m.stage===s));
-  const bracket = stages.map(s=>`<div style="font-size:10px;font-weight:700;color:${s==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">${TF.STAGE_LABEL[s]}</div>
+  const bracket = stages.map(s=>`<div style="font-size:10px;font-weight:700;color:${s==='final'?'var(--gold)':'var(--tx3)'};margin:10px 0 6px">${TF.STAGE_LABEL[s]}</div>
     ${ko.filter(m=>m.stage===s).map(m=>{
       const nm = (id, src) => id ? feedEsc(nameOf(id)||'Team') : `<span style="color:var(--tx3)">${feedEsc(TF.srcLabel(src))}</span>`;
       const w = TF.winnerId(m);
@@ -7153,7 +7216,7 @@ function gkoRegPaymentHtml(t, reg){
   if (fee <= 0) return `<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The team fee hasn't been set yet &mdash; you'll be able to pay here once it is.</div>`;
   const list = pays.map(p=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--b)">
       <span>&#8369;${Number(p.amount).toLocaleString()}</span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)'}">${p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Checking'}</span></div>`).join('');
+      <span style="font-size:11px;font-weight:700;color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)'}">${p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Checking'}</span></div>`).join('');
   const methods = LC.arr('payment_methods').filter(m=>(m.sport===t.sport||m.sport==='all')&&m.payment_type!=='game_day'&&m.active!==false);
   const methodsHtml = methods.length ? methods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:700;font-size:13px">${feedEsc(m.label)}</div><div style="font-size:13px;color:var(--tx2)">${feedEsc(m.account_num||m.account_number||'')} · ${feedEsc(m.account_name||'')}</div></div>`).join('') : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
   const remaining = Math.max(0, fee - sent);
@@ -7162,7 +7225,7 @@ function gkoRegPaymentHtml(t, reg){
       ${verified>=fee ? `<div style="padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Payment verified &mdash; the organizer will confirm your slot.</div>`
         : `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Your team's slot is secured once your payment is verified. Slots go to teams in the order they're confirmed.</div>`}
       ${list}
-      ${remaining>0 ? `<div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Send payment to</div>${methodsHtml}
+      ${remaining>0 ? `<div style="font-size:12px;font-weight:700;color:var(--tx3);margin:12px 0 8px">Send payment to</div>${methodsHtml}
         <label class="lbl" style="margin-top:10px" for="trp-amount">Amount sent (&#8369;)</label>
         <input type="number" class="inp" id="trp-amount" inputmode="decimal" value="${remaining}">
         <label class="lbl" style="margin-top:10px" for="trp-file">Proof of payment (screenshot)</label>
@@ -7255,10 +7318,10 @@ function renderMyProposalsBanner() {
     const sc = p.status==='proposal_approved'?'var(--gr)':p.status==='proposal_rejected'?'var(--danger,#e53e3e)':'var(--gold)';
     const sl = p.status==='proposal_approved'?'Approved — watch for it!':p.status==='proposal_rejected'?'Not approved'+(p.notes?' · '+p.notes:''):'Pending review';
     const sportLabel = (meta.sport||'').replace(/\b\w/g,c=>c.toUpperCase());
-    return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid ${sc}">
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid ${sc}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-weight:700;font-size:13px">${p.team_name}</div>
-        <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;letter-spacing:.4px">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
+        <span style="font-size:10px;font-weight:700;color:${sc};">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
       </div>
       <div style="font-size:12px;color:var(--tx3)">${sportLabel}${meta.format?' · '+meta.format.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):''}</div>
       <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sl}</div>
@@ -7284,14 +7347,14 @@ function openTournProposalForm() {
       </div>
       <div style="padding:18px 20px 28px;display:flex;flex-direction:column;gap:16px">
         <div>
-          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Tournament Name <span style="color:#e53e3e">*</span></label>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Tournament Name <span style="color:#e53e3e">*</span></label>
           <input class="fi" id="prop-name" placeholder="e.g. 3x3 Summer Cup">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Sport <span style="color:#e53e3e">*</span></label>
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Sport <span style="color:#e53e3e">*</span></label>
             <select class="fi-sel" id="prop-sport">
-              <option value="">— Select —</option>
+              <option value="">Select</option>
               <option value="basketball">Basketball</option>
               <option value="pickleball">Pickleball</option>
               <option value="badminton">Badminton</option>
@@ -7300,7 +7363,7 @@ function openTournProposalForm() {
             </select>
           </div>
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Format</label>
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Format</label>
             <select class="fi-sel" id="prop-format">
               <option value="round_robin">Round Robin</option>
               <option value="single_elimination">Single Elimination</option>
@@ -7310,7 +7373,7 @@ function openTournProposalForm() {
           </div>
         </div>
         <div>
-          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text-3,var(--tx3))">(optional)</span></label>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text-3,var(--tx3))">(optional)</span></label>
           <textarea class="fi" id="prop-notes" rows="3" placeholder="Preferred dates, number of teams, team size, anything else..."></textarea>
         </div>
         <button type="button" class="btn" style="width:100%;min-height:50px;font-size:15px;justify-content:center" onclick="submitTournProposal()"><i class="ti ti-send"></i>Submit Proposal</button>
@@ -7403,13 +7466,13 @@ function _renderRosterEditor(t, tm) {
         <button type="button" onclick="document.getElementById('roster-editor-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:8px">
         Select Players <span style="font-weight:400;text-transform:none;letter-spacing:0">${players.length} / ${MAX} selected</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">${pills}</div>
 
       ${players.length ? `
-      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:4px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
       <div style="margin-bottom:20px">${jerseyRows}</div>` : ''}
 
       <button type="button" onclick="saveTournRoster()" class="btn" style="width:100%"><i class="ti ti-device-floppy"></i>Save Roster</button>
@@ -7523,14 +7586,14 @@ function openTournRegForm(tournId) {
     </div>
 
     <div class="card" style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:6px">Team Name</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:6px">Team Name</div>
       <input type="text" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40" style="width:100%;background:var(--surface-1);border:1.5px solid var(--border-strong);border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--tx);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--border-strong)'">
     </div>
 
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3)">Select Players</div>
           <div style="font-size:12px;color:var(--tx3);margin-top:2px">${_tregCtx ? `Pick exactly ${_tregCtx.size} players including you. Players already on another team are hidden.` : "You're auto-included as team owner"}</div>
           ${_tregCtx ? `<input type="search" id="treg-search" class="inp" placeholder="Search players…" oninput="_renderTregPills()" style="margin-top:8px">` : ''}
         </div>
@@ -7884,7 +7947,7 @@ function renderLivePickleball(card, pb){
     queue.forEach(q=>{ const g=groups.find(g=>g.tier===poolOf(q.pid)); (g||other).items.push(q); });
     const allGroups=other.items.length?[...groups,other]:groups;
     queueHtml=allGroups.map(g=>{
-      const hd=`<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
+      const hd=`<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
       const rows=g.items.length?`<div class="lq-chips">`+g.items.map((q,i)=>chipHtml(q,i+1)).join('')+`</div>`:'';
       return hd+rows;
     }).join('');
@@ -8284,7 +8347,7 @@ function _showPickAnnouncement(pick, draft, tourn, widget) {
   const fallbackDisplay = avatar ? 'none' : 'flex';
 
   widget.innerHTML = `<div id="pick-announce" style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.35);text-align:center;padding:28px 20px 24px">
-    <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
     <div style="display:flex;justify-content:center;margin-bottom:16px;position:relative">
       ${avatarHtml}
       <div style="width:96px;height:96px;border-radius:50%;background:#1D3A73;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--hi)">${initials}</div>
@@ -8401,7 +8464,7 @@ function _renderDraftWidget(draft, tourn) {
     <div style="padding:11px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:7px;height:7px;border-radius:50%;background:${status==='active'?'#4ade80':'#f59e0b'};flex-shrink:0${status==='active'?';animation:pulse 1.4s infinite':''}"></span>
-        <span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff">${status==='active'?'LIVE DRAFT':status==='paused'?'DRAFT PAUSED':'DRAFT LOTTERY'}</span>
+        <span style="font-size:10px;font-weight:800;color:#fff">${status==='active'?'LIVE DRAFT':status==='paused'?'DRAFT PAUSED':'DRAFT LOTTERY'}</span>
         <span style="font-size:10px;color:rgba(255,255,255,.4)">${tourn.name}</span>
       </div>
       <span style="font-size:10px;color:rgba(255,255,255,.4)">${picks.length}/${totalPicks}</span>
@@ -8409,19 +8472,19 @@ function _renderDraftWidget(draft, tourn) {
     <div style="height:2px;background:rgba(255,255,255,.07)"><div style="height:2px;background:var(--hi);width:${progressPct}%;transition:width .4s"></div></div>
     <div style="padding:13px 14px;display:flex;align-items:center;gap:12px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
         <div style="font-size:${isMyTurn?'17px':'15px'};font-weight:800;color:${isMyTurn?'var(--hi)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${currentPick>totalPicks?'All picks complete!':(isMyTurn?'YOUR PICK!':(curTeam?curTeam.name+' on the clock':'Waiting…'))}
         </div>
       </div>
       <div style="text-align:center;flex-shrink:0;min-width:40px">
         <div id="draft-member-timer" style="font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--hi);line-height:1">—</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.04em">sec</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);">sec</div>
       </div>
     </div>
     ${isMyTurn?`<div style="padding:0 14px 12px"><button type="button" onclick="openDraftPickModal()" style="width:100%;background:var(--hi);border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;color:var(--hi-ink);cursor:pointer;letter-spacing:.02em">Make Your Pick</button></div>`:''}
     <div style="padding:8px 14px 12px;border-top:1px solid rgba(255,255,255,.06)">
-      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Recent Picks</div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);margin-bottom:5px">Recent Picks</div>
       ${recentHtml}
     </div>
   </div>`;
