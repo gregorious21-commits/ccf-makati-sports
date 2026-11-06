@@ -1943,11 +1943,23 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
 /* Home columns (stacked on phones) */
 .home-main,.home-side{min-width:0}
 .home-side > .sec-h:first-child{margin-top:var(--s-7)}
+.week-empty{padding:var(--s-6)}
+.week-empty-t{font-size:17px;font-weight:700;color:var(--text-1);letter-spacing:-.01em}
+.week-empty-sub{margin:4px 0 0;color:var(--text-2);font-size:14px}
+.week-empty-usual{list-style:none;margin:var(--s-4) 0 0;padding:var(--s-4) 0 0;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+.week-empty-usual li{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text-2);line-height:1.45}
+.week-empty-usual .spi{margin:3px 0 0;color:var(--brand);flex:none}
+.week-empty-usual strong{color:var(--text-1)}
+.week-empty-tourn{margin:var(--s-5) 0 0;font-size:14px;color:var(--text-2)}
+.week-empty-tourn strong{color:var(--text-1)}
+.week-empty-cta{width:auto;margin-top:var(--s-3);min-height:44px}
+#home-feed-block > .sec-h{margin-top:var(--s-7)}
 
 /* Desktop: use the width */
 @media(min-width:1024px){
   .content,.pb-in{max-width:1180px}
   #tab-home{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);column-gap:40px;align-items:start}
+  #week-games > .week-empty{grid-column:1/-1}
   .home-main .sec-h,.home-side > .sec-h:first-child{margin-top:0}
   #tab-feed{max-width:720px;margin-inline:auto}
   #tab-players{max-width:960px;margin-inline:auto}
@@ -2268,12 +2280,14 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
           <div class="dev-body" id="dev-body" style="display:none"></div>
       </div>
     </div>
-      <div class="sec-h"><div class="sec-t">Community Feed</div><div class="sec-link" onclick="switchTab('feed')">See all posts →</div></div>
+      <div id="home-feed-block">
+      <div class="sec-h"><div class="sec-t">Community Feed</div><div class="sec-link" onclick="switchTab('feed')">See all posts</div></div>
       <div id="feed-preview" style="margin-bottom:8px">
         <div class="skel-card" style="margin-bottom:0">
           <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:45%"></div></div></div>
           <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
         </div>
+      </div>
       </div>
       </div>
   </div>
@@ -4787,13 +4801,7 @@ function renderWeekGames() {
   const players=LC.arr('roster'); // full public roster — LC.arr('players') is ME-only on member app
   const el   =document.getElementById('week-games');
   if (!games.length) {
-    const msg = currentSportFilter==='pickleball' ? 'No pickleball games yet. Check back soon.'
-              : currentSportFilter==='basketball' ? 'No basketball games scheduled.'
-              : currentSportFilter==='running' ? 'No runs scheduled yet. Check back soon.'
-              : currentSportFilter==='badminton' ? 'No badminton games yet. Check back soon.'
-              : currentSportFilter==='dragonboat' ? 'No dragonboat sessions yet. Check back soon.'
-              : 'No games scheduled yet.';
-    el.innerHTML='<div class="card"><div class="empty">'+msg+'</div></div>';
+    el.innerHTML = weekEmptyHtml(currentSportFilter);
     document.getElementById('pay-section').style.display='none';
     return;
   }
@@ -4849,6 +4857,49 @@ function renderWeekGames() {
   </div>`;
   }).join('');
   _maybeScrollToGame();
+}
+
+// Empty "This Week": say so plainly, show each sport's usual day (most common
+// weekday from past games; time and venue from the latest game on that day),
+// and point to an open tournament if there is one.
+const SPORT_META = { basketball:['Basketball','spi-b'], pickleball:['Pickleball','spi-p'], running:['Running','spi-r'], badminton:['Badminton','spi-bd'], dragonboat:['Dragonboat','spi-db'] };
+function usualSchedule(sport){
+  const past = LC.arr('games').filter(g=>(g.sport||'basketball')===sport && g.date && g.status!=='cancelled');
+  if (past.length < 3) return null;
+  const dayOf = g => new Date(g.date+'T00:00:00').getDay();
+  const counts = {}; past.forEach(g=>{ const d=dayOf(g); counts[d]=(counts[d]||0)+1; });
+  const day = +Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+  // Most common time and venue on that day (typed slightly differently from
+  // week to week, so compare loosely); ties go to the most recent game.
+  const onDay = past.filter(g=>dayOf(g)===day).sort((a,b)=>b.date.localeCompare(a.date));
+  const usual = field => {
+    const norm = v => { const t=String(v||'').toLowerCase().replace(/\s+/g,''); return field==='time' ? t.replace(/[ap]m/g,'') : t; };
+    const n = {}; onDay.forEach(g=>{ const k=norm(g[field]); if(k) n[k]=(n[k]||0)+1; });
+    const best = Object.keys(n).sort((a,b)=>n[b]-n[a])[0];
+    const g = best && onDay.find(x=>norm(x[field])===best);
+    return g ? String(g[field]).trim() : '';
+  };
+  const dayName = new Date(2026,0,4+day).toLocaleDateString('en-US',{weekday:'long'});
+  return { day: dayName+'s', time: usual('time'), venue: usual('venue') };
+}
+function weekEmptyHtml(filter){
+  const sports = filter==='all' ? Object.keys(SPORT_META) : [filter];
+  const name = filter==='all' ? 'games' : (filter==='running' ? 'runs' : SPORT_META[filter][0].toLowerCase()+' games');
+  const lines = sports.map(sp=>{
+    const u = usualSchedule(sp); if (!u) return '';
+    const [label, icon] = SPORT_META[sp];
+    const when = [feedEsc(u.time), u.venue ? 'at '+feedEsc(u.venue) : ''].filter(Boolean).join(' ');
+    return `<li><span class="spi ${icon}"></span><span><strong>${label}</strong> is usually on ${u.day}${when?', '+when:''}.</span></li>`;
+  }).join('');
+  const t = LC.arr('tournaments').filter(x=>x.status==='upcoming' && (filter==='all' || (x.sport||'basketball')===filter)).sort((a,b)=>String(a.start_date||'').localeCompare(String(b.start_date||'')))[0];
+  const cta = t ? `<p class="week-empty-tourn">Sign-ups are open for <strong>${feedEsc(t.name)}</strong>.</p>
+    <button type="button" class="btn btn-ghost week-empty-cta" onclick="switchTab('tournaments');setTimeout(()=>openTournDetail('${t.id}'),80)"><i class="ti ti-trophy"></i>See the tournament</button>` : '';
+  return `<div class="card week-empty">
+    <div class="week-empty-t">No ${name} on the schedule yet</div>
+    <p class="week-empty-sub">New games show up here as soon as they're posted.</p>
+    ${lines?`<ul class="week-empty-usual">${lines}</ul>`:''}
+    ${cta}
+  </div>`;
 }
 
 let _pendingGameJoinId = null;
@@ -5620,6 +5671,19 @@ async function delMyPost(id){
   else toast('Could not delete','er');
 }
 // ── TAB NAVIGATION ────────────────────────────────────────────
+// Laptop Home: the feed sits under the games (left) so both columns carry
+// similar weight; phones keep it after "Today".
+function placeHomeFeed(){
+  const block = document.getElementById('home-feed-block');
+  const main = document.querySelector('#tab-home .home-main');
+  const side = document.querySelector('#tab-home .home-side');
+  if (!block || !main || !side) return;
+  const target = window.matchMedia('(min-width:1024px)').matches ? main : side;
+  if (block.parentElement !== target) target.appendChild(block);
+}
+window.matchMedia('(min-width:1024px)').addEventListener('change', placeHomeFeed);
+document.addEventListener('DOMContentLoaded', placeHomeFeed);
+
 function switchTab(name, { pushState=true }={}) {
   ['home','feed','players','profile','tournaments'].forEach(t=>{
     const panel=document.getElementById('tab-'+t);
