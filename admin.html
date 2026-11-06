@@ -583,6 +583,18 @@ select.fi{
   margin:3px;
 }
 .chip:hover{border-color:var(--border-strong);color:var(--text-1)}
+#attendance-card .card-h{flex-wrap:wrap;row-gap:6px}
+#attendance-card .card-t{white-space:nowrap}
+.gd-count{font-size:12.5px;font-weight:600;color:var(--text-2);background:var(--surface-2);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.gd-group{font-size:12px;font-weight:600;color:var(--text-3);margin:12px 0 6px}
+.gd-group:first-child{margin-top:0}
+.gd-find{margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.gd-find .fl{margin-top:0}
+.gd-search-wrap{position:relative}
+.gd-search-wrap i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:16px;pointer-events:none}
+.gd-search-wrap .fi{padding-left:36px}
+#gd-search-results{margin-top:8px}
+#gd-search-results .empty{padding:8px 0;text-align:left}
 .chip.on{
   background:var(--gold-soft);
   border-color:var(--gold);
@@ -1536,14 +1548,18 @@ body{letter-spacing:0}
     </div>
       <div id="session-banner" style="display:none;align-items:center;gap:10px;background:rgba(9,37,87,.10);border:1px solid var(--gold);border-radius:12px;padding:11px 15px;margin-bottom:14px;font-size:12.5px;font-weight:600;color:var(--gold)"><i class="ti ti-broadcast" style="font-size:16px"></i><span id="session-banner-text"></span></div>
       <div class="card" id="attendance-card">
-        <div class="card-h"><div class="card-t"><i class="ti ti-users-group"></i>Who Showed Up?</div></div>
-        <div class="note">Select players present today. Tap <strong>Add Walk-in</strong> for anyone who didn't register.</div>
-        <div style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="selectAll()">Select All</button>
+        <div class="card-h"><div class="card-t"><i class="ti ti-users-group"></i>Who Showed Up?</div><span class="gd-count" id="gd-count"></span></div>
+        <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="selectAll()">Select all registered</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="clearSel()">Clear</button>
-          <button type="button" class="btn btn-g btn-sm" onclick="openModal('walkin')"><i class="ti ti-user-plus"></i>Add Walk-in</button>
-      </div>
+          <button type="button" class="btn btn-g btn-sm" onclick="openModal('walkin')" data-tip="For someone who isn't in the app yet"><i class="ti ti-user-plus"></i>New walk-in</button>
+        </div>
         <div id="present-chips"></div>
+        <div class="gd-find">
+          <label class="fl" for="gd-search">Someone else showed up?</label>
+          <div class="gd-search-wrap"><i class="ti ti-search"></i><input type="search" class="fi" id="gd-search" placeholder="Type their name" autocomplete="off" oninput="renderGdSearch()"></div>
+          <div id="gd-search-results"></div>
+        </div>
     </div>
 
       <!-- ── BASKETBALL FLOW ── -->
@@ -4024,16 +4040,16 @@ function renderGameDay(){
     ? players.filter(p=>(p.sports||'basketball').includes(gdSport))
     : players.filter(p=>(p.sports||'basketball').includes('basketball'));
   const confirmed = playerPool.filter(p=>confIds.includes(p.id));
-  const walkins   = playerPool.filter(p=>!confIds.includes(p.id));
-  if(!playerPool.length){
-    chips.innerHTML='<div style="font-size:13px;color:var(--tx3);padding:8px">No '+gdSport+' players registered yet.</div>';
-    return;
-  }
+  // Walk-ins = people checked in (or already in the live session) who didn't
+  // register. Everyone else stays out of the list; find them with the search.
+  const here = gdHereIds();
+  const walkins   = playerPool.filter(p=>!confIds.includes(p.id) && here.has(p.id));
+  _gdPool = playerPool; _gdConfIds = confIds;
+  const countEl = document.getElementById('gd-count');
+  if (countEl) countEl.textContent = confirmed.length
+    ? `${confirmed.filter(p=>here.has(p.id)).length} of ${confirmed.length} registered here${walkins.length?` · ${walkins.length} walk-in${walkins.length===1?'':'s'}`:''}`
+    : (walkins.length ? `${walkins.length} here` : '');
   let html='';
-  if(next){
-    const icon=gdSport==='pickleball'?'<span class="spi spi-p"></span>':gdSport==='badminton'?'<span class="spi spi-bd"></span>':'<span class="spi spi-b"></span>';
-    html+=`<div style="font-size:11px;font-weight:700;color:var(--gold2);margin-bottom:10px">${icon} ${next.label}</div>`;
-  }
   // Chip state depends on whether a live session is running.
   // - Pickleball active → show on which court, or "in queue", or unselected.
   // - Basketball teams exist → show team name, or unselected.
@@ -4077,15 +4093,52 @@ function renderGameDay(){
         : ''
     }</div>`;
   };
+  _gdRenderChip = renderChip;
   if(confirmed.length){
-    html+=`<div style="font-size:10px;font-weight:700;color:var(--gr);margin-bottom:6px"> Confirmed for ${next?next.label:'game'}</div>`;
+    html+=`<div class="gd-group">Registered for ${next?next.label:'this game'}</div>`;
     html+=confirmed.map(renderChip).join('');
+  } else {
+    html+=`<div class="gd-group">${next?'Nobody registered for '+next.label+' yet.':'No upcoming '+gdSport+' game scheduled.'} Find players below.</div>`;
   }
   if(walkins.length){
-    html+=`<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:10px 0 6px">Other Players / Walk-ins</div>`;
+    html+=`<div class="gd-group">Walk-ins here</div>`;
     html+=walkins.map(renderChip).join('');
   }
   chips.innerHTML=html;
+  renderGdSearch();
+}
+
+// Everyone checked in or already placed in the live session.
+function gdHereIds(){
+  const ids = new Set(presentIds);
+  if (bbRotation && bbRotation.active) [...bbRotation.teamA, ...bbRotation.teamB, ...bbRotation.bench].forEach(id=>ids.add(id));
+  if (pbSession && pbSession.active){
+    pbSession.courts.forEach(c=>[...c.teamA, ...c.teamB].forEach(id=>id&&ids.add(id)));
+    pbSession.queue.forEach(q=>ids.add(q.pid));
+  }
+  return ids;
+}
+let _gdPool = [], _gdConfIds = [], _gdRenderChip = null;
+// Name search for players who didn't register (up to 8 matches). Tapping one
+// checks them in (or adds them to the live session) and clears the search.
+function renderGdSearch(){
+  const box = document.getElementById('gd-search-results');
+  const input = document.getElementById('gd-search');
+  if (!box || !input) return;
+  const q = input.value.trim().toLowerCase();
+  if (q.length < 2){ box.innerHTML = ''; return; }
+  const here = gdHereIds();
+  const matches = _gdPool.filter(p => !_gdConfIds.includes(p.id) && !here.has(p.id) &&
+      ((p.firstName||'')+' '+(p.lastName||'')).toLowerCase().includes(q)).slice(0, 8);
+  box.innerHTML = matches.length
+    ? matches.map(p => `<div class="chip" data-pid="${p.id}" onclick="gdAddFromSearch('${p.id}')"><i class="ti ti-plus" style="font-size:13px"></i>${feedEsc(p.firstName)} ${feedEsc(p.lastName||'')}</div>`).join('')
+    : `<div class="empty">No match. Use <strong>New walk-in</strong> if they're not in the app yet.</div>`;
+}
+function gdAddFromSearch(pid){
+  togglePresent(pid);
+  const input = document.getElementById('gd-search');
+  if (input) input.value = '';
+  renderGameDay();
 }
 
 async function toggleFirstTimerGd(regId, makeFirst){
@@ -5952,6 +6005,8 @@ function togglePresent(id){
   // Otherwise — normal presence toggle (before any session starts).
   const i=presentIds.indexOf(id);
   if(i>-1)presentIds.splice(i,1);else presentIds.push(id);
+  // Unchecking a walk-in drops them from the list, so redraw for them.
+  if (!_gdConfIds.includes(id)) { renderGameDay(); return; }
   const el=document.getElementById('chip-'+id);
   if(el)el.className='chip'+(presentIds.includes(id)?' on':'');
 }
@@ -6122,9 +6177,10 @@ function selectAll(){
     toast('A session is running — tap individual players to add them','er');
     return;
   }
-  presentIds = Array.from(document.querySelectorAll('[data-pid]')).map(e=>e.dataset.pid);
+  const registered = _gdPool.filter(p=>_gdConfIds.includes(p.id)).map(p=>p.id);
+  presentIds = [...new Set([...presentIds, ...registered])];
   renderGameDay();
-  toast(presentIds.length+' players selected');
+  toast(registered.length+' registered player'+(registered.length===1?'':'s')+' checked in');
 }
 function clearSel(){
   if ((pbSession && pbSession.active) || (bbRotation && bbRotation.active)){
