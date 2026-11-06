@@ -1197,6 +1197,11 @@ body{letter-spacing:0}
 .modal{border-color:var(--border);box-shadow:var(--shadow-3)}
 .toast{background:var(--text-1);color:#fff;border-color:transparent;box-shadow:var(--shadow-3)}
 .toast.ok i{color:#6EE7A0}
+/* Date badge (shared look with the member app) */
+.sdate{width:50px;flex:none;text-align:center;border-radius:10px;background:var(--brand-soft);color:var(--brand);padding:5px 0 6px}
+.sdate b{display:block;font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.sdate span{display:block;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:.06em;line-height:1.2}
+.sdate.tbd{background:var(--surface-3);color:var(--text-2)}
 /* Notes mix text with inline tags; as flex items the text split into columns. */
 .note{display:block;border-left:1px solid rgba(29,78,216,.18);border-radius:var(--r-md)}
 /* Active nav uses the tint alone, no side stripe */
@@ -1894,11 +1899,11 @@ body{letter-spacing:0}
           <button type="button" class="fin-pill" data-period="all" onclick="setSummaryPeriod('all')">All Time</button>
         </div>
         <div id="sum-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">Ministry Report — Overall <span style="font-size:12px;color:var(--tx3);font-weight:400;letter-spacing:0">(summed across every game in the selected range)</span></div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--tx2);margin:8px 0 10px">Ministry Report — Overall <span style="font-size:12px;color:var(--tx3);font-weight:400;letter-spacing:0">(summed across every game in the selected range)</span></div>
         <div id="sum-ministry-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px"></div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">By Sport</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--tx2);margin:8px 0 10px">By Sport</div>
         <div id="sum-sports" style="margin-bottom:20px"></div>
-        <div style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:1px;color:var(--tx2);margin:8px 0 10px">Top Attendees</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--tx2);margin:8px 0 10px">Top Attendees</div>
         <div id="sum-top"></div>
       </div>
   </div>
@@ -3095,11 +3100,19 @@ async function delGame(id){
   toast('Game removed','in');
 }
 
+// Day number + "NOV · SUN" badge, same as the member app's game cards.
+function dateBadgeHtml(dateStr, quiet){
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : null;
+  if (!d || isNaN(d)) return '';
+  const mon = d.toLocaleDateString('en-US',{month:'short'}).toUpperCase();
+  const dow = d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+  return `<div class="sdate${quiet?' tbd':''}"><b>${String(d.getDate()).padStart(2,'0')}</b><span>${mon} · ${dow}</span></div>`;
+}
 function gameCardHtml(g, regs, isCompleted){
   const tot=new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled').map(r=>r.playerId||r.id)).size;
   const conf=regs.filter(r=>r.gameId===g.id&&r.status==='confirmed').length;
   const pend=regs.filter(r=>r.gameId===g.id&&(r.status||'pending')==='pending').length;
-  const hdr=isCompleted?'#1A1A22':g.status==='confirmed'?'#0D2A1A':g.status==='cancelled'?'#2A0D0D':'#0D1A2A';
+  const hdr=isCompleted?'var(--surface-2)':g.status==='cancelled'?'#FDF6F6':'var(--surface-1)';
   const sportBadge=g.sport==='running'?'<span class="badge b-nv"><span class="spi spi-r"></span>Running</span>':g.sport==='pickleball'?'<span class="badge b-nv"><span class="spi spi-p"></span>Pickleball</span>':g.sport==='badminton'?'<span class="badge b-nv"><span class="spi spi-bd"></span>Badminton</span>':g.sport==='dragonboat'?'<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>':'<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
   const readyToComplete = !isCompleted && g.status!=='cancelled' && gameFinished(g);
   const completeHint = readyToComplete
@@ -3110,9 +3123,10 @@ function gameCardHtml(g, regs, isCompleted){
     : '';
   return `<div class="game-card">
     <div class="gc-top ${isCompleted?'':g.status==='confirmed'?'g-on':g.status==='cancelled'?'g-off':''}" style="background:${hdr}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between">
-        <div><div class="gc-label">${g.label}</div><div class="gc-meta">${g.time} · ${g.venue} · Max ${g.spots} · ₱${g.fee}</div><div style="margin-top:6px">${sportBadge}</div></div>
-        <span class="badge ${isCompleted?'b-nv':g.status==='confirmed'?'b-on':g.status==='cancelled'?'b-rd':'b-tbd'}">${isCompleted?'DONE':g.status==='confirmed'?'ON':g.status==='cancelled'?' OFF':'TBD'}</span>
+      <div style="display:flex;align-items:flex-start;gap:14px">
+        ${dateBadgeHtml(g.date, isCompleted||g.status==='cancelled')}
+        <div style="flex:1;min-width:0"><div class="gc-label">${g.label}</div><div class="gc-meta">${g.time} · ${g.venue} · Max ${g.spots} · ₱${g.fee}</div><div style="margin-top:6px">${sportBadge}</div></div>
+        <span class="badge ${isCompleted?'b-nv':g.status==='confirmed'?'b-on':g.status==='cancelled'?'b-rd':'b-tbd'}">${isCompleted?'Done':g.status==='confirmed'?'Game on':g.status==='cancelled'?'Cancelled':'To be confirmed'}</span>
     </div>
       <div class="gc-stats"><span>Registered: <strong>${tot}/${g.spots}</strong></span><span>Confirmed: <strong style="color:var(--gr)">${conf}</strong></span><span>Pending: <strong style="color:var(--am)">${pend}</strong></span></div>
       ${g.cancelReason?`<div style="font-size:11px;color:var(--rd);margin-top:4px">Reason: ${g.cancelReason}</div>`:''}
@@ -3162,7 +3176,7 @@ function renderSched(){
   if(done.length){
     html+=`<div style="margin:22px 0 12px;padding-top:16px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleSchedPast()">
       <i class="ti ti-chevron-right" style="font-size:16px;color:var(--tx3);transition:transform .15s;transform:${_schedPastOpen?'rotate(90deg)':''}"></i>
-      <div style="font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:1px;color:var(--tx2)">Past / Completed (${done.length})</div>
+      <div style="font-family:var(--font-head);font-weight:700;font-size:17px;letter-spacing:-.01em;color:var(--tx)">Past and completed (${done.length})</div>
     </div>`;
     if(_schedPastOpen) html+=done.map(g=>gameCardHtml(g,regs,true)).join('');
   }
@@ -4075,11 +4089,11 @@ async function toggleFirstTimerGd(regId, makeFirst){
 }
 let gdSport = 'basketball';
 const GD_SPORT_META = {
-  basketball: { label:'Basketball', icon:'spi-b',  color:'#f48c06' },
-  pickleball: { label:'Pickleball', icon:'spi-p',  color:'#27ae60' },
-  badminton:  { label:'Badminton',  icon:'spi-bd', color:'#4d94ff' },
-  dragonboat: { label:'Dragonboat', icon:'spi-db', color:'#29b6f6' },
-  running:    { label:'Running',    icon:'spi-r',  color:'#ce93d8' },
+  basketball: { label:'Basketball', icon:'spi-b',  color:'#092557' },
+  pickleball: { label:'Pickleball', icon:'spi-p',  color:'#092557' },
+  badminton:  { label:'Badminton',  icon:'spi-bd', color:'#092557' },
+  dragonboat: { label:'Dragonboat', icon:'spi-db', color:'#092557' },
+  running:    { label:'Running',    icon:'spi-r',  color:'#092557' },
 };
 // Large, color-coded pill row for picking which sport's Game Day a manager
 // is running — a plain <select> here was easy to miss and a wrong pick
@@ -6405,7 +6419,7 @@ function bbRosterHtml(pids, teamKey, color, title){
   }).join('') : '<div style="font-size:12px;color:var(--tx3);padding:8px 0">— empty —</div>';
   return `<div class="team-card">
     <div class="team-hd" style="background:${color}20;border-bottom:3px solid ${color}">
-      <span style="font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:.5px;color:${color}">${title}</span>
+      <span style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;color:${color}">${title}</span>
       <span style="background:${color}30;color:${color};font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">${pids.length}P</span>
     </div>
     <div class="team-bd">${rows}</div>
@@ -7461,7 +7475,7 @@ function renderTournGameDay(t) {
           <td style="padding:9px 12px;font-weight:${i<2?'700':'400'}">${s.name}</td>
           <td style="padding:9px 6px;text-align:center;color:var(--gr);font-weight:700">${s.w}</td>
           <td style="padding:9px 6px;text-align:center;color:var(--tx3)">${s.l}</td>
-          <td style="padding:9px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'#e53e3e'}">${s.diff>0?'+':''}${s.diff}</td>
+          <td style="padding:9px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'var(--danger)'}">${s.diff>0?'+':''}${s.diff}</td>
         </tr>`).join('')}
         </tbody>
       </table>
@@ -7540,7 +7554,7 @@ async function openTournPayments(id) {
     const ownerName = tm.owner ? _tPlayerName(tm.owner) : '—';
 
     const installmentRows = tmPays.map((p,i)=>{
-      const sc = p.status==='verified'?'var(--gr)':p.status==='rejected'?'#e53e3e':'var(--gold)';
+      const sc = p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger)':'var(--gold)';
       const sl = p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Pending';
       const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
       return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b)">
@@ -7566,7 +7580,7 @@ async function openTournPayments(id) {
       <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
         <span style="color:var(--tx2)">Paid: <strong style="color:var(--gr)">₱${totalPaid.toLocaleString()}</strong></span>
         <span style="color:var(--tx2)">Due: <strong>₱${teamFee.toLocaleString()}</strong></span>
-        ${balance>0?`<span style="color:var(--tx2)">Balance: <strong style="color:#e53e3e">₱${balance.toLocaleString()}</strong></span>`:''}
+        ${balance>0?`<span style="color:var(--tx2)">Balance: <strong style="color:var(--danger)">₱${balance.toLocaleString()}</strong></span>`:''}
       </div>
       ${installmentRows?`<div style="margin-bottom:8px">${installmentRows}</div>`:'<div style="font-size:12px;color:var(--tx3);margin-bottom:8px">No payments submitted yet.</div>'}
       <button type="button" onclick="openAdminAddPayment('${tm.id}','${id}',${teamFee})" style="width:100%;padding:7px;border:1px dashed var(--b);border-radius:8px;background:none;color:var(--tx3);font-size:12px;cursor:pointer;margin-top:2px"><i class="ti ti-plus"></i> Record Payment Manually</button>
@@ -9456,7 +9470,7 @@ function exportCSV(type){
 // PLAYER POOL MANAGER
 // ══════════════════════════════════════════════════════════════
 
-const _POOL_POS_COLOR = {PG:'#3b82f6',SG:'#8b5cf6',SF:'#10b981',PF:'#f59e0b',C:'#ef4444'};
+const _POOL_POS_COLOR = {PG:'#1D4ED8',SG:'#6D28D9',SF:'#047857',PF:'#B45309',C:'#B91C1C'};
 let _poolTournId = null;
 
 async function openTournPool(tournId) {
@@ -9680,7 +9694,7 @@ function _renderDraftManager(draft, tourn) {
     const teamRows = teams.map((tm, i) => {
       const pos = draftOrder.indexOf(tm.id);
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
-        <div style="width:26px;height:26px;border-radius:50%;background:${pos>=0?'var(--gold)':'var(--b2)'};color:${pos>=0?'#000':'var(--tx3)'};font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${pos>=0?pos+1:'?'}</div>
+        <div style="width:26px;height:26px;border-radius:50%;background:${pos>=0?'var(--gold)':'var(--b2)'};color:${pos>=0?'#fff':'var(--tx3)'};font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${pos>=0?pos+1:'?'}</div>
         <div style="flex:1;font-size:13px;font-weight:600">${tm.name}</div>
         ${pos>=0?`<span style="font-size:11px;font-weight:700;color:var(--gr)">Pick #${pos+1}</span>`:'<span style="font-size:11px;color:var(--tx3)">TBD</span>'}
       </div>`;
@@ -9752,7 +9766,7 @@ function _renderAdminPlayerList(players, draftId, pool) {
       ? '<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">All pool players have been drafted!</div>'
       : '<div style="padding:16px;text-align:center;color:var(--tx3);font-size:13px">No players in the pool yet.<br><span style="font-size:11px">Players must join the pool before the draft.</span></div>';
   }
-  const posColor = {'PG':'#3b82f6','SG':'#8b5cf6','SF':'#10b981','PF':'#f59e0b','C':'#ef4444'};
+  const posColor = {'PG':'#1D4ED8','SG':'#6D28D9','SF':'#047857','PF':'#B45309','C':'#B91C1C'};
   return players.slice(0, 60).map(p => {
     const poolEntry = (pool||[]).find(x=>x.id===p.id);
     const pos = poolEntry?.position || p.position || null;
@@ -9807,7 +9821,7 @@ function _startAdminDraftTimer(draft) {
     if (!el) { clearInterval(_draftAdminTimerInt); return; }
     const rem = Math.max(0, dur - Math.floor((Date.now()-started)/1000));
     el.textContent = rem + 's';
-    el.style.color = rem<=10 ? 'var(--danger,#e53e3e)' : rem<=20 ? '#f59e0b' : 'var(--gold)';
+    el.style.color = rem<=10 ? 'var(--danger,#e53e3e)' : rem<=20 ? '#B45309' : 'var(--gold)';
   }, 500);
 }
 
