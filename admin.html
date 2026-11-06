@@ -1551,7 +1551,7 @@ body{letter-spacing:0}
         <!-- SETUP -->
         <div class="card" id="bb-setup">
           <div class="card-h"><div class="card-t"><i class="ti ti-dice"></i>Start Rotation</div></div>
-          <div class="note">Two teams play each match. After every game the teams re-shuffle and whoever has played the fewest matches rotates in first — so teammates keep changing and everyone plays an even number of games.</div>
+          <div class="note" id="bb-rotation-note">Two teams play each match. Whoever has waited longest plays next: after every game the players who just played go to the back of the line, and late arrivals join the back too. Teams reshuffle every match.</div>
           <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:14px">
             <div><label class="fl" style="margin-top:0">Players per team</label><input type="number" class="fi" id="bb-team-size" value="5" min="2" max="6" style="width:110px" onchange="bbRenderModeSetup()"></div>
             <div>
@@ -1559,6 +1559,13 @@ body{letter-spacing:0}
               <select class="fi" id="bb-mode" style="min-width:240px" onchange="bbRenderModeSetup()">
                 <option value="mixed">Mixed — everyone rotates &amp; reshuffles (lock squads live, anytime)</option>
                 <option value="fixedTeams">Fixed Teams — everyone locked all night (mini-tournament)</option>
+              </select>
+            </div>
+            <div id="bb-rotation-wrap">
+              <label class="fl" style="margin-top:0">Rotation</label>
+              <select class="fi" id="bb-rotation" style="min-width:240px" onchange="bbRenderModeSetup()">
+                <option value="line" selected>Waiting line — longest wait plays next</option>
+                <option value="fewest">Fewest games first — equal play time</option>
               </select>
             </div>
           </div>
@@ -6040,22 +6047,32 @@ function pbAddLateSolo(){
   toast(pbName(pid) + ' added to queue (no partner yet)');
 }
 
+// A late arrival's starting play count: the group's typical (median) count,
+// not the lowest. Starting at the lowest let one person who sat out drag a
+// newcomer's count down so they played several matches in a row.
+function bbSeedPlayed(pid){
+  if (!bbRotation || bbRotation.played[pid] != null) return;
+  // Waiting line doesn't pick by play count, so show their real count (0).
+  if (bbIsLine()){ bbRotation.played[pid] = 0; return; }
+  const vals = presentIds.filter(p => p !== pid && bbRotation.played[p] != null)
+                         .map(p => bbRotation.played[p]).sort((a,b)=>a-b);
+  bbRotation.played[pid] = vals.length ? vals[Math.floor((vals.length-1)/2)] : 0;
+}
+function bbIsLine(){ return !!(bbRotation && bbRotation.mode !== 'fixedTeams' && bbRotation.rotation === 'line'); }
+
 function addLateToBasketball(pid){
-  // Rotation model: late arrivals join the bench with the lowest play count so
-  // they rotate in on the very next match.
+  // Waiting line: they join the back of the line. Fewest games: they start at
+  // the group's typical count (see bbSeedPlayed) so they don't jump ahead.
   if (bbRotation && bbRotation.active){
     const p = LC.arr('players').find(x => x.id === pid);
     const already = bbRotation.teamA.includes(pid)||bbRotation.teamB.includes(pid)||bbRotation.bench.includes(pid);
     if (already){ toast((p?p.firstName:'Player')+' is already in the session','in'); return; }
     if (!presentIds.includes(pid)) presentIds.push(pid);
-    // Give them the current minimum play count so equal-play picks them next.
-    const counts=Object.values(bbRotation.played);
-    const minPlayed=counts.length?Math.min(...counts):0;
-    bbRotation.played[pid]=minPlayed;
+    bbSeedPlayed(pid);
     bbRotation.bench.push(pid);
     renderGameDay(); renderBbRotation();
     touchSharedSession();
-    toast((p?p.firstName:'Player')+' added to bench — up next');
+    toast((p?p.firstName:'Player')+(bbIsLine() ? ' added to the back of the line' : ' added to the bench'));
   }
 }
 
@@ -6139,6 +6156,15 @@ function bbRenderModeSetup(){
   if (!el || !modeSel) return;
   const mode = modeSel.value || 'mixed';
   const size = Math.max(2, Math.min(6, parseInt((document.getElementById('bb-team-size')||{}).value)||5));
+  const rotWrap = document.getElementById('bb-rotation-wrap');
+  const note = document.getElementById('bb-rotation-note');
+  const rotation = (document.getElementById('bb-rotation')||{}).value || 'line';
+  if (rotWrap) rotWrap.style.display = mode === 'fixedTeams' ? 'none' : '';
+  if (note) note.textContent = mode === 'fixedTeams'
+    ? 'Teams stay together all night and play each other like a mini round-robin. The teams with the fewest matches play next.'
+    : rotation === 'fewest'
+    ? "Two teams play each match. After every game the teams reshuffle and whoever has played the fewest matches rotates in first. Late arrivals start at the group's typical number of games, so they don't jump ahead."
+    : 'Two teams play each match. Whoever has waited longest plays next: after every game the players who just played go to the back of the line, and late arrivals join the back too. Teams reshuffle every match.';
   if (mode === 'fixedTeams'){
     const teamCount = Math.floor(presentIds.length / size);
     const unassignedCount = presentIds.length - teamCount*size;
@@ -6186,7 +6212,8 @@ function bbStart(){
     presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
     bbFormTeamMatch();
   } else {
-    bbRotation={ active:true, mode:'mixed', teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, lockedSquads:[] };
+    const rotation=(document.getElementById('bb-rotation')||{}).value==='fewest' ? 'fewest' : 'line';
+    bbRotation={ active:true, mode:'mixed', rotation, teamSize:size, teamA:[], teamB:[], bench:[], matchNum:1, log:[], played:{}, lockedSquads:[] };
     presentIds.forEach(pid=>{ bbRotation.played[pid]=0; });
     bbFormMatch();
   }
@@ -6215,11 +6242,13 @@ function bbStart(){
 // with random players. When only 1 is picked, its opponent is drawn fresh
 // from whoever else is up. With 0 picked, this is identical to the
 // original mixed-only algorithm.
-function bbFormMatch(){
+// opts.afterMatch: a match was just logged. opts.reshuffle: new teams only.
+function bbFormMatch(opts){
   if(!bbRotation) return;
+  if (bbIsLine()) return bbFormMatchLine(opts || {});
   const size=bbRotation.teamSize, need=size*2;
   // make sure every present player has a play count (covers late arrivals)
-  presentIds.forEach(pid=>{ if(bbRotation.played[pid]==null) bbRotation.played[pid]=0; });
+  presentIds.forEach(bbSeedPlayed);
 
   const squads = (bbRotation.lockedSquads||[]).filter(sq => sq.length===size && sq.every(pid=>presentIds.includes(pid)));
 
@@ -6276,6 +6305,60 @@ function bbFormMatch(){
   bbRotation.teamA=sh.slice(0,half);
   bbRotation.teamB=sh.slice(half);
   bbRotation.bench=bench;
+}
+
+// Split the players going on court into Team A / Team B. Up to two locked
+// squads play as whole teams; with one, its opponents are drawn from the rest.
+function bbAssignTeams(onCourt, pickedSquads){
+  if (pickedSquads.length === 2){
+    bbRotation.teamA = pickedSquads[0].slice();
+    bbRotation.teamB = pickedSquads[1].slice();
+  } else if (pickedSquads.length === 1){
+    bbRotation.teamA = pickedSquads[0].slice();
+    bbRotation.teamB = shuffle(onCourt.filter(pid=>!pickedSquads[0].includes(pid)));
+  } else {
+    const sh=shuffle(onCourt); const half=Math.ceil(sh.length/2);
+    bbRotation.teamA=sh.slice(0,half); bbRotation.teamB=sh.slice(half);
+  }
+}
+
+// Waiting line ("next" at the court): whoever has waited longest plays next.
+// The bench IS the line, in order. After a match, the players who just played
+// are shuffled and go to the back; late arrivals are pushed onto the back by
+// addLateToBasketball. The first match goes in check-in order. A ready locked
+// squad waits as one block and goes on when its last member's turn comes.
+function bbFormMatchLine(opts){
+  const size=bbRotation.teamSize, need=size*2;
+  presentIds.forEach(bbSeedPlayed);   // play counts are still shown on chips
+  const onCourtNow=[...bbRotation.teamA, ...bbRotation.teamB].filter(pid=>presentIds.includes(pid));
+  const readySquads = pool => (bbRotation.lockedSquads||[]).filter(sq => sq.length===size && sq.every(pid=>pool.includes(pid)));
+
+  if (opts.reshuffle && onCourtNow.length){
+    // Same players stay on; only the teams change.
+    bbAssignTeams(onCourtNow, readySquads(onCourtNow).slice(0,2));
+    return;
+  }
+
+  let line = bbRotation.bench.filter(pid=>presentIds.includes(pid));
+  if (opts.afterMatch) line = line.concat(shuffle(onCourtNow));
+  presentIds.forEach(pid=>{ if(!line.includes(pid)) line.push(pid); });
+
+  const squads = readySquads(line);
+  const inSquad = new Set(squads.flat());
+  const units = line.map((pid,pos)=>({kind:'solo', pid, pos})).filter(u=>!inSquad.has(u.pid))
+    .concat(squads.map(sq=>({kind:'squad', members:sq, pos:Math.max(...sq.map(pid=>line.indexOf(pid)))})))
+    .sort((a,b)=>a.pos-b.pos);
+
+  let slots=need; const onCourt=[], pickedSquads=[];
+  for (const u of units){
+    if (slots===0) break;
+    if (u.kind==='squad'){
+      if (pickedSquads.length>=2 || size>slots) continue;   // can't fit onto 2 teams yet: keeps its place
+      onCourt.push(...u.members); slots-=size; pickedSquads.push(u.members);
+    } else { onCourt.push(u.pid); slots-=1; }
+  }
+  bbRotation.bench = line.filter(pid=>!onCourt.includes(pid));
+  bbAssignTeams(onCourt, pickedSquads);
 }
 
 // Fixed Teams mode: pick the next two teams to play — least matches played,
@@ -6366,7 +6449,7 @@ function bbUnlockSquad(i){
 
 function bbShuffleMatch(){
   if(!bbRotation) return;
-  bbFormMatch();
+  bbFormMatch({ reshuffle:true });
   renderBbRotation();
   touchSharedSession();
   toast('Teams reshuffled');
@@ -6408,12 +6491,13 @@ function bbRosterHtml(pids, teamKey, color, title){
     return dests.map(d=>`<option value="${d[0]}"${d[0]===cur?' selected':''}>${d[1]}</option>`).join('');
   };
   const curOf=k=>k==='teamA'?'A':k==='teamB'?'B':'bench';
-  const rows=pids.length? pids.map(pid=>{
+  const numbered = teamKey==='bench' && bbIsLine();   // waiting line: show place in line
+  const rows=pids.length? pids.map((pid,idx)=>{
     const p=players.find(x=>x.id===pid);
     const nm=p?(p.firstName+' '+p.lastName):'?';
     const played=bbRotation.played[pid]||0;
     return `<div class="t-row">
-      <div style="width:22px;height:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:10px;color:#fff;flex-shrink:0">${ini(p?p.firstName:'?',p?p.lastName:'')}</div>
+      <div style="width:22px;height:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:${numbered?'12px':'10px'};color:#fff;flex-shrink:0"${numbered?` title="Place in line"`:''}>${numbered?idx+1:ini(p?p.firstName:'?',p?p.lastName:'')}</div>
       <span style="flex:1">${nm} <span style="font-size:10px;color:var(--tx3)">· ${played} played</span></span>
       <select onchange="bbMovePlayer('${pid}',this.value)" style="background:var(--bg2);border:1px solid var(--b);border-radius:6px;color:var(--tx2);font-size:10px;padding:3px 4px;outline:none;cursor:pointer">${moveOpts(curOf(teamKey))}</select>
       <button type="button" class="chip-x" style="position:static;color:var(--danger)" onclick="bbRemovePlayer('${pid}')" data-tip="Remove from session">×</button>
@@ -6444,7 +6528,7 @@ function renderBbRotation(){
   html+=bbRosterHtml(bbRotation.teamB,'teamB','#3B82F6','Team B');
   html+='</div>';
   if(bbRotation.bench.length){
-    html+=bbRosterHtml(bbRotation.bench,'bench','#7B8AA6','Bench · Up Next');
+    html+=bbRosterHtml(bbRotation.bench,'bench','#7B8AA6', bbIsLine() ? 'Waiting line · first in line plays next' : 'Bench · fewest games play next');
   }
   el.innerHTML=html;
   // Log
@@ -6469,7 +6553,8 @@ function bbRecordWinner(side){
   bbRotation.log.push({
     matchNum:bbRotation.matchNum, teamA:bbRotation.teamA.slice(), teamB:bbRotation.teamB.slice(), winner:side,
     teamAId: isFixedTeams ? bbRotation.currentTeamIds[0] : undefined,
-    teamBId: isFixedTeams ? bbRotation.currentTeamIds[1] : undefined
+    teamBId: isFixedTeams ? bbRotation.currentTeamIds[1] : undefined,
+    benchBefore: bbRotation.bench.slice()   // waiting-line order, for undo
   });
   if (isFixedTeams){
     const [ai,bi] = bbRotation.currentTeamIds;
@@ -6483,7 +6568,7 @@ function bbRecordWinner(side){
     // Bump session play counts (drives fair rotation — this is session-local only)
     [...bbRotation.teamA, ...bbRotation.teamB].forEach(pid=>{ bbRotation.played[pid]=(bbRotation.played[pid]||0)+1; });
     bbRotation.matchNum++;
-    bbFormMatch();
+    bbFormMatch({ afterMatch:true });
   }
   renderBbRotation();
   renderBbTimer();
@@ -6513,7 +6598,16 @@ function bbUndoLast(){
     bbRotation.teamB=last.teamB.slice();
     bbRotation.matchNum=last.matchNum;
     // Rebuild the bench (everyone present who isn't on a team this match).
-    bbRotation.bench=presentIds.filter(pid=>!bbRotation.teamA.includes(pid)&&!bbRotation.teamB.includes(pid));
+    // Waiting line: put the line back in the order it was before that match;
+    // anyone who arrived since stays at the back.
+    const onCourt = pid => bbRotation.teamA.includes(pid) || bbRotation.teamB.includes(pid);
+    if (bbIsLine() && Array.isArray(last.benchBefore)){
+      const restored = last.benchBefore.filter(pid=>presentIds.includes(pid) && !onCourt(pid));
+      presentIds.forEach(pid=>{ if(!onCourt(pid) && !restored.includes(pid)) restored.push(pid); });
+      bbRotation.bench = restored;
+    } else {
+      bbRotation.bench=presentIds.filter(pid=>!onCourt(pid));
+    }
   }
   renderBbRotation();
   touchSharedSession();
