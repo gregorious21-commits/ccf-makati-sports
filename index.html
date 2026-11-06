@@ -19,9 +19,10 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  /* Club Navy light theme. Names are kept from the dark theme so inline
-     styles and JS that reference them keep working; "gold" is now the
-     brand navy and --hi is the single accent (Court Orange). */
+  /* Club Navy light theme: logo navy is the only brand color. Names are
+     kept from the dark theme so inline styles and JS keep working; "gold"
+     is now the brand navy. --hi is the highlight on navy surfaces (white);
+     --hi-text / --hi-soft are the navy highlight on light surfaces. */
   --bg:           #F6F7F9;
   --surface-1:    #FFFFFF;
   --surface-2:    #F1F3F6;
@@ -42,11 +43,11 @@
   --gold-rgb:     9,37,87;
   --brand:        #092557;
   --brand-soft:   #E8EDF7;
-  --hi:           #F2711C;
+  --hi:           #FFFFFF;
   --hi-ink:       #092557;
-  --hi-text:      #C2410C;
-  --hi-text-dark: #9A3412;
-  --hi-soft:      #FDECDF;
+  --hi-text:      #092557;
+  --hi-text-dark: #1A3A7A;
+  --hi-soft:      #E8EDF7;
   --success:      #15803D;
   --success-soft: #E7F4EC;
   --danger:       #B91C1C;
@@ -1707,7 +1708,7 @@ footer a:hover{color:var(--text-1)}
 .lq-result-court{margin-left:auto;flex-shrink:0}
 
 /* ═════════════════════════════════════════════════════
-   LIGHT THEME — Club Navy + Court Orange
+   LIGHT THEME — Club Navy
    The token values in :root carry most of the change. These rules fix
    the places that were drawn for a dark background, replace all-caps
    display type with sentence-case headings, and place the accent.
@@ -1770,10 +1771,10 @@ body{letter-spacing:0}
 .profile-band{background:var(--surface-1)}
 .pb-eye{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--text-3)}
 .pb-name{font-family:var(--font-head);font-weight:700;font-size:clamp(28px,7vw,36px);letter-spacing:-.025em;line-height:1.1}
-.pb-av{background:var(--brand-soft);color:var(--brand);border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--hi);font-family:var(--font-head);font-weight:700;font-size:22px}
-.pb-av-img{border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--hi)}
+.pb-av{background:var(--brand-soft);color:var(--brand);border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--brand);font-family:var(--font-head);font-weight:700;font-size:22px}
+.pb-av-img{border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--brand)}
 .pb-share{background:var(--hi-soft);border-color:transparent;color:var(--hi-text)}
-.pb-share:hover{background:#FBDCC4}
+.pb-share:hover{background:#DCE4F3}
 .pb-bio,.pv-bio,.votd-q,.dev-verse{background:var(--surface-2);border-left:none;border-radius:var(--r-md)}
 .stat-n,.pv-stat-n{font-family:var(--font-display);font-weight:700;font-variant-numeric:tabular-nums}
 .stat-n{font-size:38px}
@@ -1802,7 +1803,7 @@ body{letter-spacing:0}
 .game-top::before{display:none}
 .game-label{font-family:var(--font-head);font-weight:700;font-size:20px;letter-spacing:-.015em;line-height:1.2}
 .game-bot{background:var(--surface-2)}
-.game-card.gc-highlight{animation:none;box-shadow:0 0 0 2px var(--hi)}
+.game-card.gc-highlight{animation:none;box-shadow:0 0 0 2px var(--brand)}
 
 /* Badges: sentence case, no outline */
 .badge{text-transform:none;letter-spacing:0;font-size:12px}
@@ -1840,8 +1841,8 @@ body{letter-spacing:0}
 .tabbar-btn.on i{background:var(--hi-soft)}
 
 /* Reactions, rules, live queue */
-.reax-btn.on{background:var(--hi-soft);border-color:var(--hi);color:var(--text-1)}
-.reax-btn:hover{border-color:var(--hi)}
+.reax-btn.on{background:var(--hi-soft);border-color:var(--brand);color:var(--text-1)}
+.reax-btn:hover{border-color:var(--brand)}
 .rule-h,.lq-court-h,.lq-qhead{font-family:var(--font-head);font-weight:700;letter-spacing:-.01em}
 .lq-court-h,.lq-qhead{font-size:13px}
 .lq-bb-clock,.lq-result-score{font-weight:700;font-variant-numeric:tabular-nums}
@@ -8278,15 +8279,15 @@ function _showPickAnnouncement(pick, draft, tourn, widget) {
   const avatar = player?.avatarUrl || '';
   const initials = (pick.player_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarHtml = avatar
-    ? `<img src="${avatar}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(242,113,28,.15)" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img src="${avatar}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15)" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
     : '';
   const fallbackDisplay = avatar ? 'none' : 'flex';
 
-  widget.innerHTML = `<div id="pick-announce" style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(242,113,28,.35);text-align:center;padding:28px 20px 24px">
+  widget.innerHTML = `<div id="pick-announce" style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.35);text-align:center;padding:28px 20px 24px">
     <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
     <div style="display:flex;justify-content:center;margin-bottom:16px;position:relative">
       ${avatarHtml}
-      <div style="width:96px;height:96px;border-radius:50%;background:#1D3A73;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(242,113,28,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--hi)">${initials}</div>
+      <div style="width:96px;height:96px;border-radius:50%;background:#1D3A73;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--hi)">${initials}</div>
       <div style="position:absolute;bottom:-4px;right:calc(50% - 56px);background:var(--hi);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:900;color:var(--hi-ink);letter-spacing:.06em;white-space:nowrap">DRAFTED</div>
     </div>
     <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.01em;margin-bottom:4px">${pick.player_name}</div>
@@ -8396,7 +8397,7 @@ function _renderDraftWidget(draft, tourn) {
       </div>`).join('')
     : '<div style="font-size:12px;color:rgba(255,255,255,.35);padding:6px 0">No picks yet</div>';
 
-  return `<div style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(242,113,28,.2)">
+  return `<div style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.2)">
     <div style="padding:11px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:7px;height:7px;border-radius:50%;background:${status==='active'?'#4ade80':'#f59e0b'};flex-shrink:0${status==='active'?';animation:pulse 1.4s infinite':''}"></span>

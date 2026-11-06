@@ -17,8 +17,8 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  /* Club Navy light theme, shared with the member app. "gold" is now the
-     brand navy; --hi is the single accent (Court Orange). */
+  /* Club Navy light theme, shared with the member app: logo navy is the
+     only brand color ("gold" is now the brand navy). */
   --bg:           #F6F7F9;
   --surface-1:    #FFFFFF;
   --surface-2:    #F1F3F6;
@@ -39,10 +39,10 @@
   --gold-rgb:     9,37,87;
   --brand:        #092557;
   --brand-soft:   #E8EDF7;
-  --hi:           #F2711C;
+  --hi:           #FFFFFF;
   --hi-ink:       #092557;
-  --hi-text:      #C2410C;
-  --hi-soft:      #FDECDF;
+  --hi-text:      #092557;
+  --hi-soft:      #E8EDF7;
   --success:      #15803D;
   --success-soft: #E7F4EC;
   --danger:       #B91C1C;
@@ -1139,7 +1139,7 @@ select.fi{
 .spi-db{--spi:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M3%2011.5%20C7%2016.5%2C%2017%2016.5%2C%2021%2011.5%20Z%27%2F%3E%3Cpath%20d%3D%27M14.5%2011%20L9.5%204%27%2F%3E%3Cpath%20d%3D%27M8%202.6%20L11.4%205%27%2F%3E%3Cpath%20d%3D%27M2.5%2019.5%20q%202.4%201.5%204.8%200%20t%204.8%200%20t%204.8%200%27%2F%3E%3C%2Fsvg%3E")}
 
 /* ═════════════════════════════════════════════════════
-   LIGHT THEME — Club Navy + Court Orange (admin)
+   LIGHT THEME — Club Navy (admin)
    Same palette as the member app, kept quieter: admin is a tool.
    ═════════════════════════════════════════════════════ */
 body{letter-spacing:0}
@@ -1159,7 +1159,7 @@ body{letter-spacing:0}
 .sb-bname{font-family:var(--font-head);font-weight:700;font-size:15px;letter-spacing:-.01em}
 .sb-bsub{text-transform:none;letter-spacing:0;font-size:12px;font-weight:500}
 .nav-sec{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600;color:var(--text-3)}
-.nav-item.on{background:var(--brand-soft);color:var(--brand);border-left-color:var(--hi)}
+.nav-item.on{background:var(--brand-soft);color:var(--brand);border-left-color:var(--brand)}
 .lock-btn{text-transform:none;letter-spacing:0;font-size:13px}
 .sb-backdrop{background:rgba(15,23,41,.35)}
 
