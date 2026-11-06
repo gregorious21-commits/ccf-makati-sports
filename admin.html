@@ -1199,6 +1199,11 @@ body{letter-spacing:0}
 .toast.ok i{color:#6EE7A0}
 /* Notes mix text with inline tags; as flex items the text split into columns. */
 .note{display:block;border-left:1px solid rgba(29,78,216,.18);border-radius:var(--r-md)}
+/* Active nav uses the tint alone, no side stripe */
+.nav-item.on{border-left-color:transparent}
+/* Elevation from shadow alone; calmer panel switch */
+.modal{border:none}
+.panel.on{animation:fadeIn 160ms var(--ease)}
 </style>
 </head>
 <body>
@@ -1452,7 +1457,7 @@ body{letter-spacing:0}
     <div class="panel" id="panel-devotion">
       <div class="note">Saved content is pushed to Supabase and shows on all player devices. Use <strong>Publish</strong> to make it live.</div>
       <!-- VOTD -->
-      <div class="card" style="border-left:3px solid var(--blue2)">
+      <div class="card" style="border-color:rgba(29,78,216,.22)">
         <div class="card-h">
           <div class="card-t"><i class="ti ti-sun"></i>Verse of the Day</div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1469,7 +1474,7 @@ body{letter-spacing:0}
         <button type="button" class="btn btn-w btn-sm" style="width:auto;margin-top:10px" onclick="saveVOTD()"><i class="ti ti-check"></i>Save VOTD</button>
     </div>
       <!-- DEVOTION -->
-      <div class="card" style="border-left:3px solid var(--gold)">
+      <div class="card" style="border-color:rgba(9,37,87,.22)">
         <div class="card-h">
           <div class="card-t"><i class="ti ti-writing"></i>Devotion of the Week</div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -1520,7 +1525,7 @@ body{letter-spacing:0}
            a manager is actually running, so it needs to be impossible to
            mistake for a minor form field. -->
       <div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Now Managing</div>
+        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">Now Managing</div>
         <div id="gd-sport-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
     </div>
@@ -1682,7 +1687,7 @@ body{letter-spacing:0}
             </div>
             <div id="pb-pair-list"></div>
             <div id="pb-pair-unpaired" style="margin-top:12px;display:none">
-              <div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Unpaired</div>
+              <div style="font-size:11px;color:var(--tx3);margin-bottom:6px">Unpaired</div>
               <div id="pb-unpaired-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
             </div>
             <div style="display:flex;gap:8px;margin-top:14px">
@@ -2095,7 +2100,7 @@ body{letter-spacing:0}
         <div class="note">Accounts shown to players when they join a game of the selected sport. Players see only active methods.</div>
         <div id="pm-list" style="margin-top:12px"></div>
         <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Add new method</div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px">Add new method</div>
           <div class="g3">
             <div><label class="fl" style="margin-top:0">Label</label><input class="fi" id="pm-label" placeholder="e.g. GCash, BPI, GoTyme"></div>
             <div><label class="fl" style="margin-top:0">Account Number</label><input class="fi" id="pm-num" placeholder="09XXXXXXXXX or 0123456789"></div>
@@ -2158,13 +2163,13 @@ body{letter-spacing:0}
           <button type="button" class="btn btn-ghost btn-sm" onclick="exportCSV('history')"><i class="ti ti-history"></i>History CSV</button>
       </div>
     </div>
-      <div class="card" style="border-left:3px solid var(--am)">
+      <div class="card" style="border-color:rgba(180,83,9,.25)">
         <div class="card-h"><div class="card-t"><i class="ti ti-photo-cancel"></i>Storage Cleanup</div></div>
         <div class="note" style="border-color:var(--am)">Frees Supabase storage by deleting payment screenshots you've already verified. Only screenshots on <strong>confirmed</strong> registrations are removed — the attendance record stays, and <strong>pending (unverified) screenshots are never touched</strong>. Profile pictures are kept.</div>
         <div id="proof-count" style="font-size:13px;color:var(--tx2);margin-bottom:12px">Checking stored screenshots…</div>
         <button type="button" class="btn btn-am" style="width:auto" onclick="cleanupProofs()"><i class="ti ti-trash"></i>Clear Verified Screenshots</button>
     </div>
-      <div class="card" style="border-left:3px solid var(--gr)">
+      <div class="card" style="border-color:rgba(21,128,61,.25)">
         <div class="card-h"><div class="card-t"><i class="ti ti-database-export"></i>Full Backup</div></div>
         <div class="note" style="border-color:var(--gr)">Downloads a complete copy of <strong>every table</strong> (players, games, registrations, devotion, announcements, notifications, history) as one JSON file. Your data lives only in Supabase — keeping your own backup means it can never be lost if the project is paused, deleted, or corrupted. <strong>Recommended: download one each week after game day.</strong></div>
         <div id="backup-status" style="font-size:12px;color:var(--tx2);margin-bottom:12px"></div>
@@ -3732,7 +3737,7 @@ async function loadAnnouncements(){
   el.innerHTML=all.map(a=>`
     <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg2);border-radius:8px;margin-bottom:8px">
       <span style="font-size:18px">${icons[a.type]||''}</span>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">${a.message}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px;text-transform:uppercase;letter-spacing:.5px">${a.type||'info'} · ${new Date(a.created_at).toLocaleDateString('en-PH')}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${a.message}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px;">${a.type||'info'} · ${new Date(a.created_at).toLocaleDateString('en-PH')}</div></div>
       <button type="button" class="btn btn-rd btn-sm" onclick="removeAnn(${a.id})"><i class="ti ti-x"></i>Remove</button>
   </div>`).join('');
 }
@@ -3820,7 +3825,7 @@ async function renderDevotionArchive(){
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer" onclick="toggleDevArchiveEntry('${r.id}')">
         <div style="display:flex;align-items:center;gap:8px;min-width:0">
           <i class="ti ti-chevron-right" style="font-size:14px;color:var(--tx3);flex-shrink:0;transition:transform .15s;transform:${open?'rotate(90deg)':''}"></i>
-          <div style="min-width:0">${r.monthly_theme?`<div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${r.monthly_theme}</div>`:''}<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.devotion_title||'Untitled'}</div><div style="font-size:11px;color:var(--tx3)">${dateStr}</div></div>
+          <div style="min-width:0">${r.monthly_theme?`<div style="font-size:10px;font-weight:700;color:var(--gold);margin-bottom:2px">${r.monthly_theme}</div>`:''}<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.devotion_title||'Untitled'}</div><div style="font-size:11px;color:var(--tx3)">${dateStr}</div></div>
         </div>
         <button type="button" class="btn btn-rd btn-sm" onclick="event.stopPropagation();delDevotionArchiveEntry('${r.id}')" data-tip="Delete this archived copy"><i class="ti ti-trash"></i></button>
       </div>
@@ -4004,7 +4009,7 @@ function renderGameDay(){
   let html='';
   if(next){
     const icon=gdSport==='pickleball'?'<span class="spi spi-p"></span>':gdSport==='badminton'?'<span class="spi spi-bd"></span>':'<span class="spi spi-b"></span>';
-    html+=`<div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold2);margin-bottom:10px">${icon} ${next.label}</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--gold2);margin-bottom:10px">${icon} ${next.label}</div>`;
   }
   // Chip state depends on whether a live session is running.
   // - Pickleball active → show on which court, or "in queue", or unselected.
@@ -4019,24 +4024,24 @@ function renderGameDay(){
       const inQueue = pbSession.queue.some(q => q.pid === p.id);
       if (onCourt){
         cssClass += ' on';
-        statusTag = ` <span style="font-size:9px;color:var(--gr);text-transform:uppercase;letter-spacing:.04em">on ${onCourt.name}</span>`;
+        statusTag = ` <span style="font-size:9px;color:var(--gr);">on ${onCourt.name}</span>`;
       } else if (inQueue){
         cssClass += ' on';
-        statusTag = ` <span style="font-size:9px;color:var(--gold2);text-transform:uppercase;letter-spacing:.04em">in queue</span>`;
+        statusTag = ` <span style="font-size:9px;color:var(--gold2);">in queue</span>`;
       } else {
-        statusTag = ` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
+        statusTag = ` <span style="font-size:9px;color:var(--tx3);">+ add</span>`;
       }
     } else if (teamsLive){
       const inA=bbRotation.teamA.includes(p.id), inB=bbRotation.teamB.includes(p.id), inBench=bbRotation.bench.includes(p.id);
-      if (inA){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--success);text-transform:uppercase;letter-spacing:.04em">Team A</span>`; }
-      else if (inB){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#3B82F6;text-transform:uppercase;letter-spacing:.04em">Team B</span>`; }
-      else if (inBench){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">Bench</span>`; }
-      else statusTag=` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">+ add</span>`;
+      if (inA){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--success);">Team A</span>`; }
+      else if (inB){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:#3B82F6;">Team B</span>`; }
+      else if (inBench){ cssClass+=' on'; statusTag=` <span style="font-size:9px;color:var(--tx3);">Bench</span>`; }
+      else statusTag=` <span style="font-size:9px;color:var(--tx3);">+ add</span>`;
     } else {
       if (presentIds.includes(p.id)) cssClass += ' on';
     }
     const skTag = gdSport==='pickleball' && p.pickleballSkill
-      ? ` <span style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em">${p.pickleballSkill.slice(0,3)}</span>`
+      ? ` <span style="font-size:9px;color:var(--tx3);">${p.pickleballSkill.slice(0,3)}</span>`
       : '';
     const ftReg = next ? regs.find(r=>r.gameId===next.id&&r.playerId===p.id&&r.status!=='cancelled') : null;
     const ftOn  = ftReg && ftReg.isFirstTimer;
@@ -4050,11 +4055,11 @@ function renderGameDay(){
     }</div>`;
   };
   if(confirmed.length){
-    html+=`<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gr);margin-bottom:6px"> Confirmed for ${next?next.label:'game'}</div>`;
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--gr);margin-bottom:6px"> Confirmed for ${next?next.label:'game'}</div>`;
     html+=confirmed.map(renderChip).join('');
   }
   if(walkins.length){
-    html+=`<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin:10px 0 6px">Other Players / Walk-ins</div>`;
+    html+=`<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:10px 0 6px">Other Players / Walk-ins</div>`;
     html+=walkins.map(renderChip).join('');
   }
   chips.innerHTML=html;
@@ -4506,7 +4511,7 @@ function pbRenderPairPicker(){
   if (unpaired.length >= 2){
     const opts = unpaired.map(pid => `<option value="${pid}">${pbName(pid)}</option>`).join('');
     html += `<div style="margin-top:14px">
-      <div style="font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Add a pair</div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:8px">Add a pair</div>
       <div style="display:flex;align-items:center;gap:8px">
         <select class="fi" id="pp-a" style="flex:1">${opts}</select>
         <span style="color:var(--tx3);font-size:13px">+</span>
@@ -5064,7 +5069,7 @@ function renderPballSession(){
       progress = `Elapsed: ${mins}:${String(secs).padStart(2,'0')} / ${cFormatValue}:00`;
     }
     const fixedBadge = (pbSession.partnerMode === 'fixed')
-      ? ' <span style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.04em;text-transform:uppercase">Fixed Pairs</span>'
+      ? ' <span style="font-size:9px;font-weight:700;color:var(--gold);">Fixed Pairs</span>'
       : '';
     const courtTiers = c.skillTier || [];
     const tierBoxes = Object.keys(SKILL_LABEL).map(t=>
@@ -5165,7 +5170,7 @@ function renderPballSession(){
       });
       const allGroups = other.items.length ? [...groups, other] : groups;
       q.innerHTML = allGroups.map(g => {
-        const hd = `<div style="margin:10px 0 6px;font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
+        const hd = `<div style="margin:10px 0 6px;font-size:10px;font-weight:700;color:var(--tx3);">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
         const rows = g.items.map((item,gi)=>renderRow(item, gi+1, gi===0, gi===g.items.length-1)).join('');
         return hd + rows;
       }).join('');
@@ -6697,7 +6702,7 @@ function renderAdminTournaments() {
           <div style="font-weight:700">${feedEsc(t.name)}</div>
           <div style="font-size:12px;color:var(--tx2);text-transform:capitalize">${t.sport} · ${dateStr}${teamFee?' · ₱'+teamFee.toLocaleString()+'/team':''}${TF.isGroupsKO(t)?' · <span style="text-transform:none">'+(t.teams||[]).length+'/'+(t.max_teams||0)+' teams</span>':''}</div>
         </div>
-        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
         <button type="button" class="btn btn-sm" onclick="openTournGameDay('${t.id}')" style="flex:1;background:var(--gr);color:#fff"><i class="ti ti-calendar-event"></i>Game Day</button>
@@ -6788,7 +6793,7 @@ function renderTournRegsPanel(t, regs, pays) {
     if (gko && r.status!=='rejected') {
       const pi = _regPayInfo(t, r, pays);
       const rows = pi.mine.map(p=>`<div class="dp-follow" style="justify-content:space-between;flex-wrap:wrap;padding:4px 0">
-          <span style="font-size:12px">&#8369;${Number(p.amount).toLocaleString()} &middot; <span style="color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--rd)':'var(--gold)'};font-weight:700;text-transform:uppercase;font-size:10px">${p.status}</span>${p.proof_url?` &middot; <a href="${feedEsc(p.proof_url)}" target="_blank" rel="noopener" style="color:var(--blue2)">View proof</a>`:''}</span>
+          <span style="font-size:12px">&#8369;${Number(p.amount).toLocaleString()} &middot; <span style="color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--rd)':'var(--gold)'};font-weight:700;font-size:10px">${p.status}</span>${p.proof_url?` &middot; <a href="${feedEsc(p.proof_url)}" target="_blank" rel="noopener" style="color:var(--blue2)">View proof</a>`:''}</span>
           ${p.status==='pending'?`<span class="dp-actions"><button type="button" class="btn btn-sm" style="width:auto;background:var(--gr);color:#fff" onclick="verifyRegPayment('${p.id}','${t.id}','verified')">Verify</button><button type="button" class="dp-link" onclick="verifyRegPayment('${p.id}','${t.id}','rejected')">Reject</button></span>`:''}
         </div>`).join('');
       payBlock = `<div style="border-top:1px dashed var(--b);padding-top:8px;margin-bottom:10px">
@@ -6804,7 +6809,7 @@ function renderTournRegsPanel(t, regs, pays) {
           <div style="font-weight:700">${feedEsc(r.team_name)}</div>
           <div style="font-size:12px;color:var(--tx2)">Captain: ${feedEsc(captainName)} · ${players.length} player${players.length!==1?'s':''}${gko&&players.length!==gc.roster_size?' <span style="color:var(--am)">(needs '+gc.roster_size+')</span>':''}</div>
         </div>
-        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
       </div>
       <div style="font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:${showActions||payBlock?'10':'0'}px">${playerNames||'No players listed'}</div>
       ${payBlock}
@@ -6823,19 +6828,19 @@ function renderTournRegsPanel(t, regs, pays) {
     ${gko?`<div class="note">${(t.teams||[]).length}/${t.max_teams||0} slots filled.${gc.pay_before_slot?' A team\'s slot is secured when you approve it &mdash; check their payment first.':''}</div>`:''}
 
     ${pending.length ? `
-      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Pending (${pending.length})</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin-bottom:8px">Pending (${pending.length})</div>
       ${pending.map(r=>regCard(r,true)).join('')}` : '<div class="empty" style="padding:20px;text-align:center">No pending registrations.</div>'}
 
     ${approved.length ? `
-      <div style="font-size:11px;font-weight:700;color:var(--gr);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Approved (${approved.length})</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gr);margin:14px 0 8px">Approved (${approved.length})</div>
       ${approved.map(r=>regCard(r,false)).join('')}` : ''}
 
     ${rejected.length ? `
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Rejected (${rejected.length})</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin:14px 0 8px">Rejected (${rejected.length})</div>
       ${rejected.map(r=>regCard(r,false)).join('')}` : ''}
 
     ${waitlist.length ? `
-      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px">Waitlist (${waitlist.length})</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gold);margin:14px 0 8px">Waitlist (${waitlist.length})</div>
       ${waitlist.map(waitCard).join('')}` : ''}
   `;
 }
@@ -6960,7 +6965,7 @@ function renderTournStatsPanel(t) {
       </tr>`;
     }).join('');
 
-    const tableHead = `<tr style="background:var(--b2);font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">
+    const tableHead = `<tr style="background:var(--b2);font-size:11px;color:var(--tx3);">
       <th style="padding:6px 8px;text-align:left;font-weight:700">Player</th>
       ${STAT_LABELS.map(l=>`<th style="padding:6px 3px;text-align:center;font-weight:700">${l}</th>`).join('')}
     </tr>`;
@@ -6973,11 +6978,11 @@ function renderTournStatsPanel(t) {
         </div>
         <button type="button" class="btn btn-sm" style="width:auto;padding:7px 14px" onclick="saveTournMatchStats('${t.id}','${rid}')"><i class="ti ti-device-floppy"></i>Save</button>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${tA.name}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">${tA.name}</div>
       <div style="overflow-x:auto;margin-bottom:10px">
         <table style="width:100%;border-collapse:collapse">${tableHead}${teamRows(tA)}</table>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${tB.name}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:4px">${tB.name}</div>
       <div style="overflow-x:auto">
         <table style="width:100%;border-collapse:collapse">${tableHead}${teamRows(tB)}</table>
       </div>
@@ -7109,7 +7114,7 @@ function renderTournProposals() {
     const dt = new Date(p.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'});
     const sc = isReviewed ? (p.status==='proposal_approved'?'var(--gr)':'var(--danger,#e53e3e)') : 'var(--gold)';
     const sl = isReviewed ? (p.status==='proposal_approved'?'Approved':'Rejected') : 'Pending';
-    return `<div class="card" style="margin-bottom:10px;border-left:3px solid ${sc}">
+    return `<div class="card" style="margin-bottom:10px;border-color:${sc}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.team_name}</div>
@@ -7118,7 +7123,7 @@ function renderTournProposals() {
           ${p.notes?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;background:var(--b2);padding:8px 10px;border-radius:8px">${p.notes}</div>`:''}
           <div style="font-size:11px;color:var(--tx3);margin-top:6px">${dt}</div>
         </div>
-        <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;white-space:nowrap">${sl}</span>
+        <span style="font-size:10px;font-weight:700;color:${sc};white-space:nowrap">${sl}</span>
       </div>
       ${!isReviewed ? `<div style="display:flex;gap:8px;margin-top:12px">
         <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveProposal('${p.id}','${(p.team_name||'').replace(/'/g,"\\'")}','${meta.sport||''}','${meta.format||''}')"><i class="ti ti-check"></i>Approve</button>
@@ -7133,8 +7138,8 @@ function renderTournProposals() {
       <div style="font-weight:700;font-size:16px">Tournament Proposals</div>
     </div>
     ${!_proposals.length ? '<div style="text-align:center;padding:32px;color:var(--tx3)">No proposals yet.</div>' : ''}
-    ${pending.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Pending (${pending.length})</div>${pending.map(p=>card(p,false)).join('')}` : ''}
-    ${reviewed.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin:16px 0 8px">Reviewed</div>${reviewed.map(p=>card(p,true)).join('')}` : ''}
+    ${pending.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px">Pending (${pending.length})</div>${pending.map(p=>card(p,false)).join('')}` : ''}
+    ${reviewed.length ? `<div style="font-size:11px;font-weight:700;color:var(--tx3);margin:16px 0 8px">Reviewed</div>${reviewed.map(p=>card(p,true)).join('')}` : ''}
   `;
 }
 
@@ -7288,7 +7293,7 @@ function renderGkoGameDay(t){
     return `<div class="card" style="padding:0;overflow:hidden">
       <div style="padding:10px 12px;font-weight:700;display:flex;justify-content:space-between">Group ${L}${complete?'<span class="badge b-on">Done</span>':''}</div>
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase"><th style="padding:6px 10px;text-align:left">#</th><th style="padding:6px 10px;text-align:left">Team</th><th style="padding:6px 4px">W</th><th style="padding:6px 4px">L</th><th style="padding:6px 4px">+/-</th><th style="padding:6px 8px">PF</th></tr></thead>
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;"><th style="padding:6px 10px;text-align:left">#</th><th style="padding:6px 10px;text-align:left">Team</th><th style="padding:6px 4px">W</th><th style="padding:6px 4px">L</th><th style="padding:6px 4px">+/-</th><th style="padding:6px 8px">PF</th></tr></thead>
         <tbody>${st.map((r,i)=>`<tr style="border-top:1px solid var(--b)${i<c.advance?';background:rgba(34,197,94,.06)':''}">
           <td style="padding:7px 10px;font-weight:700;color:${i<c.advance?'var(--gr)':'var(--tx3)'}">${i+1}</td>
           <td style="padding:7px 10px;font-weight:${i<c.advance?700:400}">${feedEsc(r.name)}</td>
@@ -7447,7 +7452,7 @@ function renderTournGameDay(t) {
     return `<div style="font-weight:700;font-size:14px;margin:16px 0 8px">Standings</div>
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:10px">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase">
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;">
           <th style="padding:7px 12px;text-align:left">#</th><th style="padding:7px 12px;text-align:left">Team</th>
           <th style="padding:7px 6px;text-align:center">W</th><th style="padding:7px 6px;text-align:center">L</th><th style="padding:7px 12px;text-align:center">+/-</th>
         </tr></thead><tbody>
@@ -7542,7 +7547,7 @@ async function openTournPayments(id) {
         <div style="flex:1">
           <span style="font-size:12px;font-weight:600">Installment ${i+1}</span>
           ${dateStr?`<span style="font-size:11px;color:var(--tx3);margin-left:6px">${dateStr}</span>`:''}
-          <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;letter-spacing:.4px;margin-left:8px">${sl}</span>
+          <span style="font-size:10px;font-weight:700;color:${sc};margin-left:8px">${sl}</span>
         </div>
         <span style="font-weight:700;font-size:13px">₱${Number(p.amount).toLocaleString()}</span>
         ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr);flex-shrink:0">Proof</a>`:''}
@@ -7556,7 +7561,7 @@ async function openTournPayments(id) {
           <div style="font-weight:700">${tm.name}</div>
           <div style="font-size:12px;color:var(--tx2)">Team Owner: ${ownerName}</div>
         </div>
-        <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+        <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
       </div>
       <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
         <span style="color:var(--tx2)">Paid: <strong style="color:var(--gr)">₱${totalPaid.toLocaleString()}</strong></span>
@@ -8101,7 +8106,7 @@ function renderTournBracketForm(existing) {
     const nameA = teamA ? (_tTeams.find(t=>t.id===teamA)||{name:'TBD'}).name : 'TBD';
     const nameB = teamB ? (_tTeams.find(t=>t.id===teamB)||{name:'TBD'}).name : 'TBD';
     return `<div style="background:var(--b2);border-radius:8px;padding:10px;margin-bottom:8px">
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:8px">
         ${r.label}${isRR?'<span style="font-weight:400;color:var(--tx3);margin-left:6px;text-transform:none">(defaults to roster order — change anytime below)</span>':''}
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
@@ -8232,7 +8237,7 @@ function renderLb(){
         <div style="font-size:11px;color:var(--tx2)">${p.games||0} games · ${pct(p.wins||0,p.games||0)} win rate</div>
         <div class="lb-bar"><div class="lb-fill" style="width:${Math.round((p.wins||0)/maxW*100)}%;background:${col(i)}"></div></div>
     </div>
-      <div style="text-align:center"><div style="font-family:var(--font-display);font-weight:700;font-size:30px;color:var(--gold2)">${p.wins||0}</div><div style="font-size:9px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">wins</div></div>
+      <div style="text-align:center"><div style="font-family:var(--font-display);font-weight:700;font-size:30px;color:var(--gold2)">${p.wins||0}</div><div style="font-size:9px;color:var(--tx3);">wins</div></div>
   </div>`).join('');
 }
 
@@ -9628,7 +9633,7 @@ function _renderDraftManager(draft, tourn) {
     ${draft ? `
       <button type="button" class="btn btn-ghost btn-sm" onclick="resetDraft('${draft.id}')" style="width:auto;font-size:11px"><i class="ti ti-refresh"></i>Reset</button>
       <button type="button" class="btn btn-sm" onclick="deleteDraft('${draft.id}')" style="width:auto;font-size:11px;background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e)"><i class="ti ti-trash"></i>Delete</button>
-      <span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;background:${draft.status==='active'?'rgba(72,199,142,.15)':draft.status==='complete'?'rgba(9,37,87,.15)':'var(--b2)'};color:${draft.status==='active'?'var(--gr)':draft.status==='complete'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.05em">${draft.status}</span>
+      <span style="font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;background:${draft.status==='active'?'rgba(72,199,142,.15)':draft.status==='complete'?'rgba(9,37,87,.15)':'var(--b2)'};color:${draft.status==='active'?'var(--gr)':draft.status==='complete'?'var(--gold)':'var(--tx3)'};">${draft.status}</span>
     ` : ''}
   </div>`;
 
@@ -9681,7 +9686,7 @@ function _renderDraftManager(draft, tourn) {
       </div>`;
     }).join('');
     lotterySection = `<div class="card" style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Lottery — Pick Order</div>
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:10px">Lottery — Pick Order</div>
       ${teamRows}
       <div style="display:flex;gap:8px;margin-top:12px">
         <button type="button" class="btn" onclick="runDraftLottery('${draft.id}')" style="flex:1;justify-content:center;background:var(--gold);color:#fff"><i class="ti ti-dice"></i>${draftOrder.length ? 'Re-run Lottery' : 'Run Lottery'}</button>
@@ -9708,7 +9713,7 @@ function _renderDraftManager(draft, tourn) {
         : `<div class="card" style="text-align:center;padding:14px;color:var(--tx3);font-size:13px"><i class="ti ti-pause" style="font-size:22px;margin-bottom:6px;display:block"></i>Draft paused</div>`;
 
       pickSection = `<div class="card" style="margin-bottom:10px;border-color:var(--gold);background:rgba(9,37,87,.05)">
-        <div style="font-size:10px;font-weight:800;color:var(--gold);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px">${slot?.deferred?'Deferred Pick':'Round '+(slot?slot.round:'—')} · Pick ${currentPick} of ${totalPicks}</div>
+        <div style="font-size:10px;font-weight:800;color:var(--gold);margin-bottom:5px">${slot?.deferred?'Deferred Pick':'Round '+(slot?slot.round:'—')} · Pick ${currentPick} of ${totalPicks}</div>
         <div style="font-size:18px;font-weight:800;margin-bottom:2px">${curTeam ? curTeam.name : '—'} <span style="font-size:12px;font-weight:500;color:var(--tx3)">is on the clock</span></div>
         <div id="draft-admin-timer" style="font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--gold);margin-bottom:10px">—</div>
         <div style="display:flex;gap:8px">
