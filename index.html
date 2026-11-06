@@ -4,8 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>CCF Makati Sports</title>
+<meta name="description" content="Weekly basketball, pickleball and running for the CCF Makati community. See the schedule and sign up for games.">
+<meta name="theme-color" content="#092557">
+<!-- Link previews (Messenger, Viber, Facebook, iMessage). The image must be an absolute URL. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="CCF Makati Sports">
+<meta property="og:title" content="CCF Makati Sports">
+<meta property="og:description" content="Weekly basketball, pickleball and running for the CCF Makati community. See the schedule and sign up for games.">
+<meta property="og:url" content="https://ccfmakatisports.com/">
+<meta property="og:image" content="https://ccfmakatisports.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CCF Sports Makati logo">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="logo.jpg?v=2">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=Inter:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -19,31 +32,43 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --bg:           #0A1124;
-  --surface-1:    #121B36;
-  --surface-2:    #1B2747;
-  --surface-3:    #243366;
-  --surface-hi:   #2C3D78;
-  --border:       rgba(255,255,255,.08);
-  --border-strong:rgba(255,255,255,.16);
-  --border-bright:rgba(255,255,255,.24);
-  --text-1:       #FFFFFF;
-  --text-2:       #B8C2D6;
-  --text-3:       #7B8AA6;
-  --text-4:       #4E5A78;
-  --gold:         #FDB827;
-  --gold-bright:  #FFCB47;
-  --gold-deep:    #C99220;
-  --gold-soft:    rgba(253,184,39,.12);
-  --gold-glow:    rgba(253,184,39,.20);
-  --success:      #22C55E;
-  --success-soft: rgba(34,197,94,.12);
-  --danger:       #EF4444;
-  --danger-soft:  rgba(239,68,68,.12);
-  --warning:      #F59E0B;
-  --warning-soft: rgba(245,158,11,.12);
-  --info:         #3B82F6;
-  --info-soft:    rgba(59,130,246,.12);
+  /* Club Navy light theme: logo navy is the only brand color. Names are
+     kept from the dark theme so inline styles and JS keep working; "gold"
+     is now the brand navy. --hi is the highlight on navy surfaces (white);
+     --hi-text / --hi-soft are the navy highlight on light surfaces. */
+  --bg:           #F6F7F9;
+  --surface-1:    #FFFFFF;
+  --surface-2:    #F1F3F6;
+  --surface-3:    #E4E8EE;
+  --surface-hi:   #D8DEE7;
+  --border:       #E3E6EC;
+  --border-strong:#D3D8E0;
+  --border-bright:#BCC3CF;
+  --text-1:       #0F1729;
+  --text-2:       #475066;
+  --text-3:       #5F6779;
+  --text-4:       #8A91A2;
+  --gold:         #092557;
+  --gold-bright:  #1A3A7A;
+  --gold-deep:    #061A3F;
+  --gold-soft:    #E8EDF7;
+  --gold-glow:    rgba(9,37,87,.12);
+  --gold-rgb:     9,37,87;
+  --brand:        #092557;
+  --brand-soft:   #E8EDF7;
+  --hi:           #FFFFFF;
+  --hi-ink:       #092557;
+  --hi-text:      #092557;
+  --hi-text-dark: #1A3A7A;
+  --hi-soft:      #E8EDF7;
+  --success:      #15803D;
+  --success-soft: #E7F4EC;
+  --danger:       #B91C1C;
+  --danger-soft:  #FBE9E9;
+  --warning:      #B45309;
+  --warning-soft: #FBF0E2;
+  --info:         #1D4ED8;
+  --info-soft:    #E6EEFC;
 
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
   --s-5: 20px; --s-6: 24px; --s-7: 32px; --s-8: 40px;
@@ -51,12 +76,13 @@
 
   --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-full: 9999px;
 
-  --shadow-1: 0 1px 2px rgba(0,0,0,.25);
-  --shadow-2: 0 4px 12px rgba(0,0,0,.30);
-  --shadow-3: 0 12px 32px rgba(0,0,0,.40);
+  --shadow-1: 0 1px 2px rgba(15,23,41,.06);
+  --shadow-2: 0 4px 12px rgba(15,23,41,.08);
+  --shadow-3: 0 16px 40px rgba(15,23,41,.14);
 
-  --font-display: 'Bebas Neue', system-ui, sans-serif;
-  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-ui: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: var(--font-ui);
 
   --ease: cubic-bezier(.4,0,.2,1);
   --ease-out: cubic-bezier(0,0,.2,1);
@@ -65,7 +91,7 @@
   --bg2: var(--surface-1); --bg3: var(--surface-1); --bg4: var(--surface-2);
   --b: var(--border); --b2: var(--border-strong);
   --tx: var(--text-1); --tx2: var(--text-2); --tx3: var(--text-3);
-  --blue: var(--info); --blue2: #7DA9F8;
+  --blue: var(--info); --blue2: var(--info);
   --gold2: var(--gold-bright);
   --gr: var(--success); --rd: var(--danger); --am: var(--warning);
 }
@@ -130,15 +156,15 @@ body{
   display:flex;flex-direction:column;
   padding:0 var(--s-5);
   background:
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(253,184,39,.06) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(9,37,87,.06) 0%, transparent 70%),
     radial-gradient(circle at 80% 90%, rgba(59,130,246,.05) 0%, transparent 50%),
     linear-gradient(180deg, #060B1C 0%, var(--bg) 60%, #060B1C 100%);
 }
 .hero::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:
-    linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+    linear-gradient(rgba(15,23,41,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(15,23,41,.025) 1px,transparent 1px);
   background-size:48px 48px;
   mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.4) 30%,rgba(0,0,0,.4) 70%,transparent 100%);
 }
@@ -179,7 +205,7 @@ body{
 }
 .kicker::after{
   content:'';flex:1;height:1px;
-  background:linear-gradient(90deg,rgba(253,184,39,.35),transparent);
+  background:linear-gradient(90deg,rgba(9,37,87,.35),transparent);
 }
 .hero-title{
   font-family:var(--font-display);
@@ -434,7 +460,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   margin-top:var(--s-3);
   min-height:44px;
 }
-.link-btn:hover{color:#A5C4FB}
+.link-btn:hover{color:var(--hi-text-dark)}
 
 /* ─────────────────────────────────────────────────────
    DASHBOARD
@@ -476,7 +502,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .profile-band{
   position:relative;overflow:hidden;
   background:
-    radial-gradient(circle at 0% 0%, rgba(253,184,39,.06), transparent 60%),
+    radial-gradient(circle at 0% 0%, rgba(9,37,87,.06), transparent 60%),
     linear-gradient(180deg, var(--surface-1), var(--bg));
   border-bottom:1px solid var(--border);
   padding:var(--s-7) var(--s-5) 0;
@@ -539,15 +565,15 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .pb-share{
   display:inline-flex;align-items:center;gap:var(--s-2);
   min-height:36px;padding:0 var(--s-3);
-  background:rgba(253,184,39,.10);
-  border:1px solid rgba(253,184,39,.35);
+  background:rgba(9,37,87,.10);
+  border:1px solid rgba(9,37,87,.35);
   border-radius:var(--r-sm);
   color:var(--gold);
   font-size:12px;font-weight:600;
   cursor:pointer;font-family:var(--font-ui);
   margin-top:var(--s-4);margin-left:8px;
 }
-.pb-share:hover{background:rgba(253,184,39,.20)}
+.pb-share:hover{background:rgba(9,37,87,.20)}
 .pb-share i{font-size:13px}
 
 /* ── STAT CARD SHEET ─────────────────────────────── */
@@ -562,7 +588,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 @keyframes scSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .sc-handle{
-  width:36px;height:4px;background:rgba(255,255,255,.18);
+  width:36px;height:4px;background:rgba(15,23,41,.18);
   border-radius:2px;margin:14px auto 8px;flex-shrink:0;
 }
 .sc-head{
@@ -613,7 +639,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   -webkit-tap-highlight-color:transparent;transition:all 150ms var(--ease);
 }
 .sc-photo-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
-.sc-photo-btn.has-photo{border-color:rgba(253,184,39,.5);color:var(--gold);background:rgba(253,184,39,.08)}
+.sc-photo-btn.has-photo{border-color:rgba(9,37,87,.5);color:var(--gold);background:rgba(9,37,87,.08)}
 .sc-dl-btn{
   flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
   min-height:44px;background:var(--gold);color:#100B00;
@@ -648,7 +674,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:12px;font-weight:600;color:var(--text-3);cursor:pointer;
   transition:all 150ms var(--ease);-webkit-tap-highlight-color:transparent;
 }
-.sc-stab.on{background:rgba(253,184,39,.12);border-color:rgba(253,184,39,.4);color:var(--gold)}
+.sc-stab.on{background:rgba(9,37,87,.12);border-color:rgba(9,37,87,.4);color:var(--gold)}
 .sc-match-row{display:flex;align-items:center;gap:8px;padding:0 16px 10px;flex-shrink:0}
 .sc-match-select{
   flex:1;min-height:36px;padding:0 10px;
@@ -674,7 +700,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:14px;color:var(--text-2);
   line-height:1.6;margin-top:var(--s-4);
   padding:var(--s-3) var(--s-4);
-  background:rgba(255,255,255,.03);
+  background:rgba(15,23,41,.03);
   border-left:2px solid var(--gold);
   border-radius:0 var(--r-md) var(--r-md) 0;
 }
@@ -784,7 +810,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:13px;font-weight:600;
   color:var(--blue2);cursor:pointer;
 }
-.sec-link:hover{color:#A5C4FB}
+.sec-link:hover{color:var(--hi-text-dark)}
 
 .card{
   background:var(--surface-1);
@@ -798,7 +824,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .votd-card{
   position:relative;overflow:hidden;
   background:
-    linear-gradient(135deg, rgba(253,184,39,.05), transparent 60%),
+    linear-gradient(135deg, rgba(9,37,87,.05), transparent 60%),
     var(--surface-1);
   border:1px solid var(--border-strong);
   border-radius:var(--r-lg);
@@ -828,8 +854,8 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 }
 .votd-q{
   display:flex;gap:var(--s-3);align-items:flex-start;
-  background:rgba(255,255,255,.03);
-  border-left:2px solid rgba(253,184,39,.4);
+  background:rgba(15,23,41,.03);
+  border-left:2px solid rgba(9,37,87,.4);
   border-radius:0 var(--r-md) var(--r-md) 0;
   padding:var(--s-3) var(--s-4);
   margin-bottom:var(--s-2);
@@ -872,12 +898,12 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:10px;font-weight:700;letter-spacing:.12em;
   text-transform:uppercase;color:var(--gold);
   background:var(--gold-soft);
-  border:1px solid rgba(253,184,39,.3);
+  border:1px solid rgba(9,37,87,.3);
   border-radius:var(--r-sm);
   padding:4px var(--s-2);
 }
 .roster-chip{transition:background .15s}
-.roster-chip:hover,.roster-chip:active{background:rgba(255,255,255,.07)}
+.roster-chip:hover,.roster-chip:active{background:rgba(15,23,41,.07)}
 .roster-chip:hover .roster-chip-av,.roster-chip:active .roster-chip-av{box-shadow:0 0 0 2px var(--gold)}
 .dev-vref{
   font-size:11px;font-weight:700;letter-spacing:.10em;
@@ -888,14 +914,14 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:14px;color:var(--text-2);
   font-style:italic;line-height:1.7;
   padding:var(--s-3) var(--s-4);
-  background:rgba(255,255,255,.03);
+  background:rgba(15,23,41,.03);
   border-left:2px solid var(--info);
   border-radius:0 var(--r-md) var(--r-md) 0;
   margin-bottom:var(--s-4);
 }
 .dev-q{
   display:flex;gap:var(--s-3);align-items:flex-start;
-  background:rgba(255,255,255,.03);
+  background:rgba(15,23,41,.03);
   border-radius:var(--r-md);
   padding:var(--s-3) var(--s-4);
   margin-bottom:var(--s-2);
@@ -961,7 +987,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .game-spots{
   font-size:13px;color:var(--text-3);font-weight:500;
 }
-.game-spots.warn{color:#FBBF24;font-weight:700}
+.game-spots.warn{color:var(--warning);font-weight:700}
 
 .attendee-stack{display:flex;align-items:center;margin-top:var(--s-2)}
 .attendee-avatar{
@@ -1009,11 +1035,11 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   text-transform:uppercase;
   white-space:nowrap;
 }
-.b-on { background:var(--success-soft); color:#4ADE80;        border-color:rgba(34,197,94,.30)}
-.b-tbd{ background:var(--warning-soft); color:#FBBF24;        border-color:rgba(245,158,11,.30)}
-.b-rd { background:var(--danger-soft);  color:#F87171;        border-color:rgba(239,68,68,.30)}
+.b-on { background:var(--success-soft); color:var(--success);        border-color:rgba(34,197,94,.30)}
+.b-tbd{ background:var(--warning-soft); color:var(--warning);        border-color:rgba(245,158,11,.30)}
+.b-rd { background:var(--danger-soft);  color:var(--danger);        border-color:rgba(239,68,68,.30)}
 .b-nv { background:var(--info-soft);    color:var(--blue2);        border-color:rgba(59,130,246,.30)}
-.b-gd { background:var(--gold-soft);    color:var(--gold-bright); border-color:rgba(253,184,39,.35)}
+.b-gd { background:var(--gold-soft);    color:var(--gold-bright); border-color:rgba(9,37,87,.35)}
 
 .join-btn{
   display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
@@ -1030,7 +1056,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 /* ── PAYMENT CARD ── */
 .pay-card{
   background:
-    radial-gradient(ellipse at top right, rgba(253,184,39,.08), transparent 60%),
+    radial-gradient(ellipse at top right, rgba(9,37,87,.08), transparent 60%),
     var(--surface-1);
   border:1px solid var(--border-strong);
   border-radius:var(--r-lg);
@@ -1085,7 +1111,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   padding:6px 0;margin-top:var(--s-2);
   min-height:32px;
 }
-.copy-btn:hover{color:#A5C4FB}
+.copy-btn:hover{color:var(--hi-text-dark)}
 .copy-btn i{font-size:12px}
 
 .upload-z{
@@ -1228,7 +1254,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   transition:all 150ms var(--ease);
   flex-shrink:0;
 }
-.x-btn:hover{background:rgba(255,255,255,.06);color:var(--text-1)}
+.x-btn:hover{background:rgba(15,23,41,.06);color:var(--text-1)}
 
 /* ── AVATAR UPLOAD ── */
 .av-upload{
@@ -1285,8 +1311,8 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   transition:background 150ms var(--ease);
 }
 .lb-row:last-child{border-bottom:none}
-.lb-row:hover{background:rgba(255,255,255,.025)}
-.lb-row:active{background:rgba(255,255,255,.05)}
+.lb-row:hover{background:rgba(15,23,41,.025)}
+.lb-row:active{background:rgba(15,23,41,.05)}
 .lb-row.me{
   background:var(--gold-soft);
   border-left:3px solid var(--gold);
@@ -1309,7 +1335,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   background-size:cover;background-position:center;
 }
 .lb-name{font-weight:600;font-size:14px}
-.streak-badge{display:inline-flex;align-items:center;gap:1px;font-size:11px;font-weight:700;color:#ff8a3d;background:rgba(255,138,61,.14);border-radius:6px;padding:1px 5px;vertical-align:middle;margin-left:2px}
+.streak-badge{display:inline-flex;align-items:center;gap:1px;font-size:11px;font-weight:700;color:var(--hi-text);background:rgba(255,138,61,.14);border-radius:6px;padding:1px 5px;vertical-align:middle;margin-left:2px}
 .streak-badge i{font-size:12px}
 .lb-meta{font-size:12px;color:var(--text-3);margin-top:2px}
 .lb-stat{text-align:center;flex-shrink:0;min-width:44px}
@@ -1370,7 +1396,7 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
 .pv-bio{
   font-size:14px;color:var(--text-2);line-height:1.6;
   padding:var(--s-3) var(--s-4);
-  background:rgba(255,255,255,.03);
+  background:rgba(15,23,41,.03);
   border-left:2px solid var(--gold);
   border-radius:0 var(--r-md) var(--r-md) 0;
 }
@@ -1479,8 +1505,8 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   min-height:60px;
 }
 .dir-row:last-child{border-bottom:none}
-.dir-row:hover{background:rgba(255,255,255,.025)}
-.dir-row:active{background:rgba(255,255,255,.05)}
+.dir-row:hover{background:rgba(15,23,41,.025)}
+.dir-row:active{background:rgba(15,23,41,.05)}
 .dir-av{
   width:44px;height:44px;
   border-radius:var(--r-full);
@@ -1514,15 +1540,15 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   max-width:calc(100vw - 32px);
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.er{background:var(--danger);color:#fff;border-color:rgba(255,255,255,.15)}
-.toast.in{background:var(--info);color:#fff;border-color:rgba(255,255,255,.15)}
+.toast.er{background:var(--danger);color:#fff;border-color:rgba(15,23,41,.15)}
+.toast.in{background:var(--info);color:#fff;border-color:rgba(15,23,41,.15)}
 .toast.ok i{color:var(--success)}
 
 /* ── FOOTER ── */
 footer{
   text-align:center;
   padding:var(--s-6) var(--s-5);
-  font-size:12px;color:var(--text-4);
+  font-size:12px;color:var(--text-3);
   border-top:1px solid var(--border);
 }
 footer a{
@@ -1640,59 +1666,291 @@ footer a:hover{color:var(--text-1)}
 .cmt-in button{background:var(--gold);border:none;border-radius:18px;padding:0 15px;color:#1a1205;font-weight:700;cursor:pointer;display:flex;align-items:center}
 .rule-grp{margin-bottom:16px}
 .rule-grp:last-child{margin-bottom:0}
-.rule-h{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;color:var(--tx);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-.rule-item{padding:5px 0 5px 14px;border-left:2px solid var(--gold-soft,rgba(253,184,39,.3));margin-bottom:6px}
+.rule-h{font-family:var(--font-display);font-size:15px;letter-spacing:.5px;color:var(--tx);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.rule-item{padding:4px 0;margin-bottom:6px}
 .rule-item:last-child{margin-bottom:0}
 .rule-item strong{color:var(--tx)}
 .lq-card{border:1px solid rgba(34,197,94,.4);background:linear-gradient(160deg,rgba(34,197,94,.07),transparent);margin-bottom:18px}
-.lq-live{font-size:11px;font-weight:800;color:#22C55E;letter-spacing:.05em;display:flex;align-items:center;gap:4px;animation:lqpulse 2s ease-in-out infinite}
+.lq-live{font-size:11px;font-weight:800;color:var(--success);letter-spacing:.05em;display:flex;align-items:center;gap:4px;animation:lqpulse 2s ease-in-out infinite}
 @keyframes lqpulse{0%,100%{opacity:1}50%{opacity:.5}}
 @keyframes livePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
-.lq-you{font-size:13px;font-weight:600;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:flex;align-items:center;gap:7px;background:var(--surface-2,rgba(255,255,255,.04));color:var(--tx2)}
-.lq-you.playing{background:rgba(34,197,94,.14);color:#22C55E}
-.lq-you.next{background:rgba(253,184,39,.16);color:var(--gold);font-weight:700}
+.lq-you{font-size:13px;font-weight:600;padding:9px 12px;border-radius:9px;margin-bottom:12px;display:flex;align-items:center;gap:7px;background:var(--surface-2,rgba(15,23,41,.04));color:var(--tx2)}
+.lq-you.playing{background:rgba(34,197,94,.14);color:var(--success)}
+.lq-you.next{background:rgba(9,37,87,.16);color:var(--gold);font-weight:700}
 .lq-courts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
 .lq-court:only-child{grid-column:1/-1}
 .lq-av{width:22px;height:22px;border-radius:50%;background-size:cover;background-position:center;
   display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
 .lq-chips{display:flex;flex-wrap:wrap;gap:8px}
 .lq-chip{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 4px;border-radius:20px;
-  background:var(--surface-2,rgba(255,255,255,.04));font-size:12.5px;color:var(--tx2)}
-.lq-chip.up{background:rgba(253,184,39,.10);color:var(--gold)}
-.lq-chip.mine{background:rgba(34,197,94,.14);color:#22C55E;font-weight:700}
+  background:var(--surface-2,rgba(15,23,41,.04));font-size:12.5px;color:var(--tx2)}
+.lq-chip.up{background:rgba(9,37,87,.10);color:var(--gold)}
+.lq-chip.mine{background:rgba(34,197,94,.14);color:var(--success);font-weight:700}
 .lq-chip .lq-qn{width:16px;height:16px;font-size:9px;background:none;color:inherit;opacity:.7}
 @media(max-width:480px){.lq-courts{grid-template-columns:1fr}}
-.lq-court{border:1px solid var(--b,rgba(255,255,255,.08));border-radius:10px;padding:9px 11px}
+.lq-court{border:1px solid var(--b,rgba(15,23,41,.08));border-radius:10px;padding:9px 11px}
 .lq-court.mine{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.06)}
-.lq-court-h{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--gold2,var(--gold));margin-bottom:4px}
+.lq-court-h{font-family:var(--font-display);font-size:14px;letter-spacing:.5px;color:var(--gold2,var(--gold));margin-bottom:4px}
 .lq-court-h-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
-.lq-bb-clock{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.5px;color:var(--gold2,var(--gold));display:flex;align-items:center;gap:6px}
+.lq-bb-clock{font-family:var(--font-display);font-size:24px;letter-spacing:.5px;color:var(--gold2,var(--gold));display:flex;align-items:center;gap:6px}
 .lq-bb-clock i{font-size:17px;color:var(--gold2,var(--gold))}
 .lq-teams{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;color:var(--tx)}
 .lq-teams>span:not(.lq-vs){flex:1;min-width:0}
-.lq-vs{font-family:'Bebas Neue',sans-serif;font-size:12px;color:var(--tx3);text-transform:uppercase;flex-shrink:0}
+.lq-vs{font-family:var(--font-display);font-size:12px;color:var(--tx3);text-transform:uppercase;flex-shrink:0}
 .lq-matchup{display:flex;align-items:stretch;gap:12px}
 .lq-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
 .lq-side-row{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--tx2);min-width:0}
 .lq-side-row span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lq-side-row.mine{color:var(--tx);font-weight:700}
-.lq-vs-divider{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--tx3);text-transform:uppercase;
+.lq-vs-divider{font-family:var(--font-display);font-size:13px;color:var(--tx3);text-transform:uppercase;
   flex-shrink:0;display:flex;align-items:center;padding:0 2px;align-self:center}
-.lq-qhead{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.5px;color:var(--tx2);margin-bottom:6px}
+.lq-qhead{font-family:var(--font-display);font-size:14px;letter-spacing:.5px;color:var(--tx2);margin-bottom:6px}
 .lq-qrow{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--tx2)}
-.lq-qrow.up{background:rgba(253,184,39,.08)}
+.lq-qrow.up{background:rgba(9,37,87,.08)}
 .lq-qrow.mine{background:rgba(34,197,94,.12);color:var(--tx);font-weight:700}
-.lq-qn{width:20px;height:20px;border-radius:50%;background:var(--surface-2,rgba(255,255,255,.06));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--tx3);flex-shrink:0}
-.lq-tag{margin-left:auto;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--gold);background:rgba(253,184,39,.14);padding:2px 7px;border-radius:20px}
+.lq-qn{width:20px;height:20px;border-radius:50%;background:var(--surface-2,rgba(15,23,41,.06));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--tx3);flex-shrink:0}
+.lq-tag{margin-left:auto;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--gold);background:rgba(9,37,87,.14);padding:2px 7px;border-radius:20px}
 .lq-foot{font-size:10px;color:var(--tx3);text-align:center;margin-top:10px}
-.lq-result{padding:7px 9px;border-radius:7px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid var(--border)}
+.lq-result{padding:7px 9px;border-radius:7px;margin-bottom:5px;background:rgba(15,23,41,.02);border:1px solid var(--border)}
 .lq-result.mine{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.2)}
 .lq-result-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .lq-result-win{font-size:13px;font-weight:700;color:var(--tx);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lq-result-score{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.5px;color:var(--gold);flex-shrink:0}
+.lq-result-score{font-family:var(--font-display);font-size:16px;letter-spacing:.5px;color:var(--gold);flex-shrink:0}
 .lq-result-bot{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:11px;color:var(--tx3)}
 .lq-result-bot>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lq-result-court{margin-left:auto;flex-shrink:0}
+
+/* ═════════════════════════════════════════════════════
+   LIGHT THEME — Club Navy
+   The token values in :root carry most of the change. These rules fix
+   the places that were drawn for a dark background, replace all-caps
+   display type with sentence-case headings, and place the accent.
+   ═════════════════════════════════════════════════════ */
+body{letter-spacing:0}
+.ann.success,.ann.warning{color:#fff}
+
+/* Landing */
+.hero{min-height:auto;background:var(--bg);padding:0 var(--s-5)}
+.hero::before{display:none}
+.hero-in{flex:none;justify-content:flex-start;padding:var(--s-5) 0 0;max-width:440px}
+.hero-nav{margin-bottom:var(--s-7)}
+.logo-row img,.tb-brand img{border:none}
+.logo-row img{width:40px;height:40px}
+.logo-name,.tb-name{font-family:var(--font-head);font-weight:700;font-size:16px;letter-spacing:-.01em;line-height:1.2}
+.land-h{font-family:var(--font-head);font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.1;margin:0 0 var(--s-2);color:var(--text-1);text-wrap:balance}
+.land-sub{font-size:15px;color:var(--text-2);margin:0 0 var(--s-5);line-height:1.5;text-wrap:pretty}
+.game-status{background:var(--brand);border:none;border-radius:var(--r-lg);max-width:none;color:#fff;padding:var(--s-4) var(--s-5);gap:0}
+.gs-lbl{font-size:12px;font-weight:600;color:rgba(255,255,255,.72);margin-bottom:var(--s-3)}
+#hero-status{display:flex;flex-direction:column;gap:var(--s-3)}
+.game-status .status-row + .status-row{border-top:1px solid rgba(255,255,255,.14)}
+.game-status .stext strong{color:#fff;font-size:15px}
+.game-status .stext span{color:rgba(255,255,255,.78);font-size:12.5px}
+.sdate{width:50px;flex:none;text-align:center;border-radius:10px;background:var(--brand-soft);color:var(--brand);padding:5px 0 6px}
+.sdate b{display:block;font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.sdate span{display:block;font-family:var(--font-display);font-weight:600;font-size:11.5px;letter-spacing:.06em;line-height:1.2}
+.sdate.tbd{background:var(--surface-2);color:var(--text-2)}
+/* On navy surfaces the badge turns white */
+.game-status .sdate{background:#fff;color:var(--brand)}
+.game-status .sdate.tbd{background:rgba(255,255,255,.14);color:#fff}
+.auth-section{padding:var(--s-6) var(--s-5) var(--s-10)}
+
+/* Forms */
+.tabs,.lb-toggle,.paytype-pills,.sc-mode-row{background:var(--surface-3);border-color:transparent}
+.tab.on,.lb-tab.on,.paytype-pill.on,.sc-mtab.on{background:var(--surface-1);color:var(--text-1);box-shadow:var(--shadow-1)}
+.fl{text-transform:none;letter-spacing:0;font-size:13px;color:var(--text-2)}
+.fi,.fi-b,.fi-sel,.pin-fi,.dir-search{background-color:var(--surface-1);border-color:var(--border-strong)}
+.fi:focus,.fi-b:focus,.fi-sel:focus,.pin-fi:focus,.dir-search:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background-color:var(--surface-1)}
+.pin-fi{font-family:var(--font-display);font-weight:600;letter-spacing:14px}
+.tog{background:var(--surface-1);border-color:var(--border-strong)}
+.tog.on{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+.waiver{background:var(--surface-1);border-left:1px solid var(--border)}
+.waiver-h{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text-1)}
+.waiver-h i{color:var(--brand)}
+
+/* Buttons and links */
+.btn-w,.btn-g{background:var(--brand);color:#fff}
+.btn-w:hover,.btn-g:hover{background:var(--gold-bright)}
+.btn-ghost{background:var(--surface-1)}
+.btn-ghost:hover{background:var(--surface-2)}
+.join-btn{background:var(--brand);color:#fff}
+.join-btn:hover{background:var(--gold-bright)}
+.link-btn,.sec-link,.copy-btn{color:var(--hi-text)}
+.link-btn:hover,.sec-link:hover,.copy-btn:hover{color:var(--hi-text-dark)}
+.sport-pill{background:var(--surface-1);border-color:var(--border-strong)}
+.sport-pill.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.cmt-in button{background:var(--brand);color:#fff}
+.sc-dl-btn{color:#fff}
+.sc-th.on{border-color:var(--text-1)}
+
+/* Top bar, profile band */
+.topbar{background:rgba(255,255,255,.92)}
+.profile-band{background:var(--surface-1)}
+.pb-eye{text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--text-3)}
+.pb-name{font-family:var(--font-head);font-weight:700;font-size:clamp(28px,7vw,36px);letter-spacing:-.025em;line-height:1.1}
+.pb-av{background:var(--brand-soft);color:var(--brand);border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--brand);font-family:var(--font-head);font-weight:700;font-size:22px}
+.pb-av-img{border:none;box-shadow:0 0 0 2px var(--surface-1),0 0 0 4px var(--brand)}
+.pb-share{background:var(--hi-soft);border-color:transparent;color:var(--hi-text)}
+.pb-share:hover{background:#DCE4F3}
+.pb-bio,.pv-bio,.votd-q,.dev-verse{background:var(--surface-2);border-left:none;border-radius:var(--r-md)}
+.stat-n,.pv-stat-n{font-family:var(--font-display);font-weight:700;font-variant-numeric:tabular-nums}
+.stat-n{font-size:38px}
+.stat-n.g,.pv-stat-n.g{color:var(--hi-text)}
+
+/* Team cards */
+.team-card-name{font-family:var(--font-head);font-weight:700;font-size:20px;letter-spacing:-.015em;line-height:1.2}
+.team-card-badge,.lb-av,.dir-av,.pv-av,.av-preview-ph{font-family:var(--font-head);font-weight:700}
+.team-card-eyebrow{text-transform:none;letter-spacing:0;font-size:12px;font-weight:600}
+.team-card.pool-only .team-card-eyebrow{color:var(--hi-text)}
+
+/* Sections and cards */
+.sec-h{border-bottom:none;padding-bottom:0;margin:var(--s-7) 0 var(--s-3)}
+.sec-t{text-transform:none;letter-spacing:-.01em;font-size:17px;font-weight:700;color:var(--text-1)}
+.votd-card{background:var(--surface-1);border-color:var(--border)}
+.votd-card::before{display:none}
+.votd-lbl,.votd-ref,.dev-vref{text-transform:none;letter-spacing:0;font-size:13px}
+.votd-lbl{color:var(--hi-text)}
+.votd-qn{color:var(--hi-text);font-weight:700}
+.dev-badge,.dev-theme{text-transform:none;letter-spacing:0;font-size:12px;border:none}
+.dev-theme{background:var(--brand-soft);color:var(--brand)}
+.dev-qn{background:var(--brand)}
+.dev-verse{border-left:none}
+
+/* Game cards */
+.game-top::before{display:none}
+.game-label{font-family:var(--font-head);font-weight:700;font-size:20px;letter-spacing:-.015em;line-height:1.2}
+.game-bot{background:var(--surface-2)}
+.game-card.gc-highlight{animation:none;box-shadow:0 0 0 2px var(--brand)}
+
+/* Badges: sentence case, no outline */
+.badge{text-transform:none;letter-spacing:0;font-size:12px}
+.b-on,.b-tbd,.b-rd,.b-nv,.b-gd{border-color:transparent}
+.b-gd{color:var(--brand)}
+
+/* Payment */
+.pay-card{background:var(--surface-1);border-color:var(--border)}
+.pay-lbl,.pay-sub,.acc-bank{text-transform:none;letter-spacing:0}
+.pay-lbl{font-size:13px;font-weight:600}
+.pay-sub{font-size:12px;font-weight:500}
+.acc-bank{font-size:12px}
+.pay-amt{font-family:var(--font-display);font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums}
+.acc-num{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+
+/* Overlays */
+.ovl{background:rgba(15,23,41,.45)}
+.mdl{border-color:var(--border)}
+.notif-scrim{background:rgba(15,23,41,.3)}
+.notif-drop-h{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text-1)}
+.toast{background:var(--text-1);color:#fff;border-color:transparent}
+.toast.ok i{color:#6EE7A0}
+
+/* Leaderboard and directory */
+.lb-row.me{background:var(--hi-soft);border-left:none;padding-left:var(--s-4)}
+.lb-rank{font-family:var(--font-display);font-weight:700;color:var(--text-3);font-variant-numeric:tabular-nums}
+.lb-stat-n{font-family:var(--font-display);font-weight:700;color:var(--brand);font-variant-numeric:tabular-nums}
+.streak-badge{background:var(--hi-soft)}
+.pv-name{font-family:var(--font-head);font-weight:700;font-size:26px;letter-spacing:-.02em;line-height:1.15}
+
+/* Bottom tab bar: navy label, orange-tint pill behind the active icon */
+.tabbar{background:rgba(255,255,255,.96)}
+.tabbar-btn.on{color:var(--brand)}
+.tabbar-btn i{width:48px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:14px;transition:background 150ms var(--ease)}
+.tabbar-btn.on i{background:var(--hi-soft)}
+
+/* Reactions, rules, live queue */
+.reax-btn.on{background:var(--hi-soft);border-color:var(--brand);color:var(--text-1)}
+.reax-btn:hover{border-color:var(--brand)}
+.rule-h,.lq-court-h,.lq-qhead{font-family:var(--font-head);font-weight:700;letter-spacing:-.01em}
+.lq-court-h,.lq-qhead{font-size:13px}
+.lq-bb-clock,.lq-result-score{font-weight:700;font-variant-numeric:tabular-nums}
+.lq-card{background:var(--surface-1)}
+
+/* Calmer motion: one quick fade, no slide on every screen */
+.fu,.fu1,.fu2,.fu3,.fu4{animation:fadeIn 220ms var(--ease-out) both}
+.tab-panel{animation:fadeIn 160ms var(--ease-out)}
+/* Elevation from shadow alone (no border + wide shadow together) */
+.mdl,.notif-drop{border:none}
+
+/* Heading sizes: section titles lead, card titles follow */
+.sec-t{font-size:20px}
+.game-label{font-size:17px}
+.dev-title{font-size:19px}
+
+/* Upcoming rows */
+.stext-cap{display:block;font-style:normal;font-size:12px;color:rgba(255,255,255,.7);margin-top:1px}
+.land-sub-wide{display:none}
+
+/* Game card: date badge + sport, capacity bar; your game is the navy card */
+.game-row{justify-content:flex-start;gap:var(--s-4);align-items:flex-start;margin-bottom:0}
+.game-info{flex:1;min-width:0}
+.game-label .spi{margin-right:6px;opacity:.8}
+.game-card .attendee-stack{margin-top:var(--s-4)}
+.game-cap{margin-top:var(--s-3)}
+.track{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.track i{display:block;height:100%;background:var(--brand);border-radius:3px}
+.game-note{padding:0 var(--s-5) var(--s-3);font-size:12px;color:var(--text-3)}
+.game-card.mine{background:var(--brand);border-color:var(--brand);color:#fff}
+.game-card.mine .sdate{background:#fff;color:var(--brand)}
+.game-card.mine .game-meta,.game-card.mine .game-meta a,.game-card.mine .game-spots,.game-card.mine .attendee-label,.game-card.mine .game-note{color:rgba(255,255,255,.8)!important}
+.game-card.mine .badge{background:rgba(255,255,255,.14);color:#fff}
+.game-card.mine .attendee-avatar,.game-card.mine .attendee-more{border-color:var(--brand)}
+.game-card.mine .track{background:rgba(255,255,255,.18)}
+.game-card.mine .track i{background:#fff}
+.game-card.mine .game-bot{background:rgba(255,255,255,.06);border-top-color:rgba(255,255,255,.12)}
+.game-card.mine .game-share-btn{border-color:rgba(255,255,255,.28);color:#fff}
+.game-card.mine .game-share-btn span{color:#fff}
+.game-card.mine:hover{border-color:var(--brand)}
+
+/* Today: verse and devotion read as text, not boxes */
+.votd-card,.dev-card{background:transparent;border:none;border-radius:0;padding:0;margin-bottom:0}
+.votd-card{padding-bottom:var(--s-5);border-bottom:1px solid var(--border)}
+.dev-card{padding-top:var(--s-5)}
+
+/* Laptop sign-in: one centered card, navy schedule beside the form */
+@media(min-width:960px){
+  #view-landing{min-height:100vh;justify-content:center}
+  .land-card{display:grid;grid-template-columns:1fr 1fr;width:min(940px,calc(100% - 64px));margin:48px auto 24px;
+    background:var(--surface-1);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+  .land-card .hero{background:var(--brand);color:#fff;padding:36px}
+  .land-card .hero-in{padding:0;max-width:none;height:100%;display:flex;flex-direction:column}
+  .land-card .hero-nav{margin-bottom:var(--s-7)}
+  .land-card .logo-name{color:#fff}
+  .land-card .land-h{color:#fff;font-size:32px}
+  .land-card .land-sub{display:none}
+  .land-card .land-sub-wide{display:block;margin:0 0 var(--s-7);font-size:15px;color:rgba(255,255,255,.78);line-height:1.5}
+  .land-card .game-status{background:transparent;padding:0;margin-top:auto}
+  .land-card .gs-lbl{font-size:13px}
+  .land-card .sdate{width:64px;border-radius:12px;padding:7px 0 8px}
+  .land-card .sdate b{font-size:34px}
+  .land-card .sdate span{font-size:12.5px}
+  .land-card .game-status .stext strong{font-size:17px}
+  .land-card .auth-section{padding:36px;background:var(--surface-1)}
+  .land-card .auth-in{max-width:none}
+  #view-landing footer{border-top:none}
+}
+
+/* Home columns (stacked on phones) */
+.home-main,.home-side{min-width:0}
+.home-side > .sec-h:first-child{margin-top:var(--s-7)}
+
+/* Desktop: use the width */
+@media(min-width:1024px){
+  .content,.pb-in{max-width:1180px}
+  #tab-home{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);column-gap:40px;align-items:start}
+  .home-main .sec-h,.home-side > .sec-h:first-child{margin-top:0}
+  #tab-feed{max-width:720px;margin-inline:auto}
+  #tab-players{max-width:960px;margin-inline:auto}
+  #tourn-list{display:grid;grid-template-columns:1fr 1fr;column-gap:16px}
+  #tourn-detail{max-width:880px;margin-inline:auto}
+  /* Tabs move into the top bar */
+  .tabbar{top:0;bottom:auto;left:50%;right:auto;transform:translateX(-50%);height:60px;padding-bottom:0;gap:4px;
+    background:transparent;border-top:none;backdrop-filter:none;-webkit-backdrop-filter:none;z-index:151}
+  .tabbar-btn{flex:none;flex-direction:row;align-self:center;gap:8px;min-height:40px;padding:0 14px;border-radius:20px;font-size:14px}
+  .tabbar-btn i{width:auto;height:auto;font-size:19px;background:none!important}
+  .tabbar-btn.on{background:var(--hi-soft)}
+  .tabbar-btn:hover:not(.on){color:var(--text-1);background:var(--surface-2)}
+  .tab-panel{padding-bottom:48px}
+  .toast{bottom:24px}
+}
 </style>
 </head>
 <body>
@@ -1720,33 +1978,29 @@ footer a:hover{color:var(--text-1)}
 
 <!-- ════ LANDING ════ -->
 <div id="view-landing" style="display:none;flex-direction:column">
+  <div class="land-card">
   <div class="hero">
     <div class="hero-in">
       <nav class="hero-nav fu">
-        <div class="logo-row"><img src="logo.jpg?v=2" alt="CCF"><div class="logo-name">CCF Makati Sports</div></div>
-        <div class="hero-tag">Open Play</div>
-    </nav>
-      <div class="kicker fu1">Hoops + Paddles + Strides + Shuttles + Boats</div>
-      <div class="hero-title fu1">CCF MAKATI</div>
-      <div class="hero-title-g fu1">SPORTS</div>
-      <div class="hero-pills fu2">
-        <span class="hp"><i class="ti ti-calendar" style="font-size:11px"></i>Weekly</span>
-        <span class="hp"><i class="ti ti-map-pin" style="font-size:11px"></i>Makati</span>
-    </div>
-      <div class="game-status fu3" id="hero-status">
-        <div class="status-row">
-          <div class="sdot tbd"></div>
-          <div class="stext"><strong>Loading status…</strong><span>Please wait</span></div>
+        <div class="logo-row"><img src="logo.jpg?v=2" alt="CCF Sports Makati logo"><div class="logo-name">CCF Makati Sports</div></div>
+      </nav>
+      <h1 class="land-h fu1">Sign in to play</h1>
+      <p class="land-sub fu1">Use the phone number you registered with. New here? Tap Register to create your player profile.</p>
+      <p class="land-sub-wide">Weekly basketball, pickleball and running for the CCF Makati community.</p>
+      <div class="game-status fu2">
+        <div class="gs-lbl">Upcoming games</div>
+        <div id="hero-status">
+          <div class="status-row">
+            <div class="sdot tbd"></div>
+            <div class="stext"><strong>Loading schedule…</strong><span>One moment</span></div>
+          </div>
+        </div>
       </div>
     </div>
-      <div class="scroll-cue fu4"><div class="scroll-line"></div><span>Sign In</span></div>
   </div>
-</div>
 
   <div class="auth-section">
     <div class="auth-in">
-      <div class="auth-h fu">Get on the Court</div>
-      <div class="auth-sub fu1">Sign in or create your player profile</div>
       <div class="tabs fu2">
         <button type="button" class="tab on" id="tab-login" onclick="showTab('login')">Login</button>
         <button type="button" class="tab" id="tab-reg" onclick="showTab('reg')">Register</button>
@@ -1810,12 +2064,12 @@ footer a:hover{color:var(--text-1)}
       </div>
         <div id="r-pos-row">
           <label class="fl">Basketball Position</label>
-          <select class="fi-sel" id="r-pos"><option value="">— Select —</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
+          <select class="fi-sel" id="r-pos"><option value="">Select</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
       </div>
         <div id="r-skill-row" style="display:none">
           <label class="fl">Pickleball Skill Level</label>
           <select class="fi-sel" id="r-skill">
-            <option value="">— Select —</option>
+            <option value="">Select</option>
             <option value="newbie">Newbie · still learning</option>
             <option value="intermediate">Intermediate · regular player</option>
             <option value="expert">Expert · competitive level</option>
@@ -1864,10 +2118,11 @@ footer a:hover{color:var(--text-1)}
           <div class="waiver-txt">CCF Makati Sports collects your name, contact details, optional photo, and game activity to organize games, manage payments, and communicate with you. Your data is stored securely, never sold, and you can view, edit, or delete it anytime. Please review our <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Privacy Policy</a>, <a href="terms.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Terms of Service</a>, and <a href="community-guidelines.html" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600">Community Guidelines</a>.</div>
           <label class="waiver-chk"><input type="checkbox" id="r-privacy"><span>I have read and agree to the Privacy Policy, Terms of Service, and Community Guidelines, and consent to the collection and processing of my personal data. *</span></label>
       </div>
-        <button type="button" class="btn btn-g" id="btn-register"><i class="ti ti-check"></i>I Agree — Create Profile</button>
+        <button type="button" class="btn btn-g" id="btn-register"><i class="ti ti-check"></i>Agree and create profile</button>
     </div>
   </div>
 </div>
+  </div>
   <footer><p>CCF Makati Sports &nbsp;·&nbsp; <a href="privacy.html">Privacy</a> &nbsp;·&nbsp; <a href="terms.html">Terms</a> &nbsp;·&nbsp; <a href="community-guidelines.html">Guidelines</a> &nbsp;·&nbsp; <a href="admin.html">Admin</a></p></footer>
 </div>
 
@@ -1900,6 +2155,7 @@ footer a:hover{color:var(--text-1)}
   <div class="content">
     <!-- ───── HOME TAB ───── -->
     <div id="tab-home" class="tab-panel">
+      <div class="home-main">
       <div id="live-draft-widget" style="display:none;padding:0 0 4px"></div>
       <div id="live-queue" class="card lq-card" style="display:none"></div>
       <!-- Live Now Tournament Banner -->
@@ -1971,7 +2227,7 @@ footer a:hover{color:var(--text-1)}
 
           <!-- FIRST TIMER FREE PATH -->
           <div id="pay-first" style="display:none">
-            <div class="cash-note" style="border-color:var(--gold-soft,rgba(253,184,39,.3))">
+            <div class="cash-note" style="border-color:var(--gold-soft,rgba(9,37,87,.3))">
               <strong style="display:block;margin-bottom:6px;color:var(--gold)">First game on us!</strong>
               <span>We sponsor every player's very first game — no payment needed. Just confirm below and an organizer will approve your free slot. This is a one-time welcome, so future games will have the regular contribution fee.</span>
           </div>
@@ -1979,6 +2235,8 @@ footer a:hover{color:var(--text-1)}
         </div>
       </div>
     </div>
+      </div>
+      <div class="home-side">
       <div class="sec-h"><div class="sec-t">Today</div></div>
       <div class="votd-card">
         <div class="votd-lbl"><i class="ti ti-book" style="font-size:13px"></i>Verse of the Day</div>
@@ -2004,6 +2262,7 @@ footer a:hover{color:var(--text-1)}
           <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:75%"></div><div class="skel skel-line" style="width:45%"></div></div></div>
           <div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line" style="width:40%"></div></div></div>
         </div>
+      </div>
       </div>
   </div>
 
@@ -2073,10 +2332,10 @@ footer a:hover{color:var(--text-1)}
       <div class="card"><div id="my-hist"><div class="empty">No games yet — join your first one!</div></div></div>
 
       <div class="sec-h" style="margin-top:18px"><div class="sec-t">Know Jesus</div></div>
-      <div class="card" style="border:1px solid var(--gold-soft,rgba(253,184,39,.35));background:linear-gradient(160deg,rgba(253,184,39,.07),transparent)">
+      <div class="card" style="border:1px solid transparent;background:var(--brand-soft)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
           <span style="font-size:22px;color:var(--gold)"><i class="ti ti-heart-handshake"></i></span>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--tx)">The Best Decision</div>
+          <div style="font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--tx)">The Best Decision</div>
         </div>
         <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:16px">
           More than the games we play, what matters most is knowing Jesus. If you've ever wondered about faith, hope, or what happens after this life — we'd love to share something with you. No pressure, just an open door.
@@ -2091,13 +2350,12 @@ footer a:hover{color:var(--text-1)}
       <div id="dg-join-card" style="display:none"></div>
 
       <div class="sec-h" style="margin-top:18px"><div class="sec-t">Account</div></div>
-      <div class="card" style="border-left:3px solid var(--danger,#e53e3e)">
+      <div class="card" style="border-color:rgba(185,28,28,.25)">
         <div style="font-weight:600;margin-bottom:4px">Disable My Account</div>
         <div style="font-size:13px;color:var(--text-3);margin-bottom:14px;line-height:1.5">You will be logged out and won't be able to use the app until you log back in. Your profile and game history are kept.</div>
         <button type="button" class="btn" style="background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e);width:auto;padding:9px 18px;font-size:13px" onclick="disableMyAccount()"><i class="ti ti-user-off"></i>Disable My Account</button>
       </div>
   </div>
-</div>
 
     <!-- TOURNAMENTS TAB -->
     <div id="tab-tournaments" class="tab-panel" style="display:none">
@@ -2112,6 +2370,7 @@ footer a:hover{color:var(--text-1)}
       <!-- Tournament detail view (hidden by default) -->
       <div id="tourn-detail" style="display:none"></div>
     </div>
+  </div>
 
   <!-- BOTTOM TAB BAR -->
   <nav class="tabbar">
@@ -2224,12 +2483,12 @@ footer a:hover{color:var(--text-1)}
     </div>
       <div id="ep-pos-row" style="display:none">
         <label class="fl">Basketball Position</label>
-        <select class="fi-sel" id="ep-pos"><option value="">— Select —</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
+        <select class="fi-sel" id="ep-pos"><option value="">Select</option><option>Point Guard (PG)</option><option>Shooting Guard (SG)</option><option>Small Forward (SF)</option><option>Power Forward (PF)</option><option>Center (C)</option></select>
     </div>
       <div id="ep-skill-row" style="display:none">
         <label class="fl">Pickleball Skill Level</label>
         <select class="fi-sel" id="ep-skill">
-          <option value="">— Select —</option>
+          <option value="">Select</option>
           <option value="newbie">Newbie · still learning</option>
           <option value="intermediate">Intermediate · regular player</option>
           <option value="expert">Expert · competitive level</option>
@@ -2333,13 +2592,13 @@ footer a:hover{color:var(--text-1)}
 <div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-msg"></span></div>
 
 <!-- ══ DRAFT NOTIFICATION MODAL ══ -->
-<div id="drafted-modal" style="display:none;position:fixed;inset:0;z-index:9800;align-items:center;justify-content:center;padding:20px;background:rgba(5,9,20,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-  <div style="position:relative;background:var(--card,#0f1729);border:1px solid var(--gold-soft,rgba(253,184,39,.4));border-radius:20px;max-width:360px;width:100%;overflow:hidden;text-align:center">
+<div id="drafted-modal" style="display:none;position:fixed;inset:0;z-index:9800;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,41,.45)">
+  <div style="position:relative;background:var(--surface-1);border:1px solid var(--gold-soft,rgba(9,37,87,.4));border-radius:20px;max-width:360px;width:100%;overflow:hidden;text-align:center">
     <div id="drafted-modal-bar" style="height:4px;width:100%;background:var(--gold)"></div>
     <div style="padding:28px 24px 24px">
       <div id="drafted-modal-icon" style="font-size:40px;margin-bottom:12px">🏀</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:3px;color:var(--tx3);margin-bottom:6px">YOU'VE BEEN DRAFTED</div>
-      <div id="drafted-modal-team" style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1px;line-height:1;color:var(--gold);margin-bottom:4px">TEAM LUKE</div>
+      <div style="font-size:13px;font-weight:600;color:var(--tx3);margin-bottom:6px">You've been drafted</div>
+      <div id="drafted-modal-team" style="font-family:var(--font-head);font-weight:700;font-size:30px;letter-spacing:-.02em;line-height:1.1;color:var(--gold);margin-bottom:4px">Team Luke</div>
       <div id="drafted-modal-tourn" style="font-size:13px;color:var(--tx3);margin-bottom:20px">CrossCourt Season 01</div>
       <p style="font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:22px">Welcome to the roster. Head to the <strong style="color:var(--tx)">Tournaments</strong> tab to see your full team lineup.</p>
       <button type="button" onclick="closeDraftedModal()" class="btn btn-g" style="width:100%;justify-content:center"><i class="ti ti-check"></i>Let's Go!</button>
@@ -2349,9 +2608,9 @@ footer a:hover{color:var(--text-1)}
 
 <!-- ══ GAME DETAIL MODAL ══ -->
 <div id="game-detail-modal" style="display:none;position:fixed;inset:0;z-index:9550;align-items:center;justify-content:center;padding:16px">
-  <div onclick="closeGameDetail()" style="position:absolute;inset:0;background:rgba(0,0,0,.72)"></div>
-  <div style="position:relative;background:var(--card,#0f1729);border:1px solid var(--b,rgba(255,255,255,.08));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
-    <button type="button" onclick="closeGameDetail()" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,.3);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;z-index:1"><i class="ti ti-x"></i></button>
+  <div onclick="closeGameDetail()" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+  <div style="position:relative;background:var(--surface-1);border:1px solid var(--b,rgba(255,255,255,.08));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
+    <button type="button" onclick="closeGameDetail()" aria-label="Close" style="position:absolute;top:14px;right:14px;background:var(--surface-2);border:none;border-radius:50%;width:32px;height:32px;color:var(--text-2);font-size:16px;cursor:pointer;z-index:1"><i class="ti ti-x"></i></button>
     <div id="game-detail-inner" style="overflow-y:auto"></div>
   </div>
 </div>
@@ -2360,18 +2619,18 @@ footer a:hover{color:var(--text-1)}
 <div id="draft-pick-modal" style="display:none;position:fixed;inset:0;z-index:9700;align-items:center;justify-content:center;padding:16px"></div>
 
 <div id="pool-join-modal" style="display:none;position:fixed;inset:0;z-index:9650;align-items:center;justify-content:center;padding:16px">
-  <div onclick="document.getElementById('pool-join-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(0,0,0,.72)"></div>
-  <div id="pool-join-inner" style="position:relative;background:var(--card,#0f1729);border-radius:16px;max-width:380px;width:100%;padding:22px 20px"></div>
+  <div onclick="document.getElementById('pool-join-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+  <div id="pool-join-inner" style="position:relative;background:var(--surface-1);border-radius:16px;max-width:380px;width:100%;padding:22px 20px"></div>
 </div>
 
 <div id="tourn-waiver-modal" style="display:none;position:fixed;inset:0;z-index:9600;align-items:center;justify-content:center;padding:16px">
-  <div style="position:absolute;inset:0;background:rgba(0,0,0,.75)"></div>
-  <div style="position:relative;background:var(--card,#0f1729);border:1px solid rgba(212,175,55,.35);border-radius:16px;max-width:440px;width:100%;max-height:90vh;display:flex;flex-direction:column">
+  <div style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+  <div style="position:relative;background:var(--surface-1);border:1px solid rgba(9,37,87,.35);border-radius:16px;max-width:440px;width:100%;max-height:90vh;display:flex;flex-direction:column">
     <div style="padding:20px 20px 14px;border-bottom:1px solid var(--b)">
       <div style="display:flex;align-items:center;gap:10px">
         <i class="ti ti-shield-check" style="font-size:22px;color:var(--gold)"></i>
         <div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--tx)">Tournament Waiver</div>
+          <div style="font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--tx)">Tournament Waiver</div>
           <div style="font-size:11px;color:var(--tx3);margin-top:1px">Required before you can participate</div>
         </div>
       </div>
@@ -2388,19 +2647,19 @@ footer a:hover{color:var(--text-1)}
         <input type="checkbox" id="tourn-waiver-chk" onchange="document.getElementById('tourn-waiver-sign').disabled=!this.checked;document.getElementById('tourn-waiver-sign').style.opacity=this.checked?'1':'.45'" style="width:20px;height:20px;margin-top:1px;flex-shrink:0;accent-color:var(--gold);cursor:pointer">
         <span style="font-size:13px;color:var(--tx2);line-height:1.5">I have read, understood, and agree to this tournament liability waiver. I confirm I am physically fit to participate. *</span>
       </label>
-      <button id="tourn-waiver-sign" onclick="signTournWaiver()" disabled style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;color:#000;cursor:pointer;opacity:.45;letter-spacing:.02em">Sign &amp; Continue</button>
+      <button id="tourn-waiver-sign" onclick="signTournWaiver()" disabled style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:800;color:#fff;cursor:pointer;opacity:.45;letter-spacing:.02em">Sign &amp; Continue</button>
       <p style="font-size:11px;color:var(--tx3);text-align:center;margin:10px 0 0">You must sign this waiver to appear on your team's roster.</p>
     </div>
   </div>
 </div>
 
 <div id="rules-modal" style="display:none;position:fixed;inset:0;z-index:9500;align-items:center;justify-content:center;padding:16px">
-  <div onclick="closeRulesGate()" style="position:absolute;inset:0;background:rgba(0,0,0,.65)"></div>
-  <div style="position:relative;background:var(--card,#0f1729);border:1px solid var(--gold-soft,rgba(253,184,39,.4));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
+  <div onclick="closeRulesGate()" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+  <div style="position:relative;background:var(--surface-1);border:1px solid var(--gold-soft,rgba(9,37,87,.4));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
     <div style="padding:20px 20px 12px;border-bottom:1px solid var(--b,rgba(255,255,255,.08))">
       <div style="display:flex;align-items:center;gap:9px">
         <span style="font-size:20px;color:var(--gold)"><i class="ti ti-clipboard-check"></i></span>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.5px;color:var(--tx)">Community Rules & Waiver</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--tx)">Community Rules & Waiver</div>
       </div>
       <div style="font-size:12px;color:var(--tx3);margin-top:4px">Please read before reserving your slot.</div>
     </div>
@@ -2427,7 +2686,7 @@ footer a:hover{color:var(--text-1)}
         <div class="rule-item"><strong>Proper gear.</strong> Wear appropriate athletic attire and non-marking court shoes for indoor venues. Bring water.</div>
       </div>
 
-      <div class="rule-grp" style="border:1px solid var(--gold-soft,rgba(253,184,39,.4));border-radius:10px;padding:12px;background:rgba(253,184,39,.06)">
+      <div class="rule-grp" style="border:1px solid var(--gold-soft,rgba(9,37,87,.4));border-radius:10px;padding:12px;background:rgba(9,37,87,.06)">
         <div class="rule-h" style="color:var(--gold)"><i class="ti ti-shield-half"></i> Health & Liability Waiver</div>
         <div class="rule-item"><strong>Play at your own risk.</strong> I understand that basketball, pickleball, badminton, running, dragonboat, and related activities involve inherent risks of injury.</div>
         <div class="rule-item"><strong>Release of liability.</strong> I voluntarily participate at my own risk and release <strong>CCF Makati Sports</strong>, its organizers, leaders, and volunteers from any liability for injuries, accidents, hospitalization, or health issues arising from participation in the runs, open plays, or any activity.</div>
@@ -2449,11 +2708,11 @@ footer a:hover{color:var(--text-1)}
 </div>
 
 <div id="talk-modal" style="display:none;position:fixed;inset:0;z-index:9000;align-items:center;justify-content:center;padding:20px">
-  <div onclick="closeTalk()" style="position:absolute;inset:0;background:rgba(0,0,0,.6)"></div>
-  <div style="position:relative;background:var(--card,#0f1729);border:1px solid var(--gold-soft,rgba(253,184,39,.35));border-radius:16px;max-width:380px;width:100%;padding:22px">
+  <div onclick="closeTalk()" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+  <div style="position:relative;background:var(--surface-1);border:1px solid var(--gold-soft,rgba(9,37,87,.35));border-radius:16px;max-width:380px;width:100%;padding:22px">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">
       <span style="font-size:20px;color:var(--gold)"><i class="ti ti-message-circle-heart"></i></span>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;color:var(--tx)">Talk to Someone</div>
+      <div style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--tx)">Talk to Someone</div>
     </div>
     <div style="font-size:13px;line-height:1.6;color:var(--tx2);margin-bottom:16px">
       Have questions about faith, or want someone to pray with you? Reach out — we're real people who'd be glad to talk, no strings attached.
@@ -2604,17 +2863,26 @@ function compressImage(file, maxDim, quality) {
 }
 
 // Upload file to Supabase Storage (compresses images first)
+// Payment screenshots live in the private "payment-proofs" bucket: members
+// can upload but nobody can list or open them with the public key. We store
+// "payment-proofs/<file>"; admins open it through a short-lived signed link.
+const PROOF_BUCKET = 'payment-proofs';
+function proofFileName(prefix, ...parts) {
+  return prefix + '-' + parts.map(p => String(p).replace(/[^A-Za-z0-9_-]/g, '')).join('-') + '-' + Date.now();
+}
+async function uploadToProofBucket(name, body, contentType) {
+  const r = await fetch(SB+'/storage/v1/object/'+PROOF_BUCKET+'/'+name, {
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':contentType},
+    body
+  });
+  if (!r.ok) { console.error('UPLOAD proof',r.status,await r.text()); return null; }
+  return PROOF_BUCKET+'/'+name;
+}
 async function uploadProof(file, regId) {
   try {
     const small = await compressImage(file, 1400, 0.72);
-    const path  = regId+'.jpg';
-    const r     = await fetch(SB+'/storage/v1/object/proofs/'+path, {
-      method:'POST',
-      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},
-      body: small
-    });
-    if (!r.ok) { console.error('UPLOAD proof',r.status,await r.text()); return null; }
-    return SB+'/storage/v1/object/public/proofs/'+path;
+    return await uploadToProofBucket(proofFileName('reg', regId)+'.jpg', small, 'image/jpeg');
   } catch(e) { console.error('UPLOAD proof',e); return null; }
 }
 
@@ -2681,7 +2949,7 @@ async function syncAll() {
     dbGet('announcements',   'select=*&active=eq.true&order=created_at.desc'),
     dbGet('notifications',   'select=*&order=created_at.desc&limit=20'),
     playersQuery,
-    dbGet('registrations',   'select=*&status=neq.cancelled&order=created_at.desc'),
+    dbGet('registrations_public', 'select=*&status=neq.cancelled&order=created_at.desc'),
     dbGet('payment_methods', 'select=*&active=eq.true&order=sport.asc,sort_order.asc,id.asc'),
     dbGet('game_history',    'select=*&order=created_at.desc&limit=20'),
     dbGet('tournaments',     'select=*&order=created_at.desc').catch(()=>[]),
@@ -2766,6 +3034,15 @@ function renderAnn() {
 function dismissAnn(i){const a=LC.arr('announcements');if(a[i]){a[i].active=false;LC.set('announcements',a);renderAnn()}}
 
 // ── HERO STATUS ───────────────────────────────────────────────
+// Day number + "NOV · SUN" badge; falls back to the plain status dot when
+// a game has no usable date.
+function heroDateBadge(dateStr, confirmed) {
+  const d = dateStr ? new Date(dateStr + 'T00:00:00') : null;
+  if (!d || isNaN(d)) return `<div class="sdot ${confirmed ? 'on' : 'tbd'}"></div>`;
+  const mon = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const dow = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  return `<div class="sdate${confirmed ? '' : ' tbd'}"><b>${String(d.getDate()).padStart(2,'0')}</b><span>${mon} · ${dow}</span></div>`;
+}
 function renderHeroStatus() {
   const el=document.getElementById('hero-status'); if(!el) return;
   const games=LC.arr('games').filter(g=>g.status!=='cancelled'&&g.status!=='completed');
@@ -2785,11 +3062,13 @@ function renderHeroStatus() {
   const db = pick('dragonboat');
   const rowFor = (g, sportLabel) => {
     if (!g) return '';
-    const dotCls = g.status==='confirmed' ? 'on' : 'tbd';
-    const head   = g.status==='confirmed' ? `${sportLabel} · ${g.label}` : `${sportLabel} · status TBD`;
-    const sub    = g.status==='confirmed' ? `${g.time} · ${g.venue||'venue TBA'}` : (g.label||'Date pending');
+    const ok   = g.status==='confirmed';
+    const head = ok ? sportLabel : `${sportLabel} · to be confirmed`;
+    const taken = new Set(LC.arr('regs').filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
+    const cap  = ok && g.spots && taken ? `<em class="stext-cap">${taken} of ${g.spots} spots taken</em>` : '';
+    const sub  = (ok ? `${g.time} · ${g.venue||'venue TBA'}` : (g.label||'Date pending')) + cap;
     return `<div class="status-row">
-      <div class="sdot ${dotCls}"></div>
+      ${heroDateBadge(g.date, ok)}
       <div class="stext"><strong>${head}</strong><span>${sub}</span></div>
   </div>`;
   };
@@ -2898,12 +3177,12 @@ function checkDraftNotification() {
       const seenKey = 'draft_seen_' + ME.id + '_' + t.id;
       if (localStorage.getItem(seenKey)) return;
       // Team colour bar
-      const colours = { 'Team Luke': '#60A5FA', 'Team Mark': '#4ADE80', 'Team John': '#F87171', 'Team Matthew': '#FBBF24' };
+      const colours = { 'Team Luke': '#1D4ED8', 'Team Mark': '#15803D', 'Team John': '#B91C1C', 'Team Matthew': '#B45309' };
       const bar = document.getElementById('drafted-modal-bar');
       const teamEl = document.getElementById('drafted-modal-team');
       const tournEl = document.getElementById('drafted-modal-tourn');
       if (bar) bar.style.background = colours[team.name] || 'var(--gold)';
-      if (teamEl) { teamEl.textContent = (team.name||'').toUpperCase(); teamEl.style.color = colours[team.name] || 'var(--gold)'; }
+      if (teamEl) { teamEl.textContent = team.name||''; teamEl.style.color = colours[team.name] || 'var(--gold)'; }
       if (tournEl) tournEl.textContent = t.name || 'Tournament';
       localStorage.setItem(seenKey, '1');
       setTimeout(() => { document.getElementById('drafted-modal').style.display = 'flex'; }, 1200);
@@ -3200,7 +3479,7 @@ function renderProfile() {
     av.style.background='';
     av.textContent=ini(ME.firstName,ME.lastName);
   }
-  document.getElementById('d-name').textContent  = ME.firstName.toUpperCase()+' '+ME.lastName.toUpperCase();
+  document.getElementById('d-name').textContent  = ME.firstName+' '+ME.lastName;
   const dg = ME.hasDgroup?(ME.dgroupLeader?'Dgroup · '+ME.dgroupLeader:'Has Dgroup'):'No Dgroup';
   const sportsList = [...new Set((ME.sports||'basketball').split(',').map(s=>s.trim()).filter(Boolean))];
   const sportTags = sportsList.map(s => s==='pickleball'
@@ -3430,7 +3709,7 @@ function renderDgroupSection(){
       : `<i class="ti ti-clock-hour-4" style="color:var(--gold)"></i> Waiting for the Dgroup coordinator to confirm your leader.`;
     else if (!j.complete) status = `<i class="ti ti-alert-circle" style="color:var(--gold)"></i> <strong style="color:var(--tx)">Finish your Dgroup details</strong> so we can log you with CCF.`;
     else if (logged && j.sheet_update_pending) status = `<i class="ti ti-refresh" style="color:var(--gold)"></i> Your changes are being sent to CCF. The coordinator will follow up if it doesn't go through.`;
-    else if (logged) status = `<i class="ti ti-circle-check" style="color:var(--success,#22C55E)"></i> Logged with CCF's Lifestage Ministry.`;
+    else if (logged) status = `<i class="ti ti-circle-check" style="color:var(--success)"></i> Logged with CCF's Lifestage Ministry.`;
     else status = `<i class="ti ti-send" style="color:var(--gold)"></i> Confirmed &mdash; sending to CCF. The coordinator will follow up if anything's missing.`;
     const canEdit = true;
     el.innerHTML = head('My Dgroup') + `<div class="card">
@@ -3563,7 +3842,7 @@ function renderTeamStackHtml(entries, opts) {
       <div class="team-card-top">
         <div>
           <div class="team-card-eyebrow">Current Team</div>
-          <div class="team-card-name">${feedEsc(e.team.name).toUpperCase()}</div>
+          <div class="team-card-name">${feedEsc(e.team.name)}</div>
           <div class="team-card-league"><i class="ti ti-trophy" style="font-size:12px"></i>${feedEsc(t.name)}</div>
         </div>
         <div class="team-card-badge" style="background:${color}">${initial}</div>
@@ -3615,6 +3894,11 @@ async function openStatCard() {
 
   // Draw immediately with cached data so it's not blank
   scBuildStats();
+  // The card is drawn in Bebas Neue and Inter, which the light UI no longer
+  // uses, so the browser won't have fetched them yet. Load them before drawing.
+  try {
+    await Promise.all(['40px "Bebas Neue"','500 20px Inter','600 20px Inter','700 20px Inter','800 20px Inter'].map(f => document.fonts.load(f)));
+  } catch (e) { console.warn('[stat card] font load failed', e); }
   await document.fonts.ready;
   scDraw();
 
@@ -4318,7 +4602,7 @@ document.getElementById('ep-file').addEventListener('change', async function(e){
   try {
     const small=await compressImage(file,512,0.8);
     const path='avatar-'+ME.id+'-'+Date.now()+'.jpg';
-    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},body:small});
+    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg'},body:small});
     if (r.ok) { epUploadedUrl=SB+'/storage/v1/object/public/proofs/'+path; document.getElementById('ep-remove').style.display=''; }
     else { toast('Upload failed','er'); }
   } catch(err){ toast('Upload failed','er'); }
@@ -4507,16 +4791,7 @@ function renderWeekGames() {
     const spots  =(g.spots||20)-count;
     const mySt   =myReg?(myReg.status||'pending'):'';
     const tClass =g.status==='confirmed'?'game-top g-on':g.status==='cancelled'?'game-top g-off':'game-top';
-    const sBadge =g.status==='confirmed'?'<span class="badge b-on">ON</span>':'<span class="badge b-tbd">TBD</span>';
-    const sportBadge = (g.sport||'basketball')==='running'
-      ? '<span class="badge b-nv"><span class="spi spi-r"></span>Running</span>'
-      : (g.sport||'basketball')==='pickleball'
-      ? '<span class="badge b-nv"><span class="spi spi-p"></span>Pickleball</span>'
-      : (g.sport||'basketball')==='badminton'
-      ? '<span class="badge b-nv"><span class="spi spi-bd"></span>Badminton</span>'
-      : (g.sport||'basketball')==='dragonboat'
-      ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
-      : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
+    const sBadge =g.status==='confirmed'?'<span class="badge b-on">Game on</span>':'<span class="badge b-tbd">To be confirmed</span>';
     const waitlistPos = mySt==='waitlist' ? regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort((a,b)=>(a.registered||'').localeCompare(b.registered||'')).findIndex(r=>r.playerId===ME.id)+1 : 0;
     const mBadge =mySt==='confirmed'?'<span class="badge b-on"> Confirmed</span>':mySt==='cancelled'?'<span class="badge b-rd"> Cancelled</span>':mySt==='waitlist'?`<span class="badge b-tbd">Waitlisted${waitlistPos?' #'+waitlistPos:''}</span>`:mySt?'<span class="badge b-tbd"> Pending</span>':'';
     const cancelBtn = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="game-share-btn" onclick="event.stopPropagation();cancelMyRegistration('${myReg.id}','${g.id}')" title="Cancel my slot" aria-label="Cancel my slot"><i class="ti ti-x"></i></button>` : '';
@@ -4525,7 +4800,7 @@ function renderWeekGames() {
     const vurl   =(g.venueUrl||'').trim();
     const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Venue</a>` : '';
     const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold)"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
-    const wxLine = g.weatherNote ? `<div style="margin:0 20px 10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
+    const wxLine = g.weatherNote ? `<div style="margin:0 20px 10px;background:var(--warning-soft);border:1px solid rgba(180,83,9,.25);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
     const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id))];
     const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
     const shownAttendees = attendees.slice(0,5);
@@ -4540,18 +4815,25 @@ function renderWeekGames() {
       ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
       <span class="attendee-label">${attendees.length} signed up</span>
     </div>` : '';
+    const mine     = mySt==='confirmed'||mySt==='pending'||mySt==='waitlist';
+    const sportKey = g.sport||'basketball';
+    const sportName= {running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'}[sportKey]||'Basketball';
+    const spiCls   = {running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'}[sportKey]||'spi-b';
+    const capPct   = Math.min(100, Math.round(count / (g.spots||20) * 100));
     const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i><span>Invite</span></button>`;
-    return `<div class="game-card" id="game-card-${g.id}">
+    return `<div class="game-card${mine?' mine':''}" id="game-card-${g.id}">
       <div class="${tClass}" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
-        <div class="game-row"><div><div class="game-label">${g.label}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}</div>${attendeeStack}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
+        <div class="game-row">${heroDateBadge(g.date, g.status==='confirmed')}<div class="game-info"><div class="game-label"><span class="spi ${spiCls}"></span>${sportName}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
+        ${attendeeStack}
+        <div class="game-cap"><div class="track"><i style="width:${capPct}%"></i></div></div>
     </div>
       ${wxLine}
       <div class="game-bot">
         <div class="game-spots ${spots<=3&&!mySt?'warn':''}">${spots<=0&&!myReg?'Game full':spots+' slots left'}</div>
         <div style="display:flex;align-items:center;gap:8px">${shareBtn}${myReg?mBadge:jBtn}${cancelBtn}</div>
     </div>
-      ${mySt==='pending'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">Waiting for admin confirmation</div>':''}
-      ${mySt==='waitlist'?'<div style="padding:0 20px 12px;font-size:11px;color:var(--tx3)">You\'ll be automatically confirmed if a slot opens up</div>':''}
+      ${mySt==='pending'?'<div class="game-note">Waiting for admin confirmation</div>':''}
+      ${mySt==='waitlist'?'<div class="game-note">You\'ll be automatically confirmed if a slot opens up</div>':''}
   </div>`;
   }).join('');
   _maybeScrollToGame();
@@ -4612,16 +4894,9 @@ function openGameDetail(gameId){
   const spots = (g.spots||20)-count;
   const mySt = myReg ? (myReg.status||'pending') : '';
 
-  const sBadge = g.status==='confirmed' ? '<span class="badge b-on">ON</span>' : g.status==='cancelled' ? '<span class="badge b-rd">Cancelled</span>' : '<span class="badge b-tbd">TBD</span>';
-  const sportBadge = (g.sport||'basketball')==='running'
-    ? '<span class="badge b-nv"><span class="spi spi-r"></span>Running</span>'
-    : (g.sport||'basketball')==='pickleball'
-    ? '<span class="badge b-nv"><span class="spi spi-p"></span>Pickleball</span>'
-    : (g.sport||'basketball')==='badminton'
-    ? '<span class="badge b-nv"><span class="spi spi-bd"></span>Badminton</span>'
-    : (g.sport||'basketball')==='dragonboat'
-    ? '<span class="badge b-nv"><span class="spi spi-db"></span>Dragonboat</span>'
-    : '<span class="badge b-gd"><span class="spi spi-b"></span>Basketball</span>';
+  const sBadge = g.status==='confirmed' ? '<span class="badge b-on">Game on</span>' : g.status==='cancelled' ? '<span class="badge b-rd">Cancelled</span>' : '<span class="badge b-tbd">To be confirmed</span>';
+  const _sk = g.sport||'basketball';
+  const sportBadge = `<span class="spi ${({running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'})[_sk]||'spi-b'}"></span>${({running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'})[_sk]||'Basketball'}`;
   const mBadge = mySt==='confirmed' ? '<span class="badge b-on"> Confirmed</span>' : mySt==='cancelled' ? '<span class="badge b-rd"> Cancelled</span>' : mySt==='waitlist' ? '<span class="badge b-tbd">Waitlisted</span>' : mySt ? '<span class="badge b-tbd"> Pending</span>' : '';
   const jBtn = !mySt&&spots>0&&ME ? `<button type="button" class="join-btn" onclick="closeGameDetail();startJoin('${g.id}')" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
     : !mySt&&spots<=0&&ME ? `<button type="button" class="join-btn" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--text-1)" onclick="closeGameDetail();startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>` : '';
@@ -4629,7 +4904,7 @@ function openGameDetail(gameId){
   const vurl = (g.venueUrl||'').trim();
   const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Open Map</a>` : '';
   const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold);margin-top:4px"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
-  const wxLine = g.weatherNote ? `<div style="margin-top:10px;background:rgba(253,184,39,.10);border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
+  const wxLine = g.weatherNote ? `<div style="margin-top:10px;background:var(--warning-soft);border:1px solid rgba(180,83,9,.25);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
 
   const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id))];
   const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
@@ -4648,25 +4923,25 @@ function openGameDetail(gameId){
   const waitlistPlayers = waitlistIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
   const waitlistSection = waitlistPlayers.length ? `
     <div style="padding:0 20px 16px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
       <div style="max-height:200px;overflow-y:auto;margin-top:8px">${waitlistPlayers.map(rosterRow).join('')}</div>
     </div>` : '';
 
   document.getElementById('game-detail-inner').innerHTML = `
     <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-right:24px">
-        <div>
-          <div class="game-label" style="font-size:24px">${feedEsc(g.label)}</div>
+      <div class="game-row" style="padding-right:40px">
+        ${heroDateBadge(g.date, g.status==='confirmed')}
+        <div class="game-info">
+          <div class="game-label" style="font-size:20px">${sportBadge}</div>
           <div class="game-meta" style="margin-top:4px">${feedEsc(g.time)} · ${feedEsc(g.venue)}${venueLink}</div>
           ${routeLine}
         </div>
-        ${sBadge}
       </div>
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">${sportBadge}${myReg?mBadge:''}</div>
+      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${sBadge}${myReg?mBadge:''}</div>
       ${wxLine}
     </div>
     <div style="padding:16px 20px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${spots<=0&&!myReg?'Game full':spots+' slots left'} · ${attendees.length} signed up</div>
+      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">${spots<=0&&!myReg?'Game full':spots+' slots left'} · ${attendees.length} signed up</div>
       <div style="max-height:260px;overflow-y:auto;margin-top:8px">${attendeeRows}</div>
     </div>
     ${waitlistSection}
@@ -5095,7 +5370,7 @@ function renderNotifs() {
     list.innerHTML=notifs.map(n=>`
       <div class="notif-row" style="padding:12px 16px">
         <div style="font-size:18px;flex-shrink:0">${icons[n.type]||''}</div>
-        <div><div style="font-size:13px;font-weight:700;margin-bottom:2px">${n.title||''}</div><div style="font-size:12px;color:var(--tx2)">${n.message||''}</div><div style="font-size:10px;color:var(--tx3);margin-top:3px;text-transform:uppercase;letter-spacing:.5px">${n.created_at||''}</div></div>
+        <div><div style="font-size:13px;font-weight:700;margin-bottom:2px">${n.title||''}</div><div style="font-size:12px;color:var(--tx2)">${n.message||''}</div><div style="font-size:10px;color:var(--tx3);margin-top:3px;">${n.created_at||''}</div></div>
     </div>`).join('');
   }
   // Badge = notifications beyond what's been seen
@@ -5281,7 +5556,7 @@ async function onPostImage(e){
   if(!blob){ st.textContent='Could not read that image.'; return; }
   try{
     const path='post_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.jpg';
-    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg','x-upsert':'true'},body:blob});
+    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg'},body:blob});
     if(!r.ok){ st.textContent='Upload failed — try again.'; return; }
     postImgUrl=SB+'/storage/v1/object/public/proofs/'+path;
     document.getElementById('fc-img').src=postImgUrl;
@@ -5417,7 +5692,7 @@ function switchTournTab(tab) {
   document.querySelectorAll('.tdt-tab').forEach(btn => {
     const active = btn.dataset.tab === tab;
     btn.style.color = active ? '#fff' : 'rgba(255,255,255,.55)';
-    btn.style.borderBottom = active ? '2px solid #fff' : '2px solid transparent';
+    btn.style.borderBottom = active ? '2px solid var(--hi)' : '2px solid transparent';
     btn.style.fontWeight = active ? '700' : '500';
   });
 }
@@ -5566,8 +5841,8 @@ function renderDirectory() {
     const mine=ME&&p.id===ME.id;
     const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}');background-size:cover`:`background:${lbCol(i)}`;
     const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
-    const rankColor=rank===1?'var(--gold)':rank===2?'#C0C0C0':rank===3?'#CD7F32':'var(--tx3)';
-    const rankStyle=rank<=3?`font-weight:800;font-size:15px;color:${rankColor}`:`font-size:13px;color:var(--tx3)`;
+    const rankColor=rank<=3?'var(--hi-text)':'var(--tx3)';
+    const rankStyle=rank<=3?`font-family:var(--font-display);font-weight:700;font-size:18px;color:${rankColor}`:`font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--tx3)`;
 
     let statVal='';
     if(dirSport==='basketball'){
@@ -5595,15 +5870,15 @@ function renderDirectory() {
       : `${p.position||'Player'} · ${p._games} game${p._games===1?'':'s'}`;
 
     return `<div onclick="viewPlayer('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
-      <div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank<=3?['🥇','🥈','🥉'][rank-1]:rank}</div>
+      <div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank}</div>
       <div class="dir-av" style="${avStyle};flex-shrink:0">${avTxt}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold);font-weight:700">(You)</span>':''}</div>
         <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sub}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
-        <div style="font-weight:800;font-size:16px;color:${rank<=3?rankColor:'var(--tx)'}">${statVal}</div>
-        <div style="font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px">${statLabel}</div>
+        <div style="font-weight:800;font-size:16px;color:var(--tx)">${statVal}</div>
+        <div style="font-size:10px;color:var(--tx3);">${statLabel}</div>
       </div>
     </div>`;
   }).join('');
@@ -5757,7 +6032,7 @@ function renderLeaderboard(){
       const wl=playerWL(p.id);
       const provisional=(wl.w+wl.l < 3);
       const provTag = provisional
-        ? ' <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
+        ? ' <span style="font-size:9px;font-weight:700;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
         : '';
       const wlLabel = wl.w+wl.l>0 ? wl.w+'W · '+wl.l+'L' : 'No matches yet';
       const metaLabel = provisional
@@ -5919,12 +6194,12 @@ function matchHistoryHtml(pid){
   return ms.map(m=>{
     const partnerTxt=m.partner?('w/ '+rosterName(m.partner)):'';
     const oppTxt=(m.opps||[]).map(rosterName).join(' & ')||'—';
-    const resultColor=m.won?'#22C55E':'var(--tx3)';
+    const resultColor=m.won?'var(--success)':'var(--tx3)';
     const resultBg=m.won?'rgba(34,197,94,.12)':'rgba(123,138,166,.1)';
-    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:var(--surface-2);border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'} ${m.myScore}–${m.oppScore}</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${resultColor};background:${resultBg};padding:2px 8px;border-radius:20px">${m.court||''}</span>
+        <span style="font-size:10px;font-weight:700;color:${resultColor};background:${resultBg};padding:2px 8px;border-radius:20px">${m.court||''}</span>
       </div>
       <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt} ${partnerTxt?'· '+partnerTxt:''}</div>
       ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
@@ -5977,11 +6252,11 @@ function basketballMatchHistoryHtml(pid){
   return ms.map(m=>{
     const teammateTxt=(m.teammates&&m.teammates.length)?('w/ '+m.teammates.map(rosterName).join(', ')):'';
     const oppTxt=(m.opps||[]).map(rosterName).join(', ')||'—';
-    const resultColor=m.won?'#22C55E':'var(--tx3)';
-    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+    const resultColor=m.won?'var(--success)':'var(--tx3)';
+    return `<div style="padding:9px 11px;border-radius:8px;margin-bottom:6px;background:var(--surface-2);border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
         <span style="font-size:13px;font-weight:700;color:${resultColor}">${m.won?'WON':'LOST'}</span>
-        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#f48c06;background:rgba(244,140,6,.14);padding:2px 8px;border-radius:20px"><span class="spi spi-b"></span> BASKETBALL</span>
+        <span style="font-size:11px;font-weight:600;color:var(--brand);background:var(--brand-soft);padding:2px 8px;border-radius:6px"><span class="spi spi-b"></span> Basketball</span>
       </div>
       <div style="font-size:11px;color:var(--tx3);margin-top:3px">vs ${oppTxt}${teammateTxt?' · '+teammateTxt:''}</div>
       ${m.date?`<div style="font-size:10px;color:var(--tx3);margin-top:1px">${m.date}</div>`:''}
@@ -6014,10 +6289,10 @@ function sessionLogHtml(){
       const loseNames=(m.winner==='A'?m.teamB:m.teamA).map(rosterName).join(' & ')||'—';
       const winScore=m.winner==='A'?m.scoreA:m.scoreB;
       const loseScore=m.winner==='A'?m.scoreB:m.scoreA;
-      return `<div style="padding:7px 10px;border-radius:7px;margin-bottom:5px;background:rgba(255,255,255,.02);border:1px solid var(--border)">
+      return `<div style="padding:7px 10px;border-radius:7px;margin-bottom:5px;background:var(--surface-2);border:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
           <span style="font-size:13px;font-weight:700;color:var(--tx);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${winNames}</span>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.5px;color:var(--gold);flex-shrink:0">${winScore}–${loseScore}</span>
+          <span style="font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:.5px;color:var(--gold);flex-shrink:0">${winScore}–${loseScore}</span>
         </div>
         <div style="font-size:11px;color:var(--tx3);margin-top:2px">def. ${loseNames}${m.court?' · '+m.court:''}</div>
       </div>`;
@@ -6053,7 +6328,7 @@ function viewPlayer(id){
   document.getElementById('pv-body').innerHTML=`
     <div class="pv-head">
       <div class="pv-av" style="${avStyle}">${avTxt}</div>
-      <div class="pv-name">${p.firstName.toUpperCase()} ${p.lastName.toUpperCase()}</div>
+      <div class="pv-name">${p.firstName} ${p.lastName}</div>
       <div class="pv-pos">${p.position||'Player'} · ${dg}</div>
       <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-top:4px">${rankTxt}</div>
       ${renderTeamStackHtml(myCurrentTeamEntries(id), {compact:true})}
@@ -6069,7 +6344,7 @@ function viewPlayer(id){
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-b"></span> Basketball Record</div>
-          <div style="font-size:12px;color:var(--tx2)"><span style="color:#22C55E;font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
+          <div style="font-size:12px;color:var(--tx2)"><span style="color:var(--success);font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
         </div>
         <button type="button" id="pv-bb-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleBasketballMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
         <div id="pv-bb-match-history" style="display:none;margin-top:10px"></div>
@@ -6078,7 +6353,7 @@ function viewPlayer(id){
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-p"></span> Pickleball Record</div>
-          <div style="font-size:12px;color:var(--tx2)"><span style="color:#22C55E;font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
+          <div style="font-size:12px;color:var(--tx2)"><span style="color:var(--success);font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
         </div>
         <button type="button" id="pv-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
         <div id="pv-match-history" style="display:none;margin-top:10px"></div>
@@ -6097,14 +6372,11 @@ let _tDetailTab = 'info'; // active tab inside tournament detail
 
 const TOURN_SPORT_ICON = { basketball:'ti-ball-basketball', pickleball:'ti-tennis', badminton:'ti-feather', running:'ti-run', dragonboat:'ti-ripple' };
 const TOURN_SPORT_GRAD = {
-  basketball: 'linear-gradient(135deg,#b5390a 0%,#e85d04 55%,#f48c06 100%)',
-  pickleball: 'linear-gradient(135deg,#1a6b3a 0%,#27ae60 55%,#2ecc71 100%)',
-  badminton:  'linear-gradient(135deg,#1a3a6b 0%,#2756c5 55%,#4d94ff 100%)',
-  running:    'linear-gradient(135deg,#6b1a5f 0%,#9b27af 55%,#ce93d8 100%)',
-  dragonboat: 'linear-gradient(135deg,#0a4d6b 0%,#0277bd 55%,#29b6f6 100%)',
+  basketball: 'var(--brand)', pickleball: 'var(--brand)', badminton: 'var(--brand)',
+  running: 'var(--brand)', dragonboat: 'var(--brand)',
 };
 const TOURN_SPORT_ACCENT = {
-  basketball:'#f48c06', pickleball:'#27ae60', badminton:'#4d94ff', running:'#ce93d8', dragonboat:'#29b6f6'
+  basketball:'var(--hi-text)', pickleball:'var(--hi-text)', badminton:'var(--hi-text)', running:'var(--hi-text)', dragonboat:'var(--hi-text)'
 };
 
 function renderTournaments() {
@@ -6120,7 +6392,7 @@ function renderTournaments() {
   }
   list.innerHTML = rows.map(t => {
     const icon    = TOURN_SPORT_ICON[t.sport] || 'ti-trophy';
-    const grad    = TOURN_SPORT_GRAD[t.sport]  || 'linear-gradient(135deg,#1a1a2e,#16213e)';
+    const grad    = TOURN_SPORT_GRAD[t.sport]  || 'var(--brand)';
     const accent  = TOURN_SPORT_ACCENT[t.sport] || 'var(--gold)';
     const isActive    = t.status === 'active';
     const isCompleted = t.status === 'completed';
@@ -6145,27 +6417,27 @@ function renderTournaments() {
 
     const isCrossCourt = /crosscourt/i.test(t.name);
     const cardBg = t.banner_url
-      ? `background:#0a1628`
+      ? `background:#092557`
       : isCrossCourt
-        ? `background:linear-gradient(135deg,#0a1628 0%,#0f2244 60%,#0a1628 100%)`
+        ? `background:var(--brand)`
         : `background:${grad}`;
 
-    return `<div style="margin-bottom:16px;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 4px 24px rgba(0,0,0,.4);position:relative;border:1px solid rgba(255,255,255,.06)" onclick="openTournDetail('${t.id}')">
+    return `<div style="margin-bottom:16px;border-radius:16px;overflow:hidden;cursor:pointer;background:var(--surface-1);position:relative;border:1px solid var(--border)" onclick="openTournDetail('${t.id}')">
       <!-- banner -->
       <div style="${cardBg};padding:20px 18px 16px;position:relative;overflow:hidden;min-height:${isCrossCourt||t.banner_url?'120px':'auto'}">
         ${t.banner_url?`
           <div style="position:absolute;inset:0;background:url('${t.banner_url}') center/cover no-repeat;opacity:.35;pointer-events:none"></div>
-          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(10,22,40,.95) 45%,rgba(10,22,40,.2) 100%);pointer-events:none"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(9,37,87,.95) 45%,rgba(9,37,87,.2) 100%);pointer-events:none"></div>
         `:isCrossCourt?`
           <img src="crosscourt-logo.svg" alt="CrossCourt" style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);height:130px;width:auto;opacity:.9;pointer-events:none">
-          <div style="position:absolute;inset:0;background:linear-gradient(to right,#0a1628 42%,transparent 100%);pointer-events:none"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(to right,#092557 42%,transparent 100%);pointer-events:none"></div>
         `:`
           <i class="ti ${icon}" style="position:absolute;right:-10px;top:-10px;font-size:90px;opacity:.12;color:#fff;pointer-events:none"></i>
         `}
         <!-- top row: status + sport label -->
         <div style="position:relative;display:flex;align-items:center;gap:8px;margin-bottom:12px">
           ${isActive?`<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 1.4s infinite;flex-shrink:0"></span>`:''}
-          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
+          <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
           ${!isCrossCourt?`<span style="font-size:11px;font-weight:700;background:rgba(0,0,0,.35);border-radius:6px;padding:3px 9px;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.08);margin-left:auto">${sportLabel}</span>`:''}
         </div>
         <!-- tournament name -->
@@ -6177,13 +6449,13 @@ function renderTournaments() {
         </div>
       </div>
       <!-- info strip -->
-      <div style="background:rgba(255,255,255,.03);padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="padding:10px 16px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
         <span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-calendar" style="color:${accent};font-size:13px"></i>${dateStr}</span>
         ${t.venue?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-map-pin" style="color:${accent};font-size:13px"></i>${t.venue}</span>`:''}
         ${formatLabel?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-tournament" style="color:${accent};font-size:13px"></i>${formatLabel}</span>`:''}
         ${t.game_days?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-repeat" style="color:${accent};font-size:13px"></i>${t.game_days}</span>`:''}
       </div>
-      ${ownerNames.length?`<div style="background:rgba(255,255,255,.03);padding:0 16px 10px;font-size:12px;color:var(--tx3);border-top:1px solid rgba(255,255,255,.04)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.join(', ')}</div>`:''}
+      ${ownerNames.length?`<div style="padding:0 16px 10px;font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.join(', ')}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -6252,7 +6524,7 @@ function renderTournDetail(id) {
     if (!stats) return '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No stats entered yet.</div>';
     const tA = teams.find(x=>x.id===m.teamA)||{name:'Team A',players:[]};
     const tB = teams.find(x=>x.id===m.teamB)||{name:'Team B',players:[]};
-    const thead = `<tr style="background:var(--b2);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px">
+    const thead = `<tr style="background:var(--b2);font-size:10px;color:var(--tx3);">
       <th style="padding:5px 8px;text-align:left;font-weight:700">Player</th>
       ${STAT_HDRS.map(h=>`<th style="padding:5px 4px;text-align:center;font-weight:700">${h}</th>`).join('')}
     </tr>`;
@@ -6267,7 +6539,7 @@ function renderTournDetail(id) {
         </tr>`;
       }).join('');
       if (!rows) return '';
-      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:8px 0 4px">${teamObj.name}</div>
+      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${teamObj.name}</div>
         <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}${rows}</table></div>`;
     };
     return teamRows(tA) + teamRows(tB);
@@ -6277,7 +6549,7 @@ function renderTournDetail(id) {
   const matchCard = (m, roundLabel, sublabel) => {
     if (!m) return `
       <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:8px;opacity:.5">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:8px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
         <div style="text-align:center;font-size:13px;color:var(--tx3)">Not scheduled yet</div>
       </div>`;
     const aName = m.teamA ? teamName(m.teamA) : 'TBD';
@@ -6286,7 +6558,7 @@ function renderTournDetail(id) {
     const statsId = 'tgstats-'+t.id+'-'+m.round;
     return `
       <div style="background:var(--b2);border-radius:10px;padding:14px;margin-bottom:8px">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:10px">${roundLabel}${sublabel?'<span style="margin-left:6px;color:var(--gold)">'+sublabel+'</span>':''}</div>
         <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px">
           <div style="text-align:right">
             <div style="font-weight:${aWon?'800':'600'};font-size:15px;color:${aWon?'var(--tx)':'var(--tx2)'}">${aName}</div>
@@ -6341,7 +6613,7 @@ function renderTournDetail(id) {
       </div>
       ${breakdown.map(x=>{
         const perTeam = Math.round(Number(x.amount) / numTeams);
-        return `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+        return `<div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(15,23,41,.04)">
           <span style="color:var(--tx2)">${x.label} <span style="font-size:11px;color:var(--tx3)">(₱${Number(x.amount).toLocaleString()} ÷ ${numTeams})</span></span>
           <span style="font-weight:600">₱${perTeam.toLocaleString()}</span>
         </div>`;
@@ -6354,11 +6626,11 @@ function renderTournDetail(id) {
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)">
         <div>
           <div style="font-size:13px;font-weight:600">Installment ${i+1}${dateStr?' · <span style="font-weight:400;color:var(--tx3)">'+dateStr+'</span>':''}</div>
-          <div style="font-size:11px;color:${sc};font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${sl}</div>
+          <div style="font-size:11px;color:${sc};font-weight:700;margin-top:2px">${sl}</div>
         </div>
         <div style="text-align:right">
           <div style="font-weight:800;font-size:14px">₱${Number(p.amount).toLocaleString()}</div>
-          ${p.proof_url?`<a href="${p.proof_url}" target="_blank" style="font-size:11px;color:var(--gr)">View proof</a>`:''}
+          ${p.proof_url?`<span style="font-size:11px;color:var(--gr)">Proof sent</span>`:''}
         </div>
       </div>`;
     }).join('') : '';
@@ -6371,7 +6643,7 @@ function renderTournDetail(id) {
             <div style="font-weight:700;font-size:15px">${myTeam.name}</div>
             <div style="font-size:12px;color:var(--tx2);margin-top:2px">You are the team owner</div>
           </div>
-          <span style="font-size:11px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px">${statusLabel}</span>
+          <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
         </div>
         ${feeRows}
         <div style="border-top:1px solid var(--b);margin-top:4px;padding-top:8px">
@@ -6388,7 +6660,7 @@ function renderTournDetail(id) {
         ${installmentRows?`<div style="margin-top:12px;padding-top:4px">${installmentRows}</div>`:''}
         ${!fullyPaid ? `
           <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--b)">
-            <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Send Payment To</div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:8px">Send Payment To</div>
             ${methodsList}
             <div style="margin-top:12px">
               <label class="lbl">Amount Sending (₱)${balance>0?' · Balance: ₱'+balance.toLocaleString():''}</label>
@@ -6421,7 +6693,7 @@ function renderTournDetail(id) {
       <div class="card" style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-weight:700;font-size:15px">${myReg.team_name}</div>
-          <span style="font-size:11px;font-weight:700;color:${regStatusColor};text-transform:uppercase;letter-spacing:.5px">${regStatusLabel}</span>
+          <span style="font-size:11px;font-weight:700;color:${regStatusColor};">${regStatusLabel}</span>
         </div>
         <div style="font-size:13px;color:var(--tx2);line-height:1.7">${regPlayerNames||'No players listed'}</div>
         ${myReg.status==='pending'?`<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The organizer will review and add your team to the bracket.</div>`:''}
@@ -6491,7 +6763,7 @@ function renderTournDetail(id) {
       const eligible = statPlayers.filter(p=>p.tracked[field]>0);
       const top = eligible.length ? [...eligible].sort((a,b)=>b[field]-a[field])[0] : null;
       return top ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b)">
-        <div style="font-size:13px"><span style="font-weight:700;color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-right:8px">${field.toUpperCase()}</span>${_tpName(top.playerId)}</div>
+        <div style="font-size:13px"><span style="font-weight:700;color:var(--tx3);font-size:11px;margin-right:8px">${field.toUpperCase()}</span>${_tpName(top.playerId)}</div>
         <span style="font-weight:800;font-size:15px">${top[field]}</span>
       </div>` : '';
     };
@@ -6506,7 +6778,7 @@ function renderTournDetail(id) {
     <div class="card" style="margin-bottom:14px;padding:0;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead>
-          <tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+          <tr style="background:var(--b2);color:var(--tx3);font-size:11px;">
             <th style="padding:8px 12px;text-align:left;font-weight:700">#</th>
             <th style="padding:8px 12px;text-align:left;font-weight:700">Team</th>
             <th style="padding:8px 4px;text-align:center;font-weight:700">W</th>
@@ -6518,7 +6790,7 @@ function renderTournDetail(id) {
           ${standings.map((s,i)=>`
             <tr style="border-top:1px solid var(--b)${i<2?';background:rgba(0,200,100,.04)':''}">
               <td style="padding:10px 12px;font-weight:700;color:${i===0?'var(--gold)':i<2?'var(--gr)':'var(--tx3)'}">${i+1}</td>
-              <td style="padding:10px 12px;font-weight:${i<2?'700':'500'}">${s.name}${i===0?' 🏆':i===1?' 🥈':i===2?' 🥉':''}</td>
+              <td style="padding:10px 12px;font-weight:${i<2?'700':'500'}">${s.name}</td>
               <td style="padding:10px 4px;text-align:center;color:var(--gr);font-weight:700">${s.w}</td>
               <td style="padding:10px 4px;text-align:center;color:var(--tx3)">${s.l}</td>
               <td style="padding:10px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'var(--danger,#e53e3e)'}">${s.diff>0?'+':''}${s.diff}</td>
@@ -6546,7 +6818,7 @@ function renderTournDetail(id) {
           <div style="font-size:13px;font-weight:${isMe?'700':'500'};color:${isMe?'var(--tx)':'var(--tx2)'}">${_tpName(pid)}${isMe?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
           <div style="font-size:10px;font-weight:700;margin-top:2px;${wSigned?'color:var(--gr)':'color:var(--am,#f59e0b)'}">${wSigned?'✓ Waiver signed':'⏳ Waiver pending'}</div>
         </div>
-        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(212,175,55,.12);padding:2px 7px;border-radius:20px;flex-shrink:0">OWNER</span>':''}
+        ${isCap?'<span style="font-size:10px;font-weight:700;color:var(--gold);background:rgba(9,37,87,.12);padding:2px 7px;border-radius:20px;flex-shrink:0">OWNER</span>':''}
       </div>`;
     }).join('');
     // payment status for this team member
@@ -6557,7 +6829,7 @@ function renderTournDetail(id) {
     const lockBtn = iAmCaptain && !isLocked ? `
       <div style="display:flex;gap:8px;margin-top:12px">
         <button type="button" onclick="openTournRosterEditor('${t.id}','${myTeamObj.id}')" style="flex:1;background:var(--b2);border:1px solid var(--b);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-users-plus"></i>Manage Roster</button>
-        <button type="button" onclick="lockTournRoster('${t.id}','${myTeamObj.id}')" style="flex:1;background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-lock"></i>Lock Roster</button>
+        <button type="button" onclick="lockTournRoster('${t.id}','${myTeamObj.id}')" style="flex:1;background:rgba(9,37,87,.1);border:1px solid var(--gold);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-lock"></i>Lock Roster</button>
       </div>` : '';
     myTeamSection = `
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">My Team</div>
@@ -6602,7 +6874,7 @@ function renderTournDetail(id) {
       <div style="padding:10px 0;border-bottom:1px solid var(--b)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <div>
-            <span style="font-size:10px;font-weight:700;color:${g.round==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px">${g.label}</span>
+            <span style="font-size:10px;font-weight:700;color:${g.round==='final'?'var(--gold)':'var(--tx3)'};">${g.label}</span>
             ${g.dateStr?`<span style="font-size:10px;color:var(--tx3);margin-left:6px">${g.dateStr}</span>`:''}
           </div>
           <div style="display:flex;align-items:center;gap:6px">
@@ -6614,7 +6886,7 @@ function renderTournDetail(id) {
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;text-align:center">
           ${STAT_COLS.map(f=>`<div style="background:var(--b2);border-radius:6px;padding:5px 2px">
             <div style="font-size:15px;font-weight:800;color:${Number(g.stat[f])>0?'var(--tx)':'var(--tx3)'}">${g.stat[f]??'–'}</div>
-            <div style="font-size:9px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.4px">${f}</div>
+            <div style="font-size:9px;color:var(--tx3);font-weight:700;">${f}</div>
           </div>`).join('')}
         </div>
       </div>`).join('') : '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:10px 0">No game stats recorded yet.</div>';
@@ -6627,11 +6899,11 @@ function renderTournDetail(id) {
         <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;padding-bottom:12px;border-bottom:1px solid var(--b);margin-bottom:4px">
           ${STAT_COLS.map(f=>`<div>
             <div style="font-size:20px;font-weight:800">${ms.tracked[f]>0?ms[f]:'–'}</div>
-            <div style="font-size:10px;color:var(--tx3);font-weight:700;text-transform:uppercase;letter-spacing:.5px">${f.toUpperCase()}</div>
+            <div style="font-size:10px;color:var(--tx3);font-weight:700;">${f.toUpperCase()}</div>
             <div style="font-size:11px;color:var(--tx3);margin-top:2px">${ms.tracked[f]>0?avg(ms[f],f)+' avg':'not tracked'}</div>
           </div>`).join('')}
         </div>
-        <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px">Game Log</div>
+        <div style="font-size:11px;font-weight:700;color:var(--tx3);margin:10px 0 4px">Game Log</div>
         ${gameLogRows}
       </div>`;
   }
@@ -6648,9 +6920,9 @@ function renderTournDetail(id) {
     const timeStr = m?.time ? m.time : '';
     const dateStr = m?.date ? new Date(m.date+'T00:00').toLocaleDateString('en-PH',{month:'short',day:'numeric'}) : '';
     const isMyGame = myTeamObj && m && (m.teamA===myTeamObj.id||m.teamB===myTeamObj.id);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMyGame?'background:rgba(212,175,55,.04);margin:0 -14px;padding:10px 14px':''}">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMyGame?'background:rgba(9,37,87,.04);margin:0 -14px;padding:10px 14px':''}">
       <div style="width:68px;flex-shrink:0">
-        <div style="font-size:10px;font-weight:700;color:${r==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.4px">${roundLabel[r]}</div>
+        <div style="font-size:10px;font-weight:700;color:${r==='final'?'var(--gold)':'var(--tx3)'};">${roundLabel[r]}</div>
         ${dateStr||timeStr?`<div style="font-size:11px;color:var(--tx3);margin-top:2px">${dateStr}${dateStr&&timeStr?' · ':''}${timeStr}</div>`:''}
       </div>
       <div style="flex:1;display:flex;align-items:center;gap:6px;min-width:0">
@@ -6673,11 +6945,11 @@ function renderTournDetail(id) {
         const eligible=statPlayers.filter(p=>p.tracked[f]>0);
         const sorted=[...eligible].sort((a,b)=>b[f]-a[f]).slice(0,3);
         if (!sorted.length) return `<div style="padding:10px 14px;border-bottom:1px solid var(--b)">
-          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${f.toUpperCase()}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:6px">${f.toUpperCase()}</div>
           <div style="font-size:12px;color:var(--tx3)">Not tracked yet</div>
         </div>`;
         return `<div style="padding:10px 14px;border-bottom:1px solid var(--b)">
-          <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${f.toUpperCase()}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:6px">${f.toUpperCase()}</div>
           ${sorted.map((s,i)=>{
             const isMe=ME&&s.playerId===ME.id;
             return `<div style="display:flex;align-items:center;gap:8px;${i>0?'margin-top:5px':''}">
@@ -6720,14 +6992,14 @@ function renderTournDetail(id) {
   }
 
   // ── computed values for hero ──────────────────────────────────
-  const heroGrad   = TOURN_SPORT_GRAD[t.sport]   || 'linear-gradient(135deg,#1a1a2e,#16213e)';
-  const heroAccent = TOURN_SPORT_ACCENT[t.sport]  || '#f48c06';
+  const heroGrad   = TOURN_SPORT_GRAD[t.sport]   || 'var(--brand)';
+  const heroAccent = TOURN_SPORT_ACCENT[t.sport]  || 'var(--hi-text)';
   const heroIcon   = TOURN_SPORT_ICON[t.sport]    || 'ti-trophy';
   const heroDs = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
   const heroDe = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
   const heroDate = heroDs && heroDe ? heroDs+' – '+heroDe : heroDs||heroDe||'Date TBD';
-  const heroStatus = t.status==='completed' ? 'COMPLETED' : t.status==='active' ? 'LIVE NOW' : 'UPCOMING';
-  const heroStatusBg = t.status==='completed' ? 'rgba(255,255,255,.15)' : t.status==='active' ? '#e53e3e' : 'rgba(255,255,255,.15)';
+  const heroStatus = t.status==='completed' ? 'Completed' : t.status==='active' ? 'Live now' : 'Upcoming';
+  const heroStatusBg = t.status==='completed' ? 'rgba(255,255,255,.15)' : t.status==='active' ? 'var(--danger)' : 'rgba(255,255,255,.15)';
   const filledSlots2 = teams.length;
   const totalSlots2  = t.max_teams || 4;
   const pips2 = Array.from({length:totalSlots2},(_,i)=>`<span style="display:inline-block;width:${i<filledSlots2?'22':'14'}px;height:6px;border-radius:3px;background:${i<filledSlots2?'#fff':'rgba(255,255,255,.25)'};transition:width .2s"></span>`).join('');
@@ -6735,15 +7007,15 @@ function renderTournDetail(id) {
   el.innerHTML = `
     <!-- ══ BACK + LEAGUE ROW (above hero) ══ -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;padding-bottom:10px">
-      <button type="button" onclick="closeTournDetail()" style="background:var(--b2);border:1px solid var(--b);border-radius:20px;padding:6px 14px;color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-arrow-left"></i>Back</button>
-      <span style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:rgba(212,175,55,.1);padding:5px 12px;border-radius:20px;border:1px solid rgba(212,175,55,.2)">${leagueBadgeLabel}</span>
+      <button type="button" onclick="closeTournDetail()" style="background:var(--surface-1);border:1px solid var(--border-strong);border-radius:20px;padding:6px 14px;color:var(--tx2);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px"><i class="ti ti-arrow-left"></i>Back</button>
+      <span style="font-size:10px;font-weight:800;color:var(--brand);background:var(--brand-soft);padding:5px 12px;border-radius:20px">${leagueBadgeLabel}</span>
     </div>
 
     <!-- ══ HERO BANNER ══ -->
-    <div style="margin:0 -20px 0;position:relative;overflow:hidden;background:${t.banner_url?'#0a1628':heroGrad};${t.banner_url?'min-height:180px':''}">
+    <div style="margin:0 -20px 0;position:relative;overflow:hidden;background:${t.banner_url?'#092557':heroGrad};${t.banner_url?'min-height:180px':''}">
       ${t.banner_url?`
         <div style="position:absolute;inset:0;background:url('${t.banner_url}') center/cover no-repeat;opacity:.9;pointer-events:none"></div>
-        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 20%,rgba(10,22,40,.92) 100%);pointer-events:none"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 20%,rgba(9,37,87,.92) 100%);pointer-events:none"></div>
       `:`
         <i class="ti ${heroIcon}" style="position:absolute;right:-20px;bottom:-10px;font-size:160px;opacity:.08;color:#fff;pointer-events:none"></i>
       `}
@@ -6754,10 +7026,10 @@ function renderTournDetail(id) {
       <div style="position:relative;padding:16px 20px 18px;${t.banner_url?'margin-top:80px':''}">
         <!-- status badge -->
         <div style="margin-bottom:10px">
-          <span style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:${heroStatusBg};padding:4px 12px;border-radius:20px">${heroStatus}</span>
+          <span style="font-size:10px;font-weight:800;color:#fff;background:${heroStatusBg};padding:4px 12px;border-radius:20px">${heroStatus}</span>
         </div>
         <!-- tournament name -->
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:clamp(20px,5.5vw,32px);letter-spacing:.3px;color:#fff;line-height:1.1;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.3);word-break:break-word">${t.name}</div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:clamp(22px,5.5vw,30px);letter-spacing:-.02em;color:#fff;line-height:1.1;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.3);word-break:break-word">${t.name}</div>
         <!-- date + venue row -->
         <div style="font-size:12px;color:rgba(255,255,255,.8);display:flex;flex-direction:column;gap:3px;margin-bottom:14px">
           <span><i class="ti ti-calendar" style="margin-right:5px;opacity:.7"></i>${heroDate}</span>
@@ -6779,7 +7051,7 @@ function renderTournDetail(id) {
           {id:'standings',icon:'ti-list-numbers',label:'Standings'},
         ].map(tab=>{
           const active = _tDetailTab===tab.id;
-          return `<button class="tdt-tab" data-tab="${tab.id}" onclick="switchTournTab('${tab.id}')" style="flex:1;background:none;border:none;border-bottom:2px solid ${active?'#fff':'transparent'};color:${active?'#fff':'rgba(255,255,255,.55)'};font-size:9px;font-weight:${active?'700':'500'};letter-spacing:.03em;text-transform:uppercase;padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;overflow:hidden">
+          return `<button class="tdt-tab" data-tab="${tab.id}" onclick="switchTournTab('${tab.id}')" style="flex:1;background:none;border:none;border-bottom:2px solid ${active?'var(--hi)':'transparent'};color:${active?'#fff':'rgba(255,255,255,.55)'};font-size:9px;font-weight:${active?'700':'500'};padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;overflow:hidden">
             <i class="ti ${tab.icon}" style="font-size:15px;flex-shrink:0"></i><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${tab.label}</span>
           </button>`;
         }).join('')}
@@ -6823,7 +7095,7 @@ function renderTournDetail(id) {
         const pool = Array.isArray(t.player_pool) ? t.player_pool : [];
         const poolClosed = false;
         const inPool = ME ? pool.some(p=>p.id===ME.id) : false;
-        const posBadgeColor = pos => ({'PG':'#3b82f6','SG':'#8b5cf6','SF':'#10b981','PF':'#f59e0b','C':'#ef4444'}[pos]||'#6b7280');
+        const posBadgeColor = pos => ({'PG':'#1D4ED8','SG':'#6D28D9','SF':'#047857','PF':'#B45309','C':'#B91C1C'}[pos]||'#6b7280');
         const memberRows = pool.map(p=>`
           <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)">
             ${p.avatar_url?`<img src="${p.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--tx3);flex-shrink:0">${(p.name||'?')[0]}</div>`}
@@ -6831,12 +7103,12 @@ function renderTournDetail(id) {
             ${p.position?`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:${posBadgeColor(p.position)}22;color:${posBadgeColor(p.position)};border:1px solid ${posBadgeColor(p.position)}44;flex-shrink:0">${p.position}</span>`:''}
           </div>`).join('');
         const joinBtn = poolClosed
-          ? `<div style="margin-top:${pool.length?'10px':'0'};padding:10px 14px;background:rgba(253,184,39,.06);border-radius:10px;border:1px solid rgba(253,184,39,.18);text-align:center">
+          ? `<div style="margin-top:${pool.length?'10px':'0'};padding:10px 14px;background:rgba(9,37,87,.06);border-radius:10px;border:1px solid rgba(9,37,87,.18);text-align:center">
               <div style="font-size:12px;font-weight:700;color:var(--gold)"><i class="ti ti-lock"></i> Sign-up closed</div>
               <div style="font-size:11px;color:var(--tx3);margin-top:3px">Draft starts July 12</div>
             </div>`
           : ME && !inPool
-          ? `<button type="button" onclick="openPoolJoinModal('${t.id}')" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;color:#000;cursor:pointer;margin-top:${pool.length?'10px':'0'}">Join Player Pool</button>`
+          ? `<button type="button" onclick="openPoolJoinModal('${t.id}')" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;color:#fff;cursor:pointer;margin-top:${pool.length?'10px':'0'}">Join Player Pool</button>`
           : ME && inPool
           ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:${pool.length?'10px':'0'};padding:10px 14px;background:rgba(72,199,142,.08);border-radius:10px;border:1px solid rgba(72,199,142,.2)">
               <span style="font-size:13px;font-weight:700;color:var(--gr)"><i class="ti ti-check"></i> You're in the pool</span>
@@ -6896,13 +7168,13 @@ function gkoMemberSchedule(t, myTeamId){
   const mine = myTeamId ? ms.filter(m=>m.teamA===myTeamId||m.teamB===myTeamId) : [];
   const row = m => {
     const isMine = myTeamId && (m.teamA===myTeamId||m.teamB===myTeamId);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMine?'background:rgba(212,175,55,.06);margin:0 -14px;padding:10px 14px':''}">
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--b);${isMine?'background:rgba(9,37,87,.06);margin:0 -14px;padding:10px 14px':''}">
       <div style="width:74px;flex-shrink:0">
         <div style="font-size:12px;font-weight:700;color:${m.stage==='final'?'var(--gold)':'var(--tx2)'}">${TF.fmtTime(m.time)}</div>
         <div style="font-size:10px;color:var(--tx3);margin-top:2px">${feedEsc(m.court||'')}</div>
       </div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${feedEsc(TF.matchLabel(m))}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:3px">${feedEsc(TF.matchLabel(m))}</div>
         <div style="display:flex;align-items:center;gap:6px;min-width:0">
           ${side(m.teamA,m.srcA,m.winner==='A')}
           ${m.winner?`<span style="font-size:12px;color:var(--tx3);flex-shrink:0">${m.scoreA}–${m.scoreB}</span>`:'<span style="font-size:11px;color:var(--tx3);flex-shrink:0">vs</span>'}
@@ -6930,7 +7202,7 @@ function gkoMemberStandings(t, myTeamId){
     return `<div class="sec-h" style="margin-top:4px"><div class="sec-t">Group ${L}</div>${TF.groupComplete(t,L)?'<span style="font-size:11px;color:var(--gr);font-weight:700">FINAL</span>':''}</div>
     <div class="card" style="margin-bottom:12px;padding:0;overflow:hidden">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;text-transform:uppercase;letter-spacing:.5px">
+        <thead><tr style="background:var(--b2);color:var(--tx3);font-size:11px;">
           <th style="padding:8px 12px;text-align:left">#</th><th style="padding:8px 12px;text-align:left">Team</th>
           <th style="padding:8px 4px;text-align:center">W</th><th style="padding:8px 4px;text-align:center">L</th><th style="padding:8px 10px;text-align:center">+/-</th></tr></thead>
         <tbody>${st.map((r,i)=>`<tr style="border-top:1px solid var(--b)${i<c.advance?';background:rgba(0,200,100,.04)':''}">
@@ -6945,7 +7217,7 @@ function gkoMemberStandings(t, myTeamId){
   const nameOf = id => (teams.find(x=>x.id===id)||{}).name;
   const ko = (t.matches||[]).filter(m=>m.stage!=='group');
   const stages = ['r16','qf','sf','3rd','final'].filter(s=>ko.some(m=>m.stage===s));
-  const bracket = stages.map(s=>`<div style="font-size:10px;font-weight:700;color:${s==='final'?'var(--gold)':'var(--tx3)'};text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px">${TF.STAGE_LABEL[s]}</div>
+  const bracket = stages.map(s=>`<div style="font-size:10px;font-weight:700;color:${s==='final'?'var(--gold)':'var(--tx3)'};margin:10px 0 6px">${TF.STAGE_LABEL[s]}</div>
     ${ko.filter(m=>m.stage===s).map(m=>{
       const nm = (id, src) => id ? feedEsc(nameOf(id)||'Team') : `<span style="color:var(--tx3)">${feedEsc(TF.srcLabel(src))}</span>`;
       const w = TF.winnerId(m);
@@ -6966,7 +7238,7 @@ function gkoRegPaymentHtml(t, reg){
   if (fee <= 0) return `<div style="margin-top:10px;font-size:12px;color:var(--tx3)">The team fee hasn't been set yet &mdash; you'll be able to pay here once it is.</div>`;
   const list = pays.map(p=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--b)">
       <span>&#8369;${Number(p.amount).toLocaleString()}</span>
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)'}">${p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Checking'}</span></div>`).join('');
+      <span style="font-size:11px;font-weight:700;color:${p.status==='verified'?'var(--gr)':p.status==='rejected'?'var(--danger,#e53e3e)':'var(--gold)'}">${p.status==='verified'?'Verified':p.status==='rejected'?'Rejected':'Checking'}</span></div>`).join('');
   const methods = LC.arr('payment_methods').filter(m=>(m.sport===t.sport||m.sport==='all')&&m.payment_type!=='game_day'&&m.active!==false);
   const methodsHtml = methods.length ? methods.map(m=>`<div style="background:var(--b2);border-radius:8px;padding:10px 12px;margin-bottom:6px"><div style="font-weight:700;font-size:13px">${feedEsc(m.label)}</div><div style="font-size:13px;color:var(--tx2)">${feedEsc(m.account_num||m.account_number||'')} · ${feedEsc(m.account_name||'')}</div></div>`).join('') : '<div style="font-size:13px;color:var(--tx3)">Contact the organizer for payment details.</div>';
   const remaining = Math.max(0, fee - sent);
@@ -6975,7 +7247,7 @@ function gkoRegPaymentHtml(t, reg){
       ${verified>=fee ? `<div style="padding:10px;background:rgba(0,200,100,.08);border-radius:8px;font-size:13px;color:var(--gr);text-align:center">Payment verified &mdash; the organizer will confirm your slot.</div>`
         : `<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Your team's slot is secured once your payment is verified. Slots go to teams in the order they're confirmed.</div>`}
       ${list}
-      ${remaining>0 ? `<div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Send payment to</div>${methodsHtml}
+      ${remaining>0 ? `<div style="font-size:12px;font-weight:700;color:var(--tx3);margin:12px 0 8px">Send payment to</div>${methodsHtml}
         <label class="lbl" style="margin-top:10px" for="trp-amount">Amount sent (&#8369;)</label>
         <input type="number" class="inp" id="trp-amount" inputmode="decimal" value="${remaining}">
         <label class="lbl" style="margin-top:10px" for="trp-file">Proof of payment (screenshot)</label>
@@ -6992,10 +7264,9 @@ async function submitRegPayment(tournId, regId){
   if (!/^image\//.test(file.type) || file.size > 5*1024*1024) return toast('The proof must be an image under 5 MB','er');
   const btn = document.getElementById('trp-submit'); if (btn) btn.disabled = true;
   try {
-    const path = 'tourn-'+tournId+'-reg-'+regId+'-'+Date.now()+'.'+((file.type.split('/')[1]||'jpg').replace(/[^a-z0-9]/gi,''));
-    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, { method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':file.type,'x-upsert':'true'}, body:file });
-    if (!r.ok) throw new Error('upload');
-    const proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+    const small = await compressImage(file, 1400, 0.72);
+    const proofUrl = await uploadToProofBucket(proofFileName('tourn', tournId, 'reg', regId)+'.jpg', small, 'image/jpeg');
+    if (!proofUrl) throw new Error('upload');
     const id = await rpc('member_submit_reg_payment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_reg_id:regId,p_amount:amt,p_proof_url:proofUrl});
     if (!id) throw new Error('save');
     toast('Payment sent — the organizer will check it');
@@ -7014,12 +7285,8 @@ async function submitTournPayment(tournId, teamId, totalFee) {
   if (!amt || amt <= 0) return toast('Enter the amount sent','er');
   let proofUrl = null;
   if (_tournPayFile) {
-    const path = 'tourn-'+tournId+'-'+teamId+'-'+Date.now()+'.jpg';
-    const r = await fetch(SB+'/storage/v1/object/proofs/'+path, {
-      method:'POST', headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':_tournPayFile.type,'x-upsert':'true'},
-      body: _tournPayFile
-    });
-    if (r.ok) proofUrl = SB+'/storage/v1/object/public/proofs/'+path;
+    const small = await compressImage(_tournPayFile, 1400, 0.72);
+    proofUrl = await uploadToProofBucket(proofFileName('tourn', tournId, teamId)+'.jpg', small, 'image/jpeg');
   }
   // always INSERT a new row — each submission is one installment
   const ok = await rpc('member_submit_tournament_payment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_tournament_id:tournId,p_team_id:teamId,p_amount:amt,p_proof_url:proofUrl||null});
@@ -7068,10 +7335,10 @@ function renderMyProposalsBanner() {
     const sc = p.status==='proposal_approved'?'var(--gr)':p.status==='proposal_rejected'?'var(--danger,#e53e3e)':'var(--gold)';
     const sl = p.status==='proposal_approved'?'Approved — watch for it!':p.status==='proposal_rejected'?'Not approved'+(p.notes?' · '+p.notes:''):'Pending review';
     const sportLabel = (meta.sport||'').replace(/\b\w/g,c=>c.toUpperCase());
-    return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border-left:3px solid ${sc}">
+    return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid ${sc}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <div style="font-weight:700;font-size:13px">${p.team_name}</div>
-        <span style="font-size:10px;font-weight:700;color:${sc};text-transform:uppercase;letter-spacing:.4px">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
+        <span style="font-size:10px;font-weight:700;color:${sc};">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
       </div>
       <div style="font-size:12px;color:var(--tx3)">${sportLabel}${meta.format?' · '+meta.format.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):''}</div>
       <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sl}</div>
@@ -7082,7 +7349,7 @@ function renderMyProposalsBanner() {
 function openTournProposalForm() {
   const sheet = document.createElement('div');
   sheet.id = 'proposal-sheet';
-  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,41,.45);z-index:1000;display:flex;align-items:flex-end';
   sheet.innerHTML = `
     <div style="background:var(--surface-1,var(--bg));border-radius:16px 16px 0 0;width:100%;max-height:88vh;overflow-y:auto">
       <div style="display:flex;justify-content:center;padding:10px 0 2px">
@@ -7097,14 +7364,14 @@ function openTournProposalForm() {
       </div>
       <div style="padding:18px 20px 28px;display:flex;flex-direction:column;gap:16px">
         <div>
-          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Tournament Name <span style="color:#e53e3e">*</span></label>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Tournament Name <span style="color:var(--danger)">*</span></label>
           <input class="fi" id="prop-name" placeholder="e.g. 3x3 Summer Cup">
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Sport <span style="color:#e53e3e">*</span></label>
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Sport <span style="color:var(--danger)">*</span></label>
             <select class="fi-sel" id="prop-sport">
-              <option value="">— Select —</option>
+              <option value="">Select</option>
               <option value="basketball">Basketball</option>
               <option value="pickleball">Pickleball</option>
               <option value="badminton">Badminton</option>
@@ -7113,7 +7380,7 @@ function openTournProposalForm() {
             </select>
           </div>
           <div>
-            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Format</label>
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Format</label>
             <select class="fi-sel" id="prop-format">
               <option value="round_robin">Round Robin</option>
               <option value="single_elimination">Single Elimination</option>
@@ -7123,7 +7390,7 @@ function openTournProposalForm() {
           </div>
         </div>
         <div>
-          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text-3,var(--tx3))">(optional)</span></label>
+          <label style="display:block;font-size:11px;font-weight:700;color:var(--text-3,var(--tx3));margin-bottom:7px">Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text-3,var(--tx3))">(optional)</span></label>
           <textarea class="fi" id="prop-notes" rows="3" placeholder="Preferred dates, number of teams, team size, anything else..."></textarea>
         </div>
         <button type="button" class="btn" style="width:100%;min-height:50px;font-size:15px;justify-content:center" onclick="submitTournProposal()"><i class="ti ti-send"></i>Submit Proposal</button>
@@ -7208,7 +7475,7 @@ function _renderRosterEditor(t, tm) {
 
   const sheet = document.createElement('div');
   sheet.id = 'roster-editor-sheet';
-  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:flex-end';
+  sheet.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,41,.45);z-index:1000;display:flex;align-items:flex-end';
   sheet.innerHTML = `
     <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -7216,13 +7483,13 @@ function _renderRosterEditor(t, tm) {
         <button type="button" onclick="document.getElementById('roster-editor-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
       </div>
 
-      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:8px">
         Select Players <span style="font-weight:400;text-transform:none;letter-spacing:0">${players.length} / ${MAX} selected</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px">${pills}</div>
 
       ${players.length ? `
-      <div style="font-size:12px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+      <div style="font-size:12px;font-weight:700;color:var(--tx3);margin-bottom:4px">Jersey Numbers <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
       <div style="margin-bottom:20px">${jerseyRows}</div>` : ''}
 
       <button type="button" onclick="saveTournRoster()" class="btn" style="width:100%"><i class="ti ti-device-floppy"></i>Save Roster</button>
@@ -7299,8 +7566,8 @@ function renderLiveNowBanner() {
   if (!live.length) { el.style.display='none'; return; }
   el.style.display='';
   el.innerHTML = live.map(t=>`
-    <div onclick="switchTab('tournaments');setTimeout(()=>openTournDetail('${t.id}'),80)" style="background:linear-gradient(135deg,#c0392b,#e74c3c);border-radius:12px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:6px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block;animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0"></span>
+    <div onclick="switchTab('tournaments');setTimeout(()=>openTournDetail('${t.id}'),80)" style="background:var(--brand);border-radius:12px;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:6px">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--hi);display:inline-block;animation:livePulse 1.2s ease-in-out infinite;flex-shrink:0"></span>
       <div style="flex:1;min-width:0">
         <div style="font-weight:800;font-size:14px;color:#fff">${t.name}</div>
         <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px">${t.venue||t.sport||'Tournament'} · Tap to view</div>
@@ -7332,18 +7599,18 @@ function openTournRegForm(tournId) {
   el.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <button type="button" class="btn btn-ghost" style="padding:8px 14px;width:auto" onclick="closeTournRegForm('${tournId}')"><i class="ti ti-arrow-left"></i> Back</button>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;flex:1">Register a Team</div>
+      <div style="font-family:var(--font-head);font-weight:700;font-size:18px;letter-spacing:-.01em;flex:1">Register a Team</div>
     </div>
 
     <div class="card" style="margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3);margin-bottom:6px">Team Name</div>
-      <input type="text" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40" style="width:100%;background:var(--b2);border:1.5px solid var(--b3,rgba(255,255,255,.1));border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--tx);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--b3,rgba(255,255,255,.1))'">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);margin-bottom:6px">Team Name</div>
+      <input type="text" id="treg-name" placeholder="e.g. CCF Warriors" maxlength="40" style="width:100%;background:var(--surface-1);border:1.5px solid var(--border-strong);border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--tx);outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--gr)'" onblur="this.style.borderColor='var(--border-strong)'">
     </div>
 
     <div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--tx3)">Select Players</div>
+          <div style="font-size:11px;font-weight:700;color:var(--tx3)">Select Players</div>
           <div style="font-size:12px;color:var(--tx3);margin-top:2px">${_tregCtx ? `Pick exactly ${_tregCtx.size} players including you. Players already on another team are hidden.` : "You're auto-included as team owner"}</div>
           ${_tregCtx ? `<input type="search" id="treg-search" class="inp" placeholder="Search players…" oninput="_renderTregPills()" style="margin-top:8px">` : ''}
         </div>
@@ -7387,7 +7654,7 @@ function _renderTregPills() {
     const name = (p.firstName+' '+(p.lastName||'')).trim() + (isSelf ? ' (You)' : '');
     return `<button type="button" ${isSelf?'disabled':''} onclick="_toggleTregPlayer('${p.id}')" style="
       padding:6px 13px;border-radius:20px;
-      border:1.5px solid ${on?'var(--gr)':'var(--b3,rgba(255,255,255,.12))'};
+      border:1.5px solid ${on?'var(--gr)':'var(--border-strong)'};
       background:${isSelf?'rgba(72,199,142,.12)':on?'rgba(72,199,142,.1)':'var(--b2)'};
       color:${isSelf?'var(--gr)':on?'var(--gr)':'var(--tx2)'};
       font-size:12px;font-weight:${on||isSelf?'700':'500'};cursor:${isSelf?'default':'pointer'};
@@ -7697,7 +7964,7 @@ function renderLivePickleball(card, pb){
     queue.forEach(q=>{ const g=groups.find(g=>g.tier===poolOf(q.pid)); (g||other).items.push(q); });
     const allGroups=other.items.length?[...groups,other]:groups;
     queueHtml=allGroups.map(g=>{
-      const hd=`<div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
+      const hd=`<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${g.label}${g.items.length?' · '+g.items.length+' waiting':' · empty'}</div>`;
       const rows=g.items.length?`<div class="lq-chips">`+g.items.map((q,i)=>chipHtml(q,i+1)).join('')+`</div>`:'';
       return hd+rows;
     }).join('');
@@ -7714,7 +7981,7 @@ function renderLivePickleball(card, pb){
       const loseScore=m.winner==='A'?m.scoreB:m.scoreA;
       const mine=meId&&([...(m.teamA||[]),...(m.teamB||[])].includes(meId));
       const iWon=mine&&((m.winner==='A'&&(m.teamA||[]).includes(meId))||(m.winner==='B'&&(m.teamB||[]).includes(meId)));
-      const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'#22C55E':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
+      const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'var(--success)':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
       return `<div class="lq-result${mine?' mine':''}">
         <div class="lq-result-top">
           <span class="lq-result-win">${winNames}</span>
@@ -7813,7 +8080,7 @@ function renderLiveBasketball(card, bb, bbTimer){
       const loseNames=loseIds.map(lqName).join(', ')||'—';
       const mine=meId&&([...(m.teamA||[]),...(m.teamB||[])].includes(meId));
       const iWon=mine&&((m.winner==='A'&&(m.teamA||[]).includes(meId))||(m.winner==='B'&&(m.teamB||[]).includes(meId)));
-      const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'#22C55E':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
+      const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'var(--success)':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
       return `<div class="lq-result${mine?' mine':''}">
         <div class="lq-result-top"><span class="lq-result-win">${winNames}</span></div>
         <div class="lq-result-bot"><span>def. ${loseNames}</span>${tag}</div>
@@ -7912,11 +8179,11 @@ function startLiveQueuePoll(){
 // ══════════════════════════════════════════════════════════════
 
 const BB_POSITIONS = [
-  { id:'PG', label:'Point Guard',    color:'#3b82f6' },
-  { id:'SG', label:'Shooting Guard', color:'#8b5cf6' },
-  { id:'SF', label:'Small Forward',  color:'#10b981' },
-  { id:'PF', label:'Power Forward',  color:'#f59e0b' },
-  { id:'C',  label:'Center',         color:'#ef4444' },
+  { id:'PG', label:'Point Guard',    color:'#1D4ED8' },
+  { id:'SG', label:'Shooting Guard', color:'#6D28D9' },
+  { id:'SF', label:'Small Forward',  color:'#047857' },
+  { id:'PF', label:'Power Forward',  color:'#B45309' },
+  { id:'C',  label:'Center',         color:'#B91C1C' },
 ];
 
 let _poolJoinTournId = null;
@@ -7939,7 +8206,7 @@ function openPoolJoinModal(tournId) {
           <span style="font-size:10px;color:var(--tx3);margin-top:2px">${p.label}</span>
         </button>`).join('')}
     </div>
-    <button type="button" onclick="_submitPoolJoin()" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;color:#000;cursor:pointer">Join Pool</button>
+    <button type="button" onclick="_submitPoolJoin()" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;color:#fff;cursor:pointer">Join Pool</button>
     <button type="button" onclick="document.getElementById('pool-join-modal').style.display='none'" style="width:100%;background:none;border:none;margin-top:10px;font-size:13px;color:var(--tx3);cursor:pointer">Cancel</button>`;
   document.getElementById('pool-join-modal').style.display = 'flex';
 }
@@ -8092,21 +8359,21 @@ function _showPickAnnouncement(pick, draft, tourn, widget) {
   const avatar = player?.avatarUrl || '';
   const initials = (pick.player_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatarHtml = avatar
-    ? `<img src="${avatar}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 0 0 6px rgba(212,175,55,.15)" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img src="${avatar}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15)" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
     : '';
   const fallbackDisplay = avatar ? 'none' : 'flex';
 
-  widget.innerHTML = `<div id="pick-announce" style="background:linear-gradient(135deg,#0a1628 0%,#0f2244 100%);border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,.35);text-align:center;padding:28px 20px 24px">
-    <div style="font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
+  widget.innerHTML = `<div id="pick-announce" style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.35);text-align:center;padding:28px 20px 24px">
+    <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,.4);margin-bottom:16px">Round ${pick.round} · Pick ${pick.pick}</div>
     <div style="display:flex;justify-content:center;margin-bottom:16px;position:relative">
       ${avatarHtml}
-      <div style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#1a2f5a,#0f1d38);border:3px solid var(--gold);box-shadow:0 0 0 6px rgba(212,175,55,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--gold)">${initials}</div>
-      <div style="position:absolute;bottom:-4px;right:calc(50% - 56px);background:var(--gold);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:900;color:#000;letter-spacing:.06em;white-space:nowrap">DRAFTED</div>
+      <div style="width:96px;height:96px;border-radius:50%;background:#1D3A73;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--hi)">${initials}</div>
+      <div style="position:absolute;bottom:-4px;right:calc(50% - 56px);background:var(--hi);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:900;color:var(--hi-ink);letter-spacing:.06em;white-space:nowrap">DRAFTED</div>
     </div>
     <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.01em;margin-bottom:4px">${pick.player_name}</div>
-    <div style="font-size:13px;font-weight:700;color:var(--gold)">${pick.team_name}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--hi)">${pick.team_name}</div>
     <div id="pick-announce-bar" style="margin-top:20px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
-      <div id="pick-announce-fill" style="height:100%;background:var(--gold);width:100%;transition:width 3.2s linear"></div>
+      <div id="pick-announce-fill" style="height:100%;background:var(--hi);width:100%;transition:width 3.2s linear"></div>
     </div>
   </div>`;
 
@@ -8204,37 +8471,37 @@ function _renderDraftWidget(draft, tourn) {
 
   const recentHtml = recent.length
     ? recent.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-        <div style="font-size:10px;font-weight:800;color:var(--gold);min-width:36px;flex-shrink:0">R${p.round}.${p.slot}</div>
+        <div style="font-size:10px;font-weight:800;color:var(--hi);min-width:36px;flex-shrink:0">R${p.round}.${p.slot}</div>
         <div style="flex:1;font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.player_name}</div>
         <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">${p.team_name}</div>
       </div>`).join('')
     : '<div style="font-size:12px;color:rgba(255,255,255,.35);padding:6px 0">No picks yet</div>';
 
-  return `<div style="background:linear-gradient(135deg,#0a1628 0%,#0f2244 100%);border-radius:16px;overflow:hidden;border:1px solid rgba(212,175,55,.2)">
+  return `<div style="background:var(--brand);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.2)">
     <div style="padding:11px 14px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:7px;height:7px;border-radius:50%;background:${status==='active'?'#4ade80':'#f59e0b'};flex-shrink:0${status==='active'?';animation:pulse 1.4s infinite':''}"></span>
-        <span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff">${status==='active'?'LIVE DRAFT':status==='paused'?'DRAFT PAUSED':'DRAFT LOTTERY'}</span>
+        <span style="font-size:10px;font-weight:800;color:#fff">${status==='active'?'LIVE DRAFT':status==='paused'?'DRAFT PAUSED':'DRAFT LOTTERY'}</span>
         <span style="font-size:10px;color:rgba(255,255,255,.4)">${tourn.name}</span>
       </div>
       <span style="font-size:10px;color:rgba(255,255,255,.4)">${picks.length}/${totalPicks}</span>
     </div>
-    <div style="height:2px;background:rgba(255,255,255,.07)"><div style="height:2px;background:var(--gold);width:${progressPct}%;transition:width .4s"></div></div>
+    <div style="height:2px;background:rgba(255,255,255,.07)"><div style="height:2px;background:var(--hi);width:${progressPct}%;transition:width .4s"></div></div>
     <div style="padding:13px 14px;display:flex;align-items:center;gap:12px">
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
-        <div style="font-size:${isMyTurn?'17px':'15px'};font-weight:800;color:${isMyTurn?'var(--gold)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
+        <div style="font-size:${isMyTurn?'17px':'15px'};font-weight:800;color:${isMyTurn?'var(--hi)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${currentPick>totalPicks?'All picks complete!':(isMyTurn?'YOUR PICK!':(curTeam?curTeam.name+' on the clock':'Waiting…'))}
         </div>
       </div>
       <div style="text-align:center;flex-shrink:0;min-width:40px">
-        <div id="draft-member-timer" style="font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--gold);line-height:1">—</div>
-        <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.04em">sec</div>
+        <div id="draft-member-timer" style="font-size:24px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--hi);line-height:1">—</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);">sec</div>
       </div>
     </div>
-    ${isMyTurn?`<div style="padding:0 14px 12px"><button type="button" onclick="openDraftPickModal()" style="width:100%;background:var(--gold);border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;color:#000;cursor:pointer;letter-spacing:.02em">Make Your Pick</button></div>`:''}
+    ${isMyTurn?`<div style="padding:0 14px 12px"><button type="button" onclick="openDraftPickModal()" style="width:100%;background:var(--hi);border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:800;color:var(--hi-ink);cursor:pointer;letter-spacing:.02em">Make Your Pick</button></div>`:''}
     <div style="padding:8px 14px 12px;border-top:1px solid rgba(255,255,255,.06)">
-      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Recent Picks</div>
+      <div style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3);margin-bottom:5px">Recent Picks</div>
       ${recentHtml}
     </div>
   </div>`;
@@ -8274,8 +8541,8 @@ function openDraftPickModal() {
     </div>`).join('');
 
   el.innerHTML = `
-    <div onclick="document.getElementById('draft-pick-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(0,0,0,.72)"></div>
-    <div style="position:relative;background:var(--card,#0f1729);border-radius:16px;max-width:420px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden">
+    <div onclick="document.getElementById('draft-pick-modal').style.display='none'" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
+    <div style="position:relative;background:var(--surface-1);border-radius:16px;max-width:420px;width:100%;max-height:82vh;display:flex;flex-direction:column;overflow:hidden">
       <div style="padding:15px 16px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <div>
           <div style="font-size:15px;font-weight:800">Make Your Pick</div>

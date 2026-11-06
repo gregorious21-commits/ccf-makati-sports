@@ -5,37 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy · CCF Makati Sports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#0A1124; --surface-1:#121B36; --surface-2:#1A2645; --border:#243154;
-         --gold:#FDB827; --text-1:#EAF0FB; --text-2:#A9B6D1; --text-3:#7B8AA6; }
+  /* Club Navy light theme, matching the member app. */
+  :root{ --bg:#F6F7F9; --surface-1:#FFFFFF; --border:#E3E6EC; --brand:#092557; --brand-soft:#E8EDF7;
+         --text-1:#0F1729; --text-2:#475066; --text-3:#5F6779;
+         --gold:var(--brand); /* legacy name used by inline markup */ }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{ background:var(--bg); color:var(--text-2); font-family:'Inter',system-ui,sans-serif;
-        line-height:1.65; font-size:15px; padding:0 18px 80px;
-        background-image:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(253,184,39,.06) 0%, transparent 70%); }
-  .wrap{max-width:760px;margin:0 auto}
-  header{padding:48px 0 28px;border-bottom:1px solid var(--border);margin-bottom:32px}
-  .kicker{color:var(--gold);font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
-  h1{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:1.5px;color:var(--text-1);line-height:1}
-  .updated{color:var(--text-3);font-size:13px;margin-top:12px}
-  h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.8px;color:var(--gold);margin:36px 0 12px}
-  p{margin-bottom:14px}
+  body{ background:var(--bg); color:var(--text-2); font-family:'Schibsted Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+        line-height:1.65; font-size:15px; padding:0 18px 80px; -webkit-font-smoothing:antialiased }
+  .wrap{max-width:720px;margin:0 auto}
+  .brandbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0}
+  .brandbar a.home{display:flex;align-items:center;gap:10px;color:var(--text-1);font-weight:700;font-size:15px;text-decoration:none}
+  .brandbar img{width:32px;height:32px;border-radius:8px;display:block}
+  .brandbar a.back{font-size:14px;font-weight:600;color:var(--brand);text-decoration:none}
+  header{padding:28px 0 24px;border-bottom:1px solid var(--border);margin-bottom:28px}
+  h1{font-size:32px;font-weight:700;letter-spacing:-.025em;color:var(--text-1);line-height:1.15;text-wrap:balance}
+  .updated{color:var(--text-3);font-size:13px;margin-top:8px}
+  h2{font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--text-1);margin:32px 0 10px;text-wrap:balance}
+  p{margin-bottom:14px;max-width:68ch}
   ul{margin:0 0 16px 20px}
-  li{margin-bottom:8px}
+  li{margin-bottom:8px;max-width:66ch}
   strong{color:var(--text-1)}
-  a{color:var(--gold);text-decoration:none}
-  a:hover{text-decoration:underline}
+  a{color:var(--brand);font-weight:600;text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
   .card{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin:18px 0}
-  .note{background:rgba(253,184,39,.08);border:1px solid var(--gold);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--text-1);margin:18px 0}
-  .fill{color:var(--gold);font-weight:600}
+  .note{background:var(--brand-soft);border-radius:12px;padding:14px 16px;font-size:14px;color:var(--text-1);margin:18px 0}
+  .fill{color:var(--text-1);font-weight:600}
   footer{border-top:1px solid var(--border);margin-top:44px;padding-top:20px;color:var(--text-3);font-size:13px;text-align:center}
   footer a{color:var(--text-2)}
+  @media (max-width:480px){ h1{font-size:27px} }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="brandbar">
+    <a class="home" href="index.html"><img src="logo.jpg?v=2" alt="">CCF Makati Sports</a>
+    <a class="back" href="index.html">Back to app</a>
+  </div>
   <header>
-    <div class="kicker">CCF Makati Sports</div>
     <h1>Privacy Policy</h1>
     <div class="updated">Last updated: <span class="fill">June 1, 2026</span></div>
   </header>
