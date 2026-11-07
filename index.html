@@ -3048,6 +3048,39 @@ function toast(msg,type) {
 const ini = (fn,ln) => ((fn||'?')[0]+(ln||'?')[0]).toUpperCase();
 
 // ── FULL SYNC FROM SUPABASE ───────────────────────────────────
+// The public registrations view has no payment columns, so the member's own
+// payment details come from member_my_payments (PIN-checked, own rows only)
+// and are merged into the cached registrations. Fetched at most every 5
+// minutes (or when forced after joining) so a stale saved PIN can't burn
+// through the wrong-PIN limit on every background refresh.
+let _myPayAt = 0;
+async function syncMyPayments(force){
+  if (!ME || !AUTH.isAuthed()) return;
+  if (force || Date.now()-_myPayAt > 5*60e3) {
+    _myPayAt = Date.now();
+    const rows = await rpc('member_my_payments',{p_phone:AUTH.phone(),p_pin:AUTH.pin()});
+    if (Array.isArray(rows)) LC.set('myPay', Object.fromEntries(rows.map(r=>[r.id,{payType:r.pay_type||'',paid:r.paid===true}])));
+  }
+  const pay = LC.get('myPay')||{};
+  const regs = LC.arr('regs'); let changed=false;
+  regs.forEach(r=>{ const m=pay[r.id]; if (m && r.playerId===ME.id) { r.payType=m.payType; r.paid=m.paid; r._payKnown=true; changed=true; } });
+  if (changed) LC.set('regs', regs);
+}
+// What the member sees about their own payment for a game.
+function myPaymentText(reg, g){
+  if (!reg || !reg._payKnown) return '';
+  const amt = '₱'+(g.fee||0);
+  switch (reg.payType) {
+    case 'free':       return 'Free';
+    case 'firsttimer': return 'Free, your first game is on us';
+    case 'reclub':     return 'Paid through Reclub';
+    case 'advance':    return reg.paid ? 'Paid online' : 'Payment proof sent, being checked';
+    case 'cash':       return reg.paid ? 'Paid in cash' : 'Bring '+amt+' in cash';
+    case 'walkin':     return reg.paid ? 'Paid' : 'Pay at the venue';
+    default:           return reg.paid ? 'Paid' : 'Not paid yet';
+  }
+}
+
 async function syncAll() {
   // After Phase 4b: anon cannot read `players` directly. We use the
   // safe public view for the roster, and get_my_profile for ME.
@@ -3072,6 +3105,7 @@ async function syncAll() {
   if (Array.isArray(anns))             LC.set('announcements',anns);
   if (Array.isArray(notifs))           LC.set('notifications',notifs);
   if (Array.isArray(regs))             LC.set('regs',         regs.map(mapReg));
+  if (Array.isArray(regs))             await syncMyPayments();
   if (Array.isArray(pmethods))         LC.set('payment_methods', pmethods);
   if (Array.isArray(players) && players.length) {
     // Refresh public-safe stats on local cache. Note we no longer get
@@ -5138,7 +5172,7 @@ function openGameDetail(gameId, keepExpanded){
   const info = `<div class="gd-info">
       <div class="gd-info-row"><i class="ti ti-calendar" aria-hidden="true"></i><div><div class="gd-info-v">${feedEsc(dateLong)} · ${feedEsc(g.time)}</div>${calLink}</div></div>
       <div class="gd-info-row"><i class="ti ti-map-pin" aria-hidden="true"></i><div><div class="gd-info-v">${feedEsc(g.venue||'Venue to be announced')}</div>${mapUrl?`<a class="gd-link" href="${feedEsc(mapUrl)}" target="_blank" rel="noopener">Open in Maps</a>`:''}${g.route?`<div class="gd-info-s"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>`:''}</div></div>
-      <div class="gd-info-row"><i class="ti ti-wallet" aria-hidden="true"></i><div class="gd-info-v">${feeText(g)}</div></div>
+      <div class="gd-info-row"><i class="ti ti-wallet" aria-hidden="true"></i><div><div class="gd-info-v">${feeText(g)}</div>${(()=>{ const t=mine&&mySt!=='waitlist'?myPaymentText(myReg,g):''; return t?`<div class="gd-info-s">${feedEsc(t)}</div>`:''; })()}</div></div>
     </div>`;
   const wxLine = g.weatherNote ? `<div class="gk-wx" style="margin:0"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
 
@@ -5369,7 +5403,7 @@ async function freeJoin(g){
   const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:0,p_pay_type:'free',p_ref_num:'',p_has_proof:false,p_proof_url:'',p_status:'confirmed',p_paid:true,p_is_first_timer:false,p_registered:reged,p_sport:sport});
   if(!ok){ toast('Registration failed. Try again.','er'); return; }
   dbNotif('Registered', reg.playerName+' joined '+reg.gameLabel, 'info');
-  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs); _myPayAt=0;
   renderWeekGames(); renderMyHist();
   toast("You're in! See you there.");
 }
@@ -5386,7 +5420,7 @@ async function joinWaitlist(g){
     status:'waitlist', paid:false, registered:reged, sport };
   const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:reg.fee,p_pay_type:'waitlist',p_ref_num:'',p_has_proof:false,p_proof_url:'',p_status:'waitlist',p_paid:false,p_is_first_timer:false,p_registered:reged,p_sport:sport});
   if(!ok){ toast('Could not join the waitlist. Try again.','er'); return; }
-  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs); _myPayAt=0;
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast("You're on the waitlist — you'll be confirmed automatically if a slot opens up.");
@@ -5531,7 +5565,7 @@ document.getElementById('btn-submit-first').addEventListener('click', async func
   };
   const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:0,p_pay_type:'firsttimer',p_ref_num:reg.refNum,p_has_proof:false,p_proof_url:'',p_status:'pending',p_paid:false,p_is_first_timer:true,p_registered:reg.registered,p_sport:sport});
   if(!ok){ toast('Registration failed. Try again.','er'); return; }
-  regs.push(reg); LC.set('regs',regs);
+  regs.push(reg); LC.set('regs',regs); _myPayAt=0;
   // Mark used locally right away so eligibility checks are correct even
   // before the next full sync re-derives it from regs.
   const players=LC.arr('players');
@@ -5563,7 +5597,7 @@ document.getElementById('btn-submit-reclub').addEventListener('click', async fun
   const ok=await rpc('member_insert_registration',{p_phone:ME.phone,p_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_email:reg.email||'',p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:reg.fee,p_pay_type:'reclub',p_ref_num:'Paid via Reclub',p_has_proof:false,p_proof_url:'',p_status:'pending',p_paid:false,p_is_first_timer:false,p_registered:reg.registered,p_sport:sport});
   if(!ok){ toast('Registration failed. Try again.','er'); return; }
   dbNotif('Reclub Payment', reg.playerName+' submitted Reclub payment for '+reg.gameLabel, 'info');
-  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs); _myPayAt=0;
   document.getElementById('pay-section').style.display='none';
   renderWeekGames(); renderMyHist();
   toast('Submitted! A manager will verify your Reclub registration.');
@@ -5590,7 +5624,7 @@ async function submitReg(game, payTypeArg, hasProof, proofUrl, refNumOrNote) {
   const notifTitle = isAdvance ? ' Payment Submitted' : ' Cash Request';
   const notifBody  = reg.playerName + (isAdvance ? ' submitted proof for ' : ' requested cash payment for ') + reg.gameLabel;
   dbNotif(notifTitle, notifBody, isAdvance ? 'info' : 'warning');
-  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs);
+  const regs=LC.arr('regs'); regs.push(reg); LC.set('regs',regs); _myPayAt=0;
   // Reset payment form
   document.getElementById('pay-section').style.display='none';
   uploadedFile=null; uploadedUrl=null;
