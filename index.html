@@ -1981,6 +1981,91 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
 .feed-err-t{font-weight:700;font-size:15px;color:var(--text-1);margin-top:6px}
 .feed-err-s{font-size:13px;color:var(--text-3);margin-top:2px}
 .feed-err-btn{margin-top:14px;min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+/* Laptop Home: bento tiles (phones keep the list) */
+.home-bento{display:none}
+@media(min-width:1024px){
+  html body #tab-home{display:block} /* beats the two-column Home rule further down */
+  .home-bento{display:block;margin-bottom:var(--s-6)}
+  #tab-home .week-head,#tab-home .sport-pills,#week-games,#tab-home .home-side,#home-feed-block{display:none!important}
+}
+.hb-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.hb-head h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--text-1)}
+.hb-head span{font-size:14px;color:var(--text-3)}
+.hb-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-flow:row dense;gap:16px}
+.hb-tile{min-height:150px;background:var(--surface-1);border:1px solid var(--border);border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.hb-s4{grid-column:span 4}.hb-s5{grid-column:span 5}.hb-s8{grid-column:span 8}.hb-s12{grid-column:span 12}
+.hb-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.hb-h h2,.hb-tile h2{margin:0;font-size:16px;font-weight:800;letter-spacing:-.01em;color:var(--text-1)}
+.hb-h span{font-size:12px;color:var(--text-3)}
+.hb-k{font-size:12px;font-weight:700;color:var(--hi-text)}
+.hb-link{align-self:flex-start;margin-top:auto;padding:6px 0;border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--hi-text);cursor:pointer}
+.hb-h .hb-link{margin-top:0}
+.hb-link:hover{text-decoration:underline}
+.hb-btn{min-height:44px;padding:0 18px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;border:0}
+.hb-btn:active{transform:translateY(1px)}
+.hb-btn-n{background:var(--brand);color:#fff}
+.hb-btn-l{background:var(--surface-1);color:var(--text-1);border:1px solid var(--border-strong);font-size:13px}
+.hb-hero{grid-column:span 7;grid-row:span 2;background:var(--brand);border-color:var(--brand);color:#fff;padding:24px;gap:18px}
+.hb-hero-top{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:rgba(255,255,255,.8)}
+.hb-pill{font-size:12px;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff}
+.hb-hero-id{display:flex;gap:16px;align-items:center}
+.hb-hero-id .sdate{width:64px;background:#fff;color:var(--brand);padding:7px 0 8px}
+.hb-hero-id .sdate b{font-size:34px}
+.hb-hero-id .sdate span{font-size:13px}
+.hb-hero h2{color:#fff;font-size:28px;letter-spacing:-.02em}
+.hb-hero-meta{font-size:15px;color:rgba(255,255,255,.85);margin-top:2px}
+.hb-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.16);border-bottom:1px solid rgba(255,255,255,.16)}
+.hb-strip > div{padding:14px 0 14px 16px;border-left:1px solid rgba(255,255,255,.16);display:flex;flex-direction:column;gap:4px;min-width:0}
+.hb-strip > div:first-child{padding-left:0;border-left:0}
+.hb-strip span{font-size:12px;color:rgba(255,255,255,.75)}
+.hb-strip b{font-family:var(--font-display);font-weight:700;font-size:34px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hb-strip em{font-style:normal;font-weight:700;font-size:15px;margin-top:6px}
+.hb-going{display:flex;align-items:center;min-height:34px}
+.hb-hero .gk-av{border-color:var(--brand)}
+.hb-hero .gk-more{color:#fff;font-size:14px}
+.hb-hero-st{font-size:14px;color:rgba(255,255,255,.88)}
+.hb-hero-btns{margin-top:auto;display:flex;gap:10px;flex-wrap:wrap}
+.hb-btn-w{background:#fff;color:var(--brand)}
+.hb-btn-o{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+.hb-btn-t{background:transparent;color:rgba(255,255,255,.88);text-decoration:underline;text-underline-offset:3px;font-weight:600;padding:0 10px}
+.hb-hero-empty{background:var(--surface-1);border-color:var(--border);color:var(--text-1)}
+.hb-hero-empty .week-empty{margin:0}
+.hb-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hb-stats b{display:block;font-family:var(--font-display);font-weight:700;font-size:40px;line-height:1;color:var(--hi-text)}
+.hb-stats span{font-size:12px;color:var(--text-3)}
+.hb-verse{background:var(--brand-soft);border-color:transparent}
+.hb-verse p{margin:0;font-size:16px;line-height:1.5;font-style:italic;color:var(--text-1);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.hb-q{margin-top:auto;font-size:13px;color:var(--text-2)}
+.hb-game-id{display:flex;gap:12px;align-items:center;border:0;background:none;padding:0;font:inherit;text-align:left;color:inherit;cursor:pointer}
+.hb-game-id .sdate{width:48px}
+.hb-game-id .sdate b{font-size:24px}
+.hb-game-t{font-weight:700;font-size:16px;color:var(--text-1)}
+.hb-game-m{font-size:13px;color:var(--text-2)}
+.hb-game-l{font-size:13px;color:var(--text-2)}
+.hb-row-btns{margin-top:auto;display:flex;gap:8px}
+.hb-row-btns .hb-btn{min-height:40px}
+.hb-t-name{font-size:17px!important}
+.hb-bar{display:flex;align-items:center;gap:10px}
+.hb-bar .track{flex:1}
+.hb-bar span{font-size:13px;color:var(--text-2);white-space:nowrap}
+.hb-lb{display:flex;align-items:center;gap:10px;width:100%;padding:4px 0;border:0;background:none;font:inherit;font-size:14px;text-align:left;color:var(--text-1);cursor:pointer}
+.hb-lb b{width:16px;font-family:var(--font-display);font-size:18px;color:var(--hi-text)}
+.hb-lb span{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb-lb em{font-style:normal;color:var(--text-2)}
+.hb-me{margin-top:auto;font-size:12px;color:var(--text-3)}
+.hb-dev{flex-direction:row;gap:24px}
+.hb-dev-main{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.hb-dev h2{font-size:20px}
+.hb-dev p{margin:0;font-size:14px;line-height:1.55;color:var(--text-2)}
+.hb-dev-body{font-size:14px;line-height:1.65;color:var(--text-2);white-space:pre-wrap}
+.hb-dev-q{width:260px;flex:none;align-self:flex-start;background:var(--surface-2);border-radius:12px;padding:14px;font-size:13px;line-height:1.5;color:var(--text-2)}
+.hb-dev-q b{display:block;color:var(--text-1);margin-bottom:2px}
+.hb-feed{min-height:0}
+.hb-posts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.hb-post{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2);font:inherit;text-align:left;color:inherit;cursor:pointer;min-width:0}
+.hb-post-h{font-size:12px;color:var(--text-3);font-weight:600}
+.hb-post-b{font-size:14px;line-height:1.5;color:var(--text-1);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.hb-post-none{font-size:14px;color:var(--text-3)}
 @media(min-width:1024px){
   .profile-band .pb-in,#tab-profile{max-width:720px;margin-inline:auto}
 }
@@ -2327,7 +2412,8 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
       <div id="live-queue" class="card lq-card" style="display:none"></div>
       <!-- Live Now Tournament Banner -->
       <div id="live-now-banner" style="display:none;margin-bottom:14px"></div>
-      <div class="sec-h"><div class="sec-t">This Week</div></div>
+      <div id="home-bento" class="home-bento"></div>
+      <div class="sec-h week-head"><div class="sec-t">This Week</div></div>
       <div class="sport-pills" role="tablist">
         <button type="button" class="sport-pill on" data-sport="all" onclick="setSportFilter('all')">All</button>
         <button type="button" class="sport-pill" data-sport="basketball" onclick="setSportFilter('basketball')"><span class="spi spi-b"></span><span class="pl">Basketball</span></button>
@@ -4972,6 +5058,7 @@ function showVOTD(ref,text,qs) {
   document.getElementById('votd-qs').innerHTML    = (qs||[]).map((q,i)=>
     `<div class="votd-q"><div class="votd-qn">${i+1}</div><div class="votd-qt">${q}</div></div>`
   ).join('');
+  try { renderHomeBento(); } catch(e) { console.error('home bento', e); }
 }
 
 // ── DEVOTION ──────────────────────────────────────────────────
@@ -4992,6 +5079,131 @@ function renderDevotion() {
   ).join('');
   const b=document.getElementById('dev-body');
   if (d.devotionText) { b.style.display=''; b.textContent=d.devotionText; } else b.style.display='none';
+}
+
+
+// ── LAPTOP HOME (bento) ───────────────────────────────────────
+// At 1024px+ Home is a grid of tiles: your next game (big), your stats, the
+// verse, other games, the open tournament, top players, the devotion and the
+// feed. Phones keep the list layout below it (hidden on laptops by CSS).
+let _hbDevOpen = false;
+function renderHomeBento(){
+  const el = document.getElementById('home-bento'); if (!el || !ME) return;
+  const regs = LC.arr('regs'), players = LC.arr('roster');
+  const myRegOf = g => regs.find(r=>r.gameId===g.id&&r.playerId===ME.id&&r.status!=='cancelled');
+  const upcoming = LC.arr('games')
+    .filter(g=>g.status!=='cancelled'&&g.status!=='completed'&&g.date&&dayDiff(new Date(g.date+'T00:00:00'))>=0)
+    .filter(g=>{ const c=gameCountdown(g); return !c || c.value!=='Done'; })
+    .sort((a,b)=>a.date.localeCompare(b.date));
+  const hero = upcoming.find(g=>myRegOf(g)) || upcoming[0] || null;
+  const others = upcoming.filter(g=>g!==hero).slice(0,3);
+  const tiles = [];
+
+  // Hero: your next game, else the next open game, else the usual schedule.
+  if (hero) {
+    const g=hero, myReg=myRegOf(g), mySt=myReg?(myReg.status||'pending'):'';
+    const { going, waitlist } = gameGoing(g, regs, players);
+    const spots=(g.spots||20)-going.length, when=gameCountdown(g);
+    const pay = myReg && mySt!=='waitlist' ? myPaymentText(myReg,g) : '';
+    const stLine = myReg
+      ? [mySt==='waitlist'?'On the waitlist':mySt==='pending'?'Waiting for confirmation':'You\'re in', pay, waitlist.length?waitlist.length+' on the waitlist':''].filter(Boolean).join(' · ')
+      : [feeText(g), spots>0?spots+' spot'+(spots===1?'':'s')+' open':'Full'].join(' · ');
+    const btns = myReg
+      ? `<button type="button" class="hb-btn hb-btn-w" onclick="openGameDetail('${g.id}')">Game details</button>
+         <button type="button" class="hb-btn hb-btn-o" onclick="shareGame('${g.id}')">Invite a friend</button>
+         <button type="button" class="hb-btn hb-btn-t" onclick="cancelMyRegistration('${myReg.id}','${g.id}')">${mySt==='waitlist'?'Leave waitlist':'Can\'t make it'}</button>`
+      : `<button type="button" class="hb-btn hb-btn-w" onclick="startJoin('${g.id}')">${spots<=0?'Join waitlist':(feeText(g)==='Free'?'Join (Free)':'Join game')}</button>
+         <button type="button" class="hb-btn hb-btn-o" onclick="openGameDetail('${g.id}')">Game details</button>
+         <button type="button" class="hb-btn hb-btn-t" onclick="shareGame('${g.id}')">Invite</button>`;
+    tiles.push(`<section class="hb-tile hb-hero" aria-label="${myReg?'Your next game':'Next game'}">
+      <div class="hb-hero-top"><span>${myReg?'Your next game':'Next game'}</span>${g.status==='confirmed'?'<span class="hb-pill">Game on</span>':'<span class="hb-pill">To be confirmed</span>'}</div>
+      <div class="hb-hero-id">${heroDateBadge(g.date,true)}<div><h2>${SPORT_NAME[g.sport]||'Basketball'}</h2><div class="hb-hero-meta">${feedEsc(g.time)} · ${feedEsc(g.venue)}</div></div></div>
+      <div class="hb-strip">
+        <div><span>${when?when.label:'Starts'}</span><b>${when?feedEsc(when.value):'TBA'}</b></div>
+        <div><span>Going</span>${going.length?`<div class="hb-going">${avatarStackHtml(going,3,30)}</div>`:'<em>Be the first</em>'}</div>
+        <div><span>Spots</span><b>${spots<=0?'Full':spots+' open'}</b></div>
+      </div>
+      <div class="hb-hero-st">${feedEsc(stLine)}</div>
+      <div class="hb-hero-btns">${btns}</div>
+    </section>`);
+  } else {
+    tiles.push(`<section class="hb-tile hb-hero hb-hero-empty">${weekEmptyHtml('all')}</section>`);
+  }
+
+  // Your stats
+  if ((ME.sports||'basketball').includes('basketball') || (ME.games||0)>0) {
+    const since = memberSince(ME);
+    tiles.push(`<section class="hb-tile hb-s5"><div class="hb-h"><h2>Your basketball</h2>${since?`<span>Since ${feedEsc(since)}</span>`:''}</div>
+      <div class="hb-stats"><div><b>${ME.wins||0}</b><span>Wins</span></div><div><b>${ME.games||0}</b><span>Games</span></div><div><b>${(ME.games||0)>0?Math.round((ME.wins||0)/ME.games*100)+'%':'—'}</b><span>Win rate</span></div></div>
+    </section>`);
+  }
+
+  // Verse of the day
+  const v = LC.get('votd');
+  if (v && v.ref) tiles.push(`<section class="hb-tile hb-s5 hb-verse"><div class="hb-k">Verse of the day · ${feedEsc(v.ref)}</div>
+      <p>“${feedEsc(String(v.text||'').replace(/^[“"\s]+|[”"\s]+$/g,''))}”</p>${v.qs&&v.qs[0]?`<div class="hb-q">${feedEsc(v.qs[0])}</div>`:''}</section>`);
+
+  // Other games
+  others.forEach(g=>{
+    const myReg=myRegOf(g), { going } = gameGoing(g, regs, players), spots=(g.spots||20)-going.length;
+    const days=dayDiff(new Date(g.date+'T00:00:00'));
+    const whenTxt = days===0?'Today':days===1?'Tomorrow':days<7?new Date(g.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'long'}):days<14?'Next week':'In '+days+' days';
+    const line = myReg ? (myReg.status==='waitlist'?'You\'re on the waitlist':'You\'re in')
+      : [spots>0?spots+' spots open':'Full', feeText(g).replace(' per player',''), going.length?going.length+' going':'Be the first'].join(' · ');
+    tiles.push(`<section class="hb-tile hb-s4 hb-game">
+      <button type="button" class="hb-game-id" onclick="openGameDetail('${g.id}')">${heroDateBadge(g.date,g.status==='confirmed')}<div><div class="hb-game-t">${SPORT_NAME[g.sport]||'Basketball'} · ${whenTxt}</div><div class="hb-game-m">${feedEsc(g.time)} · ${feedEsc(g.venue)}</div></div></button>
+      <div class="hb-game-l">${feedEsc(line)}</div>
+      <div class="hb-row-btns">${myReg?`<button type="button" class="hb-btn hb-btn-n" onclick="openGameDetail('${g.id}')">Details</button>`:`<button type="button" class="hb-btn hb-btn-n" onclick="startJoin('${g.id}')">${spots<=0?'Join waitlist':'Join'}</button>`}<button type="button" class="hb-btn hb-btn-l" onclick="shareGame('${g.id}')">Invite</button></div>
+    </section>`);
+  });
+
+  // Open tournament
+  const t = LC.arr('tournaments').filter(x=>x.status!=='completed').sort((a,b)=>String(a.start_date||'9').localeCompare(String(b.start_date||'9')))[0];
+  if (t) {
+    const n=(Array.isArray(t.teams)?t.teams.length:0), max=t.max_teams||4;
+    const ds=t.start_date?new Date(t.start_date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
+    tiles.push(`<section class="hb-tile hb-s4"><div class="hb-k">${t.status==='active'?'Live now':'Tournament'}${ds?' · '+ds:''}</div>
+      <h2 class="hb-t-name">${feedEsc(t.name)}</h2>
+      <div class="hb-bar"><div class="track"><i style="width:${Math.min(100,Math.round(n/max*100))}%"></i></div><span>${n}/${max} teams</span></div>
+      <button type="button" class="hb-link" onclick="switchTab('tournaments');openTournDetail('${t.id}')">See the tournament</button></section>`);
+  }
+
+  // Top players (basketball wins)
+  const bb = players.filter(p=>(p.sports||'basketball').includes('basketball')).sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
+  if (bb.length) {
+    const myRank = bb.findIndex(p=>p.id===ME.id)+1;
+    tiles.push(`<section class="hb-tile hb-s4"><div class="hb-h"><h2>Top players · Basketball</h2><button type="button" class="hb-link" onclick="switchTab('players')">All</button></div>
+      ${bb.slice(0,3).map((p,i)=>`<button type="button" class="hb-lb" onclick="viewPlayer('${p.id}')"><b>${i+1}</b><span>${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</span><em>${p.wins||0} wins</em></button>`).join('')}
+      ${myRank>3?`<div class="hb-me">You're #${myRank} with ${ME.wins||0} win${(ME.wins||0)===1?'':'s'}</div>`:''}</section>`);
+  }
+
+  // Devotion of the week
+  const d = LC.get('devotion');
+  if (d && d.devPublished) {
+    tiles.push(`<section class="hb-tile hb-s8 hb-dev"><div class="hb-dev-main">
+        <div class="hb-k">Devotion of the week${d.monthlyTheme?' · '+feedEsc(d.monthlyTheme):''}</div>
+        <h2>${feedEsc(d.devotionTitle||'')}</h2>
+        ${d.verseText?`<p>“${feedEsc(d.verseText)}” ${feedEsc(d.verseRef||'')}</p>`:''}
+        ${d.devotionText?`<div class="hb-dev-body"${_hbDevOpen?'':' hidden'}>${feedEsc(d.devotionText)}</div><button type="button" class="hb-link" onclick="_hbDevOpen=!_hbDevOpen;renderHomeBento()">${_hbDevOpen?'Show less':'Read this week\'s devotion'}</button>`:''}
+      </div>
+      ${d.q1?`<div class="hb-dev-q"><b>This week's question</b>${feedEsc(d.q1)}</div>`:''}</section>`);
+  }
+
+  // Community feed
+  tiles.push(`<section class="hb-tile hb-s12 hb-feed"><div class="hb-h"><h2>Community Feed</h2><button type="button" class="hb-link" onclick="switchTab('feed')">See all posts</button></div><div id="hb-feed"></div></section>`);
+
+  const hr = new Date().getHours();
+  const greet = hr<12 ? 'Good morning' : hr<18 ? 'Good afternoon' : 'Good evening';
+  el.innerHTML = `<div class="hb-head"><h1>${greet}, ${feedEsc(ME.firstName||'')}</h1><span>${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</span></div><div class="hb-grid">${tiles.join('')}</div>`;
+  renderBentoFeed();
+}
+function renderBentoFeed(){
+  const el = document.getElementById('hb-feed'); if (!el) return;
+  const posts = LC.arr('feed').slice(0,2);
+  el.innerHTML = posts.length ? `<div class="hb-posts">${posts.map(p=>`<button type="button" class="hb-post" onclick="switchTab('feed')">
+      <span class="hb-post-h">${feedEsc(p.author_name||'CCF Makati Sports')} · ${feedTime(p.created_at)}</span>
+      ${p.body?`<span class="hb-post-b">${feedEsc(p.body)}</span>`:''}
+    </button>`).join('')}</div>` : '<div class="hb-post-none">No posts yet. Be the first to share something from Feed.</div>';
 }
 
 // ── WEEK GAMES ────────────────────────────────────────────────
@@ -5062,6 +5274,7 @@ function avatarStackHtml(people, max, size){
 }
 
 function renderWeekGames() {
+  try { renderHomeBento(); } catch(e) { console.error('home bento', e); }
   const all  =LC.arr('games').filter(g=>g.status!=='cancelled'&&g.status!=='completed');
   const games=currentSportFilter==='all'?all:all.filter(g=>(g.sport||'basketball')===currentSportFilter);
   const regs =LC.arr('regs');
@@ -5893,6 +6106,9 @@ async function renderFeed(){
 
 // Compact 2-post preview for the Home tab (read-only). Reuses cached feed if present.
 async function renderFeedPreview(){
+  try { return await _renderFeedPreview(); } finally { try { renderBentoFeed(); } catch(e) {} }
+}
+async function _renderFeedPreview(){
   const el=document.getElementById('feed-preview'); if(!el) return;
   let posts=LC.arr('feed');
   // If feed hasn't been loaded yet this session, pull it once.
