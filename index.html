@@ -1976,6 +1976,11 @@ h1.pb-name{margin:0;font-size:clamp(24px,6.5vw,32px)}
 .acct-disable{display:block;margin:var(--s-3) auto 0;min-height:40px;padding:0 8px;border:0;background:none;color:var(--danger);font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .acct-note{margin:0 0 var(--s-6);text-align:center;font-size:12px;color:var(--text-3)}
 button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13px;font-weight:700;color:var(--hi-text);cursor:pointer}
+.feed-err{text-align:center;padding:24px 16px}
+.feed-err > i{font-size:26px;color:var(--text-3)}
+.feed-err-t{font-weight:700;font-size:15px;color:var(--text-1);margin-top:6px}
+.feed-err-s{font-size:13px;color:var(--text-3);margin-top:2px}
+.feed-err-btn{margin-top:14px;min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 @media(min-width:1024px){
   .profile-band .pb-in,#tab-profile{max-width:720px;margin-inline:auto}
 }
@@ -5829,6 +5834,16 @@ async function delComment(postId,commentId){
   } else toast('Could not delete','er');
 }
 
+// Shown when posts can't be loaded (offline, server error), so a failed
+// load never looks like an empty feed.
+function feedErrorHtml(retryCall){
+  return `<div class="card feed-err" role="status">
+    <i class="ti ti-wifi-off" aria-hidden="true"></i>
+    <div class="feed-err-t">Couldn't load posts</div>
+    <div class="feed-err-s">Check your connection and try again.</div>
+    <button type="button" class="feed-err-btn" onclick="${retryCall}">Try again</button>
+  </div>`;
+}
 async function renderFeed(){
   const el=document.getElementById('feed-list'); if(!el) return;
   const composer=document.getElementById('feed-composer');
@@ -5838,19 +5853,21 @@ async function renderFeed(){
     +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:40%"></div></div></div>'
     +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:35%"></div></div></div>'
     +'</div>';
-  let posts=[];
+  let posts=[], rows=null;
   feedReax={}; feedComments={};
   if (AUTH.isAuthed()){
-    const rows=await rpc('get_feed',{p_phone:AUTH.phone(),p_pin:AUTH.pin()});
-    posts=Array.isArray(rows)?rows:[];
-    const rxs=await rpc('get_reactions_for_feed',{p_phone:AUTH.phone(),p_pin:AUTH.pin()});
+    const who={p_phone:AUTH.phone(),p_pin:AUTH.pin()};
+    const [r, rxs, cms] = await Promise.all([
+      rpc('get_feed',who), rpc('get_reactions_for_feed',who), rpc('get_comments_for_feed',who)
+    ]);
+    rows=r;
     if(Array.isArray(rxs)) rxs.forEach(x=>{ feedReax[x.post_id]={likes:x.likes||0,loves:x.loves||0,hahas:x.hahas||0,mine:x.mine||''}; });
-    const cms=await rpc('get_comments_for_feed',{p_phone:AUTH.phone(),p_pin:AUTH.pin()});
     if(Array.isArray(cms)) cms.forEach(c=>{ (feedComments[c.post_id]=feedComments[c.post_id]||[]).push(c); });
   } else {
-    const rows=await dbGet('posts','select=*&is_public=eq.true&status=eq.active&order=pinned.desc,created_at.desc');
-    posts=Array.isArray(rows)?rows:[];
+    rows=await dbGet('posts','select=*&is_public=eq.true&status=eq.active&order=pinned.desc,created_at.desc').catch(()=>null);
   }
+  if (!Array.isArray(rows)) { el.innerHTML=feedErrorHtml('renderFeed()'); return; }
+  posts=rows;
   LC.set('feed',posts);
   const note = AUTH.isAuthed() ? '' : '<div class="hint" style="margin:0 0 12px;text-align:left">Log in to see the full community feed and post.</div>';
   if(!posts.length){ el.innerHTML=note+'<div class="card"><div class="empty">No posts yet.</div></div>'; return; }
@@ -5880,13 +5897,11 @@ async function renderFeedPreview(){
   let posts=LC.arr('feed');
   // If feed hasn't been loaded yet this session, pull it once.
   if(!posts.length){
-    if(AUTH.isAuthed()){
-      const rows=await rpc('get_feed',{p_phone:AUTH.phone(),p_pin:AUTH.pin()});
-      posts=Array.isArray(rows)?rows:[];
-    } else {
-      const rows=await dbGet('posts','select=*&is_public=eq.true&status=eq.active&order=pinned.desc,created_at.desc');
-      posts=Array.isArray(rows)?rows:[];
-    }
+    const rows = AUTH.isAuthed()
+      ? await rpc('get_feed',{p_phone:AUTH.phone(),p_pin:AUTH.pin()})
+      : await dbGet('posts','select=*&is_public=eq.true&status=eq.active&order=pinned.desc,created_at.desc').catch(()=>null);
+    if (!Array.isArray(rows)) { el.innerHTML=feedErrorHtml('renderFeedPreview()'); return; }
+    posts=rows;
     if(posts.length) LC.set('feed',posts);
   }
   if(!posts.length){ el.innerHTML='<div class="card"><div class="empty">No posts yet.</div></div>'; return; }
