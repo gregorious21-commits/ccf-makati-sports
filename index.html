@@ -1980,6 +1980,7 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
 .feed-err > i{font-size:26px;color:var(--text-3)}
 .feed-err-t{font-weight:700;font-size:15px;color:var(--text-1);margin-top:6px}
 .feed-err-s{font-size:13px;color:var(--text-3);margin-top:2px}
+.lq-tier{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--brand-soft);color:var(--hi-text);font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:0;text-transform:none;vertical-align:1px}
 .feed-err-btn{margin-top:14px;min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 /* Laptop Home: bento tiles (phones keep the list) */
 .home-bento{display:none}
@@ -8612,7 +8613,7 @@ function renderLivePickleball(card, pb){
     const b=(c.teamB||[]).map(lqName).join(' & ')||'—';
     const mine=meId&&((c.teamA||[]).includes(meId)||(c.teamB||[]).includes(meId));
     const tiers=Array.isArray(c.skillTier)?c.skillTier:[];
-    const tierBadge=tiers.length?`<span class="lq-tag" style="background:rgba(59,130,246,.15);color:#7DA9F8;margin-left:6px">${tiers.map(t=>LQ_SKILL_LABEL[t]||t).join(' + ')}</span>`:'';
+    const tierBadge=tiers.length?`<span class="lq-tier">${tiers.map(t=>LQ_SKILL_LABEL[t]||t).join(' + ')}</span>`:'';
     return `<div class="lq-court${mine?' mine':''}">
       <div class="lq-court-h">${c.name}${tierBadge}</div>
       <div class="lq-teams"><span>${a}</span><span class="lq-vs">vs</span><span>${b}</span></div>
@@ -8717,9 +8718,19 @@ function renderLiveBasketball(card, bb, bbTimer){
   const bench=Array.isArray(bb.bench)?bb.bench:[];
   const onCourt=meId&&(teamA.includes(meId)||teamB.includes(meId));
   const onBench=meId&&bench.includes(meId);
+  // Waiting-line mode keeps the bench in order: the next match takes the
+  // first teamSize*2 players, and the players coming off court join the back.
+  const isLine = bb.mode!=='fixedTeams' && bb.rotation==='line';
+  const perMatch = Math.max(2, (bb.teamSize||5)*2);
   let myStatus='';
   if(onCourt) myStatus=`<div class="lq-you playing"><i class="ti ti-player-play"></i> You're playing now</div>`;
-  else if(onBench) myStatus=`<div class="lq-you next"><i class="ti ti-bell-ringing"></i> You're on the bench, up soon</div>`;
+  else if(onBench && isLine){
+    const pos = bench.indexOf(meId)+1, away = Math.ceil(pos/perMatch);
+    myStatus = pos<=perMatch
+      ? `<div class="lq-you next"><i class="ti ti-bell-ringing"></i> You're in the next match</div>`
+      : `<div class="lq-you"><i class="ti ti-clock"></i> You're #${pos} in line · about ${away} matches away</div>`;
+  }
+  else if(onBench) myStatus=`<div class="lq-you next"><i class="ti ti-bell-ringing"></i> ${bb.mode==='fixedTeams'?'Your team is waiting to play':'You\'re on the bench'}</div>`;
 
   _lastBbTimer=bbTimer||null;
   const clockHtml=bbTimer ? `<div class="lq-bb-clock"><i class="ti ti-clock-play"></i><span id="lq-bb-clock">${fmtClock(bbTimerRemainingMsClient(bbTimer))}</span></div>` : '';
@@ -8737,9 +8748,9 @@ function renderLiveBasketball(card, bb, bbTimer){
     </div>
   </div>`;
 
-  const benchHtml=bench.length? `<div class="lq-chips">` + bench.map(pid=>{
+  const benchHtml=bench.length? `<div class="lq-chips">` + bench.map((pid,i)=>{
     const mine=meId&&pid===meId;
-    return `<div class="lq-chip${mine?' mine':''}">${lqAvatar(pid)}<span>${lqName(pid)}${mine?' (You)':''}</span></div>`;
+    return `<div class="lq-chip${mine?' mine':isLine&&i<perMatch?' up':''}">${lqAvatar(pid)}${isLine?`<span class="lq-qn">${i+1}</span>`:''}<span>${lqName(pid)}${mine?' (You)':''}</span></div>`;
   }).join('') + `</div>` : '<div style="font-size:13px;color:var(--tx3);padding:6px">Everyone present is playing.</div>';
 
   const log=Array.isArray(bb.log)?bb.log:[];
@@ -8747,11 +8758,17 @@ function renderLiveBasketball(card, bb, bbTimer){
   if(log.length){
     const recent=log.slice(-6).reverse();
     resultsHtml=`<div class="lq-qhead" style="margin-top:14px">Recent Results</div>` + recent.map(m=>{
+      const mine=meId&&([...(m.teamA||[]),...(m.teamB||[])].includes(meId));
+      if(m.winner==='draw'){
+        return `<div class="lq-result${mine?' mine':''}">
+          <div class="lq-result-top"><span class="lq-result-win">Match ${m.matchNum||''} · Draw</span></div>
+          <div class="lq-result-bot"><span>${(m.teamA||[]).map(lqName).join(', ')||'—'} vs ${(m.teamB||[]).map(lqName).join(', ')||'—'}</span>${mine?'<span class="lq-tag" style="background:var(--surface-2);color:var(--text-2)">Draw</span>':''}</div>
+        </div>`;
+      }
       const winIds=(m.winner==='A'?m.teamA:m.teamB)||[];
       const loseIds=(m.winner==='A'?m.teamB:m.teamA)||[];
       const winNames=winIds.map(lqName).join(', ')||'—';
       const loseNames=loseIds.map(lqName).join(', ')||'—';
-      const mine=meId&&([...(m.teamA||[]),...(m.teamB||[])].includes(meId));
       const iWon=mine&&((m.winner==='A'&&(m.teamA||[]).includes(meId))||(m.winner==='B'&&(m.teamB||[]).includes(meId)));
       const tag=mine?`<span class="lq-tag" style="background:${iWon?'rgba(34,197,94,.18)':'rgba(123,138,166,.18)'};color:${iWon?'var(--success)':'var(--tx3)'}">${iWon?'You won':'You lost'}</span>`:'';
       return `<div class="lq-result${mine?' mine':''}">
@@ -8767,7 +8784,7 @@ function renderLiveBasketball(card, bb, bbTimer){
     <div class="lq-body-grid">
       <div class="lq-courts">${courtHtml}</div>
       <div>
-        <div class="lq-qhead">Bench (${bench.length})</div>
+        <div class="lq-qhead">${isLine?'Waiting line':'Bench'} (${bench.length})</div>
         ${benchHtml}
         ${resultsHtml}
       </div>
