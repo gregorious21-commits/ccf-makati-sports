@@ -1920,6 +1920,82 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
 .game-card.mine .game-share-btn span{color:#fff}
 .game-card.mine:hover{border-color:var(--brand)}
 
+/* Game cards: three quick facts (when, who, spots), clear "You're in" */
+.week-grp{grid-column:1/-1;margin:var(--s-5) 0 var(--s-3);font-size:17px;font-weight:800;letter-spacing:-.015em;color:var(--text-1)}
+.gk-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--border)}
+.gk-cell{padding:10px 12px 11px;border-right:1px solid var(--border);min-width:0;display:flex;flex-direction:column;gap:3px}
+.gk-cell:last-child{border-right:0}
+.gk-k{font-size:11px;color:var(--text-3)}
+.gk-v{font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1.1;color:var(--hi-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gk-v.warn{color:var(--warning)}
+.gk-first{font-size:13px;font-weight:700;color:var(--hi-text);margin-top:4px}
+.gk-going{display:flex;align-items:center;min-height:26px}
+.gk-stack{display:inline-flex;align-items:center}
+.gk-av{position:relative;overflow:hidden;width:var(--av);height:var(--av);border-radius:50%;border:2px solid var(--surface-1);margin-left:calc(var(--av) * -.3);display:inline-flex;align-items:center;justify-content:center;font-size:calc(var(--av) * .36);font-weight:700;color:#fff;flex-shrink:0}
+.gk-av:first-child{margin-left:0}
+.gk-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gk-more{margin-left:5px;font-size:12px;font-weight:700;color:var(--hi-text)}
+.gk-wx{margin:0 var(--s-5) var(--s-3);background:var(--warning-soft);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--warning)}
+.gk-fee{font-size:13px;color:var(--text-2);min-width:0}
+.gk-me{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px;min-width:0}
+.gk-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.gk-btn{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.join-btn.gk-join{border-radius:999px;min-height:40px;padding:0 18px;font-size:14px}
+.gk-cant{min-height:40px;padding:0 4px;border:0;background:none;font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--text-2)}
+.game-card.mine .gk-strip,.game-card.mine .gk-cell{border-color:rgba(255,255,255,.14)}
+.game-card.mine .gk-k{color:rgba(255,255,255,.75)}
+.game-card.mine .gk-v,.game-card.mine .gk-first,.game-card.mine .gk-more,.game-card.mine .gk-me{color:#fff}
+.game-card.mine .gk-av{border-color:var(--brand)}
+.game-card.mine .gk-btn{background:transparent;border-color:rgba(255,255,255,.32);color:#fff}
+.game-card.mine .gk-cant{color:rgba(255,255,255,.85)}
+
+/* Game detail: slide-up panel on phones, centered card on wider screens */
+#game-detail-modal{position:fixed;inset:0;z-index:9550;align-items:flex-end;justify-content:center}
+.gd-scrim{position:absolute;inset:0;background:rgba(15,23,41,.45)}
+.gd-sheet{position:relative;width:100%;max-width:520px;max-height:92vh;max-height:92dvh;background:var(--surface-1);border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:gdUp .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes gdUp{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.gd-sheet{animation:none}}
+.gd-grab{width:40px;height:5px;border-radius:3px;background:var(--border-strong);margin:8px auto 0;flex:none}
+.gd-close{position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:0;background:var(--surface-2);color:var(--text-2);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:1}
+#game-detail-inner{display:flex;flex-direction:column;flex:1;min-height:0}
+.gd-body{flex:1;min-height:0;overflow-y:auto;padding:14px 20px 18px;display:flex;flex-direction:column;gap:16px}
+.gd-head{display:flex;gap:12px;align-items:flex-start;padding-right:48px}
+.gd-title{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:6px}
+.gd-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.gd-when{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;background:var(--brand);color:#fff;font-size:14px}
+.gd-when > i{font-size:20px}
+.gd-when-t{flex:1;min-width:0}
+.gd-when-t b{font-family:var(--font-display);font-size:19px;font-weight:700;letter-spacing:.01em}
+.gd-when-s{font-size:12px;color:rgba(255,255,255,.85);white-space:nowrap}
+.gd-info{border:1px solid var(--border);border-radius:12px}
+.gd-info-row{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border)}
+.gd-info-row:last-child{border-bottom:0}
+.gd-info-row > i{font-size:20px;color:var(--brand);flex-shrink:0}
+.gd-info-v{font-size:14px;font-weight:700;color:var(--text-1)}
+.gd-info-s{font-size:12px;color:var(--text-3);margin-top:2px}
+.gd-link{display:inline-block;padding:4px 0;border:0;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--hi-text);cursor:pointer;text-decoration:none}
+.gd-link:hover{text-decoration:underline}
+.gd-going-h{display:flex;align-items:baseline;justify-content:space-between}
+.gd-going-h h3{margin:0;font-size:16px;font-weight:800;color:var(--text-1)}
+.gd-going-h h3 span{font-weight:600;color:var(--text-3)}
+.gd-stack-btn{border:0;background:none;padding:0;margin-top:10px;cursor:pointer;display:block}
+.gd-names{font-size:13px;color:var(--text-2);margin-top:8px}
+.gd-list{margin-top:8px}
+.gd-sub{font-size:13px;font-weight:700;color:var(--text-3);margin-top:14px}
+.gd-note{font-size:12px;color:var(--text-3)}
+.gd-av{position:relative;overflow:hidden}
+.gd-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.gd-actions{display:flex;gap:8px;padding:12px 20px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--surface-1);flex:none}
+.gd-primary{flex:1;min-height:48px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.gd-primary:active,.gd-secondary:active,.gd-cant:active{transform:translateY(1px)}
+.gd-secondary,.gd-cant{min-height:48px;padding:0 18px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.gd-cant{color:var(--danger)}
+@media (min-width:600px){
+  #game-detail-modal{align-items:center;padding:16px}
+  .gd-sheet{border-radius:16px;max-height:88vh}
+  .gd-grab{display:none}
+}
+
 /* Today: verse and devotion read as text, not boxes */
 .votd-card,.dev-card{background:transparent;border:none;border-radius:0;padding:0;margin-bottom:0}
 .votd-card{padding-bottom:var(--s-5);border-bottom:1px solid var(--border)}
@@ -2641,11 +2717,12 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
 </div>
 
 <!-- ══ GAME DETAIL MODAL ══ -->
-<div id="game-detail-modal" style="display:none;position:fixed;inset:0;z-index:9550;align-items:center;justify-content:center;padding:16px">
-  <div onclick="closeGameDetail()" style="position:absolute;inset:0;background:rgba(15,23,41,.45)"></div>
-  <div style="position:relative;background:var(--surface-1);border:1px solid var(--b,rgba(255,255,255,.08));border-radius:16px;max-width:440px;width:100%;max-height:88vh;display:flex;flex-direction:column">
-    <button type="button" onclick="closeGameDetail()" aria-label="Close" style="position:absolute;top:14px;right:14px;background:var(--surface-2);border:none;border-radius:50%;width:32px;height:32px;color:var(--text-2);font-size:16px;cursor:pointer;z-index:1"><i class="ti ti-x"></i></button>
-    <div id="game-detail-inner" style="overflow-y:auto"></div>
+<div id="game-detail-modal" style="display:none" role="dialog" aria-modal="true" aria-label="Game details">
+  <div class="gd-scrim" onclick="closeGameDetail()"></div>
+  <div class="gd-sheet">
+    <div class="gd-grab" aria-hidden="true"></div>
+    <button type="button" class="gd-close" onclick="closeGameDetail()" aria-label="Close"><i class="ti ti-x"></i></button>
+    <div id="game-detail-inner"></div>
   </div>
 </div>
 
@@ -4814,6 +4891,63 @@ function setSportFilter(s){
   renderWeekGames();
 }
 
+// ── GAME TIMING + SHARED BITS (cards and detail) ─────────────
+const SPORT_NAME = {running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'};
+const SPORT_SPI  = {running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'};
+// "6:00 - 9:00 PM", "6:00PM - 10:00PM", "7:00 AM" -> start/end Date on the game day (device time).
+function gameTimes(g){
+  if (!g || !g.date) return null;
+  const parts = String(g.time||'').split(/\s*[-–]\s*/);
+  const ampmOf = t => (String(t).match(/[ap]\.?m/i)||[''])[0].replace('.','').toLowerCase();
+  const endAmpm = ampmOf(parts[1]||parts[0]);
+  const at = (t, fallbackAmpm) => {
+    const m = String(t||'').match(/(\d{1,2})(?::(\d{2}))?/); if (!m) return null;
+    let h = +m[1]; const min = +(m[2]||0); const ap = ampmOf(t) || fallbackAmpm;
+    if (ap==='pm' && h<12) h+=12; if (ap==='am' && h===12) h=0;
+    const d = new Date(g.date+'T00:00:00'); d.setHours(h, min, 0, 0); return d;
+  };
+  const start = at(parts[0], endAmpm); if (!start || isNaN(start)) return null;
+  let end = parts[1] ? at(parts[1], endAmpm) : null;
+  if (!end || end<=start) end = new Date(start.getTime()+2*3600e3);
+  return { start, end };
+}
+const dayDiff = d => { const a=new Date(); a.setHours(0,0,0,0); const b=new Date(d); b.setHours(0,0,0,0); return Math.round((b-a)/864e5); };
+// Short "when" for cards and the detail banner.
+function gameCountdown(g){
+  const t = gameTimes(g); if (!t) return null;
+  const now = Date.now(), ms = t.start - now;
+  if (now >= t.end) return { label:'Starts', value:'Done', soon:false };
+  if (ms <= 0)      return { label:'Status', value:'Playing now', soon:true };
+  if (ms < 864e5) { const h=Math.floor(ms/36e5), m=Math.floor(ms%36e5/6e4);
+    return { label:'Starts in', value: h ? h+'h '+m+'m' : m+'m', soon:true }; }
+  const days = dayDiff(t.start);
+  return { label:'Starts', value: days===1 ? 'Tomorrow' : days<7 ? t.start.toLocaleDateString('en-US',{weekday:'long'}) : 'In '+days+' days', soon:false };
+}
+const feeText = g => (g.sport==='running'||(g.fee||0)<=0) ? 'Free' : '₱'+(g.fee||0)+' per player';
+function gameGroup(g){
+  const d = g.date ? dayDiff(new Date(g.date+'T00:00:00')) : 0;
+  return d < 7 ? 'This week' : d < 14 ? 'Next week' : 'Later';
+}
+// Who's going (confirmed or pending, one per player), earliest sign-up first.
+function gameGoing(g, regs, players){
+  const byTime = (a,b) => String(a.registered||a.id||'').localeCompare(String(b.registered||b.id||'')) || String(a.id||'').localeCompare(String(b.id||''));
+  const toPerson = r => players.find(p=>p.id===r.playerId) || { id:r.playerId, firstName:(r.playerName||'Player'), lastName:'', _noProfile:true };
+  const uniq = list => { const seen=new Set(); return list.filter(r=>{ const k=r.playerId||r.id; if(seen.has(k)) return false; seen.add(k); return true; }); };
+  const live = regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled');
+  return {
+    going:    uniq(live.filter(r=>r.status!=='waitlist').sort(byTime)).map(toPerson),
+    waitlist: uniq(live.filter(r=>r.status==='waitlist').sort(byTime)).map(toPerson)
+  };
+}
+function avatarStackHtml(people, max, size){
+  const shown = people.slice(0,max), extra = people.length-shown.length;
+  return `<span class="gk-stack" style="--av:${size}px">${shown.map((p,i)=>{
+    const nm = (p.firstName+' '+(p.lastName||'')).trim();
+    const img = p.avatarUrl ? `<img src="${feedEsc(p.avatarUrl)}" alt="" loading="lazy" onerror="this.remove()">` : '';
+    return `<span class="gk-av" style="background:${lbCol(i)}" title="${feedEsc(nm)}">${feedEsc(ini(p.firstName,p.lastName))}${img}</span>`;
+  }).join('')}${extra>0?`<span class="gk-more">+${extra}</span>`:''}</span>`;
+}
+
 function renderWeekGames() {
   const all  =LC.arr('games').filter(g=>g.status!=='cancelled'&&g.status!=='completed');
   const games=currentSportFilter==='all'?all:all.filter(g=>(g.sport||'basketball')===currentSportFilter);
@@ -4825,55 +4959,52 @@ function renderWeekGames() {
     document.getElementById('pay-section').style.display='none';
     return;
   }
+  let lastGroup = 'This week'; // the section heading already says "This Week"
   el.innerHTML=games.map(g=>{
     const myReg  =ME?regs.find(r=>r.gameId===g.id&&r.playerId===ME.id&&r.status!=='cancelled'):null;
-    const count  =new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
-    const spots  =(g.spots||20)-count;
+    const { going, waitlist } = gameGoing(g, regs, players);
+    const cap    =g.spots||20;
+    const spots  =cap-going.length;
     const mySt   =myReg?(myReg.status||'pending'):'';
-    const tClass =g.status==='confirmed'?'game-top g-on':g.status==='cancelled'?'game-top g-off':'game-top';
+    const mine   =mySt==='confirmed'||mySt==='pending'||mySt==='waitlist';
     const sBadge =g.status==='confirmed'?'<span class="badge b-on">Game on</span>':'<span class="badge b-tbd">To be confirmed</span>';
-    const waitlistPos = mySt==='waitlist' ? regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort((a,b)=>(a.registered||'').localeCompare(b.registered||'')).findIndex(r=>r.playerId===ME.id)+1 : 0;
-    const mBadge =mySt==='confirmed'?'<span class="badge b-on"> Confirmed</span>':mySt==='cancelled'?'<span class="badge b-rd"> Cancelled</span>':mySt==='waitlist'?`<span class="badge b-tbd">Waitlisted${waitlistPos?' #'+waitlistPos:''}</span>`:mySt?'<span class="badge b-tbd"> Pending</span>':'';
-    const cancelBtn = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="game-share-btn" onclick="event.stopPropagation();cancelMyRegistration('${myReg.id}','${g.id}')" title="Cancel my slot" aria-label="Cancel my slot"><i class="ti ti-x"></i></button>` : '';
-    const jBtn   =!mySt&&spots>0&&ME?`<button type="button" class="join-btn" onclick="startJoin('${g.id}')"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
-      :!mySt&&spots<=0&&ME?`<button type="button" class="join-btn" style="background:var(--surface-2);color:var(--text-1)" onclick="startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>`:'';
-    const vurl   =(g.venueUrl||'').trim();
-    const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Venue</a>` : '';
-    const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold)"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
-    const wxLine = g.weatherNote ? `<div style="margin:0 20px 10px;background:var(--warning-soft);border:1px solid rgba(180,83,9,.25);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
-    const attendeeIds = [...new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id))];
-    const attendees = attendeeIds.map(pid=>players.find(p=>p.id===pid)).filter(Boolean);
-    const shownAttendees = attendees.slice(0,5);
-    const extraCount = attendees.length - shownAttendees.length;
-    const attendeeStack = attendees.length ? `<div class="attendee-stack">
-      ${shownAttendees.map((p,i)=>{
-        const nm = (p.firstName+' '+(p.lastName||'')).trim();
-        const style = p.avatarUrl ? `background-image:url('${feedEsc(p.avatarUrl)}')` : `background:${lbCol(i)}`;
-        const txt = p.avatarUrl ? '' : ini(p.firstName,p.lastName);
-        return `<div class="attendee-avatar" style="${style}" title="${feedEsc(nm)}">${txt}</div>`;
-      }).join('')}
-      ${extraCount>0?`<div class="attendee-more">+${extraCount}</div>`:''}
-      <span class="attendee-label">${attendees.length} signed up</span>
-    </div>` : '';
-    const mine     = mySt==='confirmed'||mySt==='pending'||mySt==='waitlist';
+    const waitlistPos = mySt==='waitlist' ? waitlist.findIndex(p=>p.id===ME.id)+1 : 0;
     const sportKey = g.sport||'basketball';
-    const sportName= {running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'}[sportKey]||'Basketball';
-    const spiCls   = {running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'}[sportKey]||'spi-b';
-    const capPct   = Math.min(100, Math.round(count / (g.spots||20) * 100));
-    const shareBtn = `<button type="button" class="game-share-btn" onclick="event.stopPropagation();shareGame('${g.id}')" title="Invite friends to this game" aria-label="Invite friends to this game"><i class="ti ti-share"></i><span>Invite</span></button>`;
-    return `<div class="game-card${mine?' mine':''}" id="game-card-${g.id}">
-      <div class="${tClass}" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
-        <div class="game-row">${heroDateBadge(g.date, g.status==='confirmed')}<div class="game-info"><div class="game-label"><span class="spi ${spiCls}"></span>${sportName}</div><div class="game-meta">${g.time} · ${g.venue}${venueLink}</div>${routeLine}</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">${sBadge}</div></div>
-        ${attendeeStack}
-        <div class="game-cap"><div class="track"><i style="width:${capPct}%"></i></div></div>
-    </div>
+    const vurl   =(g.venueUrl||'').trim();
+    const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Map</a>` : '';
+    const routeLine = g.route ? `<div class="game-meta"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
+    const wxLine = g.weatherNote ? `<div class="gk-wx"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
+    const when   = gameCountdown(g);
+    const group  = gameGroup(g);
+    const full   = spots<=0;
+    const spotsVal = full ? 'Full' : spots+' open';
+
+    // Games this week get the three facts; later ones stay compact.
+    const strip = group==='This week' ? `<div class="gk-strip">
+        <div class="gk-cell"><span class="gk-k">${when?when.label:'Starts'}</span><span class="gk-v">${when?feedEsc(when.value):'TBA'}</span></div>
+        <div class="gk-cell"><span class="gk-k">Going</span>${going.length?`<span class="gk-going">${avatarStackHtml(going,3,24)}</span>`:`<span class="gk-first">Be the first</span>`}</div>
+        <div class="gk-cell"><span class="gk-k">Spots</span><span class="gk-v${!mine&&!full&&spots<=3?' warn':''}">${spotsVal}</span></div>
+      </div>` : '';
+
+    const shareBtn = `<button type="button" class="gk-btn" onclick="event.stopPropagation();shareGame('${g.id}')" aria-label="Invite friends to this game">Invite</button>`;
+    const cantBtn  = mine ? `<button type="button" class="gk-cant" onclick="event.stopPropagation();cancelMyRegistration('${myReg.id}','${g.id}')">${mySt==='waitlist'?'Leave waitlist':'Can\'t make it'}</button>` : '';
+    const joinBtn  = !mine&&ME ? `<button type="button" class="join-btn gk-join" onclick="event.stopPropagation();startJoin('${g.id}')">${full?'Join waitlist':(feeText(g)==='Free'?'Join (Free)':'Join')}</button>` : '';
+    const myLine   = mySt==='confirmed' ? '<i class="ti ti-check"></i>You\'re in'
+                   : mySt==='pending'   ? '<i class="ti ti-clock"></i>Waiting for confirmation'
+                   : mySt==='waitlist'  ? `<i class="ti ti-clock"></i>Waitlist${waitlistPos?' #'+waitlistPos:''}` : '';
+    const leftText = mine ? `<div class="gk-me">${myLine}</div>`
+                   : `<div class="gk-fee">${group==='This week' ? feeText(g) : feeText(g).replace(' per player','')+' · '+spotsVal}</div>`;
+
+    const heading = group!==lastGroup ? `<h3 class="week-grp">${group}</h3>` : '';
+    lastGroup = group;
+    return `${heading}<div class="game-card${mine?' mine':''}" id="game-card-${g.id}">
+      <div class="game-top" onclick="openGameDetail('${g.id}')" style="cursor:pointer">
+        <div class="game-row">${heroDateBadge(g.date, g.status==='confirmed')}<div class="game-info"><div class="game-label"><span class="spi ${SPORT_SPI[sportKey]||'spi-b'}"></span>${SPORT_NAME[sportKey]||'Basketball'}</div><div class="game-meta">${feedEsc(g.time)} · ${feedEsc(g.venue)}${venueLink}</div>${routeLine}</div><div style="flex-shrink:0">${sBadge}</div></div>
+      </div>
+      ${strip}
       ${wxLine}
-      <div class="game-bot">
-        <div class="game-spots ${spots<=3&&!mySt?'warn':''}">${spots<=0&&!myReg?'Game full':spots+' slots left'}</div>
-        <div style="display:flex;align-items:center;gap:8px">${shareBtn}${myReg?mBadge:jBtn}${cancelBtn}</div>
-    </div>
-      ${mySt==='pending'?'<div class="game-note">Waiting for admin confirmation</div>':''}
-      ${mySt==='waitlist'?'<div class="game-note">You\'ll be automatically confirmed if a slot opens up</div>':''}
+      <div class="game-bot">${leftText}<div class="gk-actions">${shareBtn}${joinBtn}${cantBtn}</div></div>
+      ${mySt==='waitlist'?'<div class="game-note">You\'ll be confirmed automatically if a spot opens up.</div>':''}
   </div>`;
   }).join('');
   _maybeScrollToGame();
@@ -4967,84 +5098,125 @@ async function shareGame(gameId){
   }
 }
 
-function openGameDetail(gameId){
+let _gdShowAll = false;
+function openGameDetail(gameId, keepExpanded){
   const g = LC.arr('games').find(x=>x.id===gameId);
   if (!g) return;
+  if (!keepExpanded) _gdShowAll = false;
   const regs = LC.arr('regs');
   const players = LC.arr('roster'); // full public roster — LC.arr('players') is ME-only on member app
   const myReg = ME ? regs.find(r=>r.gameId===g.id&&r.playerId===ME.id&&r.status!=='cancelled') : null;
-  const count = new Set(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').map(r=>r.playerId||r.id)).size;
-  const spots = (g.spots||20)-count;
+  const { going, waitlist } = gameGoing(g, regs, players);
+  const cap = g.spots||20;
+  const spots = cap-going.length;
   const mySt = myReg ? (myReg.status||'pending') : '';
+  const mine = mySt==='confirmed'||mySt==='pending'||mySt==='waitlist';
+  const _sk = g.sport||'basketball';
 
   const sBadge = g.status==='confirmed' ? '<span class="badge b-on">Game on</span>' : g.status==='cancelled' ? '<span class="badge b-rd">Cancelled</span>' : '<span class="badge b-tbd">To be confirmed</span>';
-  const _sk = g.sport||'basketball';
-  const sportBadge = `<span class="spi ${({running:'spi-r',pickleball:'spi-p',badminton:'spi-bd',dragonboat:'spi-db'})[_sk]||'spi-b'}"></span>${({running:'Running',pickleball:'Pickleball',badminton:'Badminton',dragonboat:'Dragonboat'})[_sk]||'Basketball'}`;
-  const mBadge = mySt==='confirmed' ? '<span class="badge b-on"> Confirmed</span>' : mySt==='cancelled' ? '<span class="badge b-rd"> Cancelled</span>' : mySt==='waitlist' ? '<span class="badge b-tbd">Waitlisted</span>' : mySt ? '<span class="badge b-tbd"> Pending</span>' : '';
-  const jBtn = !mySt&&spots>0&&ME ? `<button type="button" class="join-btn" onclick="closeGameDetail();startJoin('${g.id}')" style="width:100%;justify-content:center"><i class="ti ti-plus"></i>${(g.sport==='running'||(g.fee||0)<=0)?'Join (Free)':'Join'}</button>`
-    : !mySt&&spots<=0&&ME ? `<button type="button" class="join-btn" style="width:100%;justify-content:center;background:var(--surface-2);color:var(--text-1)" onclick="closeGameDetail();startJoin('${g.id}')"><i class="ti ti-clock"></i>Join Waitlist</button>` : '';
-  const cancelBtnDetail = (mySt==='confirmed'||mySt==='pending'||mySt==='waitlist') ? `<button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;color:var(--danger)" onclick="closeGameDetail();cancelMyRegistration('${myReg.id}','${g.id}')"><i class="ti ti-x"></i>Cancel My Slot</button>` : '';
-  const vurl = (g.venueUrl||'').trim();
-  const venueLink = /^https?:\/\//i.test(vurl) ? ` · <a href="${feedEsc(vurl)}" target="_blank" rel="noopener" style="color:var(--gold);font-weight:600"><i class="ti ti-map-pin"></i> Open Map</a>` : '';
-  const routeLine = g.route ? `<div class="game-meta" style="color:var(--gold);margin-top:4px"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>` : '';
-  const wxLine = g.weatherNote ? `<div style="margin-top:10px;background:var(--warning-soft);border:1px solid rgba(180,83,9,.25);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--gold)"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
+  const mBadge = mySt==='confirmed' ? '<span class="badge b-gd">You\'re in</span>' : mySt==='waitlist' ? '<span class="badge b-tbd">On the waitlist</span>' : mySt ? '<span class="badge b-tbd">Waiting for confirmation</span>' : '';
 
-  // Sign-up order (earliest first). Anyone not in the public roster (e.g. a
-  // deactivated account) still shows, by the name on their registration.
-  const byTime = (a,b) => String(a.registered||a.id||'').localeCompare(String(b.registered||b.id||'')) || String(a.id||'').localeCompare(String(b.id||''));
-  const toPerson = r => players.find(p=>p.id===r.playerId) || { id:r.playerId, firstName:(r.playerName||'Player'), lastName:'', _noProfile:true };
-  const uniqByPlayer = list => { const seen=new Set(); return list.filter(r=>{ const k=r.playerId||r.id; if(seen.has(k)) return false; seen.add(k); return true; }); };
-  const attendees = uniqByPlayer(regs.filter(r=>r.gameId===g.id&&r.status!=='cancelled'&&r.status!=='waitlist').sort(byTime)).map(toPerson);
+  const t = gameTimes(g);
+  const when = gameCountdown(g);
+  const dateLong = g.date ? new Date(g.date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '';
+  const dayWord = t ? (dayDiff(t.start)===0 ? 'Today' : dayDiff(t.start)===1 ? 'Tomorrow' : t.start.toLocaleDateString('en-US',{weekday:'long'})) : '';
+  const startClock = t ? t.start.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+  // "Starts in 9h 12m · Today, 6:00 PM" / "Starts tomorrow · 6:00 PM" / "Playing now"
+  const bannerText = !when ? '' : when.value==='Playing now' ? 'Playing now'
+    : when.label==='Starts in' ? 'Starts in <b>'+feedEsc(when.value)+'</b>'
+    : 'Starts <b>'+feedEsc(when.value==='Tomorrow' ? 'tomorrow' : when.value.replace(/^In /,'in '))+'</b>';
+  const bannerSide = !when || when.value==='Playing now' ? '' : when.label==='Starts in' ? dayWord+', '+startClock : startClock;
+  const banner = !when || when.value==='Done' || g.status==='cancelled' ? '' : `<div class="gd-when">
+      <i class="ti ti-clock" aria-hidden="true"></i>
+      <div class="gd-when-t">${bannerText}</div>
+      ${bannerSide?`<span class="gd-when-s">${feedEsc(bannerSide)}</span>`:''}
+    </div>`;
+
+  const vurl = (g.venueUrl||'').trim();
+  const mapUrl = /^https?:\/\//i.test(vurl) ? vurl : (g.venue ? 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(g.venue) : '');
+  const calLink = t ? `<button type="button" class="gd-link" onclick="addGameToCalendar('${g.id}')">Add to calendar</button>` : '';
+  const info = `<div class="gd-info">
+      <div class="gd-info-row"><i class="ti ti-calendar" aria-hidden="true"></i><div><div class="gd-info-v">${feedEsc(dateLong)} · ${feedEsc(g.time)}</div>${calLink}</div></div>
+      <div class="gd-info-row"><i class="ti ti-map-pin" aria-hidden="true"></i><div><div class="gd-info-v">${feedEsc(g.venue||'Venue to be announced')}</div>${mapUrl?`<a class="gd-link" href="${feedEsc(mapUrl)}" target="_blank" rel="noopener">Open in Maps</a>`:''}${g.route?`<div class="gd-info-s"><i class="ti ti-route"></i> ${feedEsc(g.route)}</div>`:''}</div></div>
+      <div class="gd-info-row"><i class="ti ti-wallet" aria-hidden="true"></i><div class="gd-info-v">${feeText(g)}</div></div>
+    </div>`;
+  const wxLine = g.weatherNote ? `<div class="gk-wx" style="margin:0"><i class="ti ti-cloud"></i> ${feedEsc(g.weatherNote)}</div>` : '';
+
   const rosterRow = (p,i) => {
     const nm = (p.firstName+' '+(p.lastName||'')).trim() || 'Unnamed';
-    const style = p.avatarUrl ? `background-image:url('${feedEsc(p.avatarUrl)}')` : `background:${lbCol(i)}`;
-    const txt = p.avatarUrl ? '' : ini(p.firstName,p.lastName);
+    const img = p.avatarUrl ? `<img src="${feedEsc(p.avatarUrl)}" alt="" loading="lazy" onerror="this.remove()">` : '';
     const isMe = ME && p.id===ME.id;
-    const inner = `<div class="gd-av" style="${style}">${txt}</div>
+    const inner = `<div class="gd-av" style="background-color:${lbCol(i)}">${feedEsc(ini(p.firstName,p.lastName))}${img}</div>
       <span class="gd-nm">${feedEsc(nm)}</span>${isMe?'<span class="gd-you">You</span>':''}
       ${p._noProfile?'':'<i class="ti ti-chevron-right gd-chev" aria-hidden="true"></i>'}`;
     return p._noProfile
       ? `<div class="gd-row">${inner}</div>`
       : `<button type="button" class="gd-row" onclick="viewPlayer('${p.id}')" aria-label="View ${feedEsc(nm)}'s profile">${inner}</button>`;
   };
-  const attendeeRows = attendees.length ? attendees.map(rosterRow).join('') : '<div class="empty" style="padding:16px 0">No one has signed up yet.</div>';
+  // "You, Edilberto, Christian and 22 others"
+  const meFirst = ME ? [...going.filter(p=>p.id===ME.id), ...going.filter(p=>p.id!==ME.id)] : going;
+  const named = meFirst.slice(0,3).map(p=>ME&&p.id===ME.id?'You':feedEsc(p.firstName||'Player'));
+  const others = going.length-named.length;
+  const namesLine = going.length ? named.join(', ')+(others>0?` and ${others} other${others===1?'':'s'}`:'') : 'No one yet. Be the first to join.';
+  const goingHead = `<div class="gd-going-h"><h3>Going <span>${going.length} of ${cap}</span></h3>${going.length?`<button type="button" class="gd-link" onclick="_gdShowAll=!_gdShowAll;openGameDetail('${g.id}',true)">${_gdShowAll?'Show less':'See all'}</button>`:''}</div>`;
+  const goingBody = _gdShowAll
+    ? `<div class="gd-list">${going.map(rosterRow).join('')}</div>${waitlist.length?`<div class="gd-sub">Waitlist (${waitlist.length})</div><div class="gd-list">${waitlist.map(rosterRow).join('')}</div>`:''}`
+    : `${going.length?`<button type="button" class="gd-stack-btn" onclick="_gdShowAll=true;openGameDetail('${g.id}',true)" aria-label="See everyone going">${avatarStackHtml(meFirst,6,36)}</button>`:''}
+       <div class="gd-names">${namesLine}${waitlist.length?` · ${waitlist.length} on the waitlist`:''}${!mine&&spots>0&&going.length?` · ${spots} spot${spots===1?'':'s'} open`:''}</div>`;
 
-  const waitlistPlayers = uniqByPlayer(regs.filter(r=>r.gameId===g.id&&r.status==='waitlist').sort(byTime)).map(toPerson);
-  const waitlistSection = waitlistPlayers.length ? `
-    <div style="padding:0 20px 16px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">Waitlist (${waitlistPlayers.length})</div>
-      <div style="max-height:200px;overflow-y:auto;margin-top:8px">${waitlistPlayers.map(rosterRow).join('')}</div>
-    </div>` : '';
+  const note = mySt==='pending' ? '<div class="gd-note">Waiting for admin confirmation.</div>'
+             : mySt==='waitlist' ? '<div class="gd-note">You\'ll be confirmed automatically if a spot opens up.</div>' : '';
+  const canJoin = !mine && ME && g.status!=='cancelled';
+  const actions = mine
+    ? `<button type="button" class="gd-primary" onclick="shareGame('${g.id}')"><i class="ti ti-share"></i>Invite a friend</button>
+       <button type="button" class="gd-cant" onclick="closeGameDetail();cancelMyRegistration('${myReg.id}','${g.id}')">${mySt==='waitlist'?'Leave waitlist':'Can\'t make it'}</button>`
+    : canJoin
+    ? `<button type="button" class="gd-secondary" onclick="shareGame('${g.id}')">Invite</button>
+       <button type="button" class="gd-primary" onclick="closeGameDetail();startJoin('${g.id}')">${spots<=0?'Join waitlist':(feeText(g)==='Free'?'Join (Free)':'Join game')}</button>`
+    : `<button type="button" class="gd-primary" onclick="shareGame('${g.id}')"><i class="ti ti-share"></i>Share this game</button>`;
 
   document.getElementById('game-detail-inner').innerHTML = `
-    <div style="padding:20px 20px 14px;border-bottom:1px solid var(--border)">
-      <div class="game-row" style="padding-right:40px">
+    <div class="gd-body">
+      <div class="gd-head">
         ${heroDateBadge(g.date, g.status==='confirmed')}
-        <div class="game-info">
-          <div class="game-label" style="font-size:20px">${sportBadge}</div>
-          <div class="game-meta" style="margin-top:4px">${feedEsc(g.time)} · ${feedEsc(g.venue)}${venueLink}</div>
-          ${routeLine}
+        <div style="flex:1;min-width:0">
+          <h2 class="gd-title"><span class="spi ${SPORT_SPI[_sk]||'spi-b'}"></span>${SPORT_NAME[_sk]||'Basketball'}</h2>
+          <div class="gd-chips">${sBadge}${mBadge}</div>
         </div>
       </div>
-      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">${sBadge}${myReg?mBadge:''}</div>
+      ${banner}
+      ${info}
       ${wxLine}
+      <div class="gd-going">${goingHead}${goingBody}</div>
+      ${note}
     </div>
-    <div style="padding:16px 20px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx3);margin-bottom:4px">${spots<=0?'Game full':spots+' slot'+(spots===1?'':'s')+' left'} · ${attendees.length} signed up</div>
-      <div style="max-height:260px;overflow-y:auto;margin-top:8px">${attendeeRows}</div>
-    </div>
-    ${waitlistSection}
-    <div style="padding:14px 20px 20px">
-      ${mySt==='pending' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">Waiting for admin confirmation</div>' : ''}
-      ${mySt==='waitlist' ? '<div style="font-size:12px;color:var(--tx3);margin-bottom:10px">You\'ll be automatically confirmed if a slot opens up</div>' : ''}
-      ${jBtn}
-      ${cancelBtnDetail}
-    </div>`;
-  document.getElementById('game-detail-modal').style.display = 'flex';
+    <div class="gd-actions">${actions}</div>`;
+  const m = document.getElementById('game-detail-modal');
+  m.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 function closeGameDetail(){
   document.getElementById('game-detail-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _gdShowAll = false;
+}
+
+// Download an .ics file so the game lands in the phone's own calendar.
+function addGameToCalendar(gameId){
+  const g = LC.arr('games').find(x=>x.id===gameId); if (!g) return;
+  const t = gameTimes(g); if (!t) return toast('No start time set for this game','er');
+  const utc = d => d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const esc = s => String(s||'').replace(/[\;,]/g,m=>'\\'+m).replace(/\n/g,'\\n');
+  const title = 'CCF Makati Sports: '+(SPORT_NAME[g.sport]||'Basketball');
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//CCF Makati Sports//Games//EN','BEGIN:VEVENT',
+    'UID:'+g.id+'@ccfmakatisports.com','DTSTAMP:'+utc(new Date()),'DTSTART:'+utc(t.start),'DTEND:'+utc(t.end),
+    'SUMMARY:'+esc(title),'LOCATION:'+esc(g.venue),'DESCRIPTION:'+esc(location.origin+location.pathname+'#game/'+g.id),
+    'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  const url = URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));
+  const a = document.createElement('a'); a.href=url; a.download='ccf-'+(g.sport||'game')+'-'+g.date+'.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 
 // ── PAYMENT FLOW ─────────────────────────────────────────────
