@@ -792,9 +792,6 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   #week-games .game-card{margin-bottom:0}
   #week-games .game-card:last-child:nth-child(odd){grid-column:1/-1}
   #dir-list > .card{display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-6)}
-  #my-hist{display:grid;grid-template-columns:1fr 1fr;column-gap:var(--s-6)}
-  #my-hist .hist-row:nth-last-child(-n+2){border-bottom:none}
-  #my-hist .hist-row:last-child:nth-child(odd){grid-column:1/-1}
   .lq-body-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start}
   .lq-courts{margin-bottom:0}
 }
@@ -1920,6 +1917,69 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
 .game-card.mine .game-share-btn span{color:#fff}
 .game-card.mine:hover{border-color:var(--brand)}
 
+/* My Profile: header, per-sport stats, games, faith card, account */
+.profile-band{padding-top:var(--s-6)}
+.pb-top{justify-content:flex-start;align-items:center;gap:var(--s-4);margin-bottom:var(--s-4)}
+.pb-av,.pb-av-img{width:72px;height:72px;font-size:26px}
+h1.pb-name{margin:0;font-size:clamp(24px,6.5vw,32px)}
+.pb-since{font-size:13px;color:var(--text-3);margin-top:4px}
+.pb-sub{gap:6px;margin-top:0}
+.pb-tag{font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--surface-2);color:var(--text-2)}
+.pb-tag.dg{background:var(--brand-soft);color:var(--hi-text)}
+.pb-bio{margin-top:var(--s-4)}
+.pb-actions{display:flex;gap:8px;margin:var(--s-4) 0 var(--s-5)}
+.pb-actions .pb-edit,.pb-actions .pb-share{flex:1;justify-content:center;min-height:44px;margin:0;border-radius:999px;font-size:14px;font-weight:700}
+.pb-actions .pb-edit{background:var(--surface-1);border:1px solid var(--border-strong);color:var(--text-1)}
+.pb-actions .pb-share{background:var(--brand);border:0;color:#fff}
+.pb-actions .pb-share:hover{background:var(--gold-bright)}
+.ps-block{margin-top:var(--s-5)}
+.ps-block:first-child{margin-top:var(--s-2)}
+.ps-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:var(--s-2)}
+.ps-h h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.015em;color:var(--text-1)}
+.ps-h span{font-size:12px;color:var(--text-3);text-align:right}
+.ps-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ps-tile{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 12px 10px;min-width:0}
+.ps-n{font-family:var(--font-display);font-weight:700;font-size:32px;line-height:1;color:var(--hi-text);font-variant-numeric:tabular-nums}
+.ps-l{font-size:12px;color:var(--text-3);margin-top:4px}
+#my-hist{display:flex;flex-direction:column;gap:8px}
+.mh-next{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:var(--r-md);background:var(--brand);color:#fff;font:inherit;text-align:left;cursor:pointer}
+.mh-next > i{font-size:18px;opacity:.85}
+.mh-date{width:44px;flex:none;text-align:center;border-radius:9px;background:#fff;color:var(--brand);padding:4px 0 5px}
+.mh-date b{display:block;font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1}
+.mh-date span{display:block;font-family:var(--font-display);font-weight:600;font-size:10px;letter-spacing:.06em}
+.mh-info{flex:1;min-width:0}
+.mh-t{font-weight:700;font-size:15px}
+.mh-s{font-size:12px;color:rgba(255,255,255,.85);margin-top:2px}
+.card.mh-past{padding:0;margin:0}
+.mh-label{padding:10px 14px 4px;font-size:12px;font-weight:600;color:var(--text-3)}
+.mh-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.mh-row:last-child{border-bottom:0}
+.mh-rt{font-weight:700;font-size:14px;color:var(--text-1)}
+.mh-rs{font-size:12px;color:var(--text-3)}
+.kj-card{margin-top:var(--s-7);background:var(--brand-soft);border-radius:var(--r-lg);padding:18px 16px}
+.kj-card h2{margin:0 0 8px;font-size:18px;font-weight:800;letter-spacing:-.015em;color:var(--text-1)}
+.kj-card p{margin:0;font-size:14px;line-height:1.6;color:var(--text-2)}
+.kj-actions{display:flex;gap:8px;margin-top:14px}
+.kj-primary,.kj-secondary{flex:1;min-height:44px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer}
+.kj-primary{background:var(--brand);color:#fff;border:0}
+.kj-secondary{background:var(--surface-1);color:var(--text-1);border:1px solid var(--border-strong)}
+.card.dg-row{display:flex;align-items:center;gap:12px}
+.dg-row-t{font-weight:700;font-size:14px;color:var(--text-1)}
+.dg-row-s{font-size:12px;line-height:1.5;color:var(--text-3);margin-top:2px}
+.dg-row-btn{flex:none;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.acct-list{display:flex;flex-direction:column;background:var(--surface-1);border:1px solid var(--border);border-radius:var(--r-md)}
+.acct-list > a,.acct-list > button{display:flex;align-items:center;min-height:48px;padding:0 14px;border:0;border-bottom:1px solid var(--border);background:none;font:inherit;font-size:14px;font-weight:600;color:var(--text-1);text-decoration:none;text-align:left;cursor:pointer}
+.acct-list > :last-child{border-bottom:0}
+.acct-list span{flex:1}
+.acct-list i{color:var(--text-4);font-size:16px}
+.acct-logout{display:block;width:100%;min-height:48px;margin-top:var(--s-3);border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);font:inherit;font-size:15px;font-weight:700;cursor:pointer}
+.acct-disable{display:block;margin:var(--s-3) auto 0;min-height:40px;padding:0 8px;border:0;background:none;color:var(--danger);font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.acct-note{margin:0 0 var(--s-6);text-align:center;font-size:12px;color:var(--text-3)}
+button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13px;font-weight:700;color:var(--hi-text);cursor:pointer}
+@media(min-width:1024px){
+  .profile-band .pb-in,#tab-profile{max-width:720px;margin-inline:auto}
+}
+
 /* Game cards: three quick facts (when, who, spots), clear "You're in" */
 .week-grp{grid-column:1/-1;margin:var(--s-5) 0 var(--s-3);font-size:17px;font-weight:800;letter-spacing:-.015em;color:var(--text-1)}
 .gk-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--border)}
@@ -2240,23 +2300,17 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
     <div class="tb-brand"><img src="logo.jpg?v=2" alt="CCF"><div class="tb-name">CCF Makati Sports</div></div>
     <div style="display:flex;align-items:center;gap:8px">
       <button type="button" class="bell-btn" id="bell-btn" onclick="toggleNotifs()"><i class="ti ti-bell" style="font-size:17px"></i><span class="bell-badge" id="bell-badge" style="display:none">0</span></button>
-      <button type="button" class="logout-btn" onclick="doLogout()"><i class="ti ti-logout" style="font-size:13px"></i>Logout</button>
   </div>
 </div>
   <div class="profile-band" id="profile-band">
     <div class="pb-in">
       <div class="pb-top">
-        <div style="min-width:0;flex:1"><div class="pb-eye">Player Profile</div><div class="pb-name" id="d-name">—</div><div class="pb-sub" id="d-sub">—</div></div>
-        <div class="pb-av" id="d-av" onclick="openEditProfile()">??</div>
-    </div>
+        <div class="pb-av" id="d-av" onclick="openEditProfile()" title="Edit profile">??</div>
+        <div style="min-width:0;flex:1"><h1 class="pb-name" id="d-name">—</h1><div class="pb-since" id="d-since"></div></div>
+      </div>
+      <div class="pb-sub" id="d-sub">—</div>
       <div class="pb-bio" id="d-bio" style="display:none"></div>
-      <button type="button" class="pb-edit" onclick="openEditProfile()"><i class="ti ti-edit" style="font-size:12px"></i>Edit Profile</button><button type="button" class="pb-share" onclick="shareCard()"><i class="ti ti-share"></i>Share My Card</button>
-      <div class="stats-strip" style="margin-top:18px">
-        <div class="stat"><div class="stat-n g" id="d-wins">0</div><div class="stat-l"><span class="spi spi-b"></span>Wins</div></div>
-        <div class="stat"><div class="stat-n" id="d-games">0</div><div class="stat-l"><span class="spi spi-b"></span>Games</div></div>
-        <div class="stat"><div class="stat-n" id="d-rate">—</div><div class="stat-l"><span class="spi spi-b"></span>Rate</div></div>
-        <div class="stat"><div class="stat-n" id="d-pball">0</div><div class="stat-l"><span class="spi spi-p"></span>Games</div></div>
-    </div>
+      <div class="pb-actions"><button type="button" class="pb-edit" onclick="openEditProfile()">Edit profile</button><button type="button" class="pb-share" onclick="shareCard()">Share my card</button></div>
       <div id="my-team-stack"></div>
   </div>
 </div>
@@ -2438,33 +2492,33 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
 
     <!-- ───── MY PROFILE TAB ───── -->
     <div id="tab-profile" class="tab-panel" style="display:none">
-      <div class="sec-h"><div class="sec-t">My Games</div></div>
-      <div class="card"><div id="my-hist"><div class="empty">No games yet — join your first one!</div></div></div>
+      <div id="my-stats"></div>
 
-      <div class="sec-h" style="margin-top:18px"><div class="sec-t">Know Jesus</div></div>
-      <div class="card" style="border:1px solid transparent;background:var(--brand-soft)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:22px;color:var(--gold)"><i class="ti ti-heart-handshake"></i></span>
-          <div style="font-family:var(--font-head);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--tx)">The Best Decision</div>
+      <div class="sec-h"><div class="sec-t">My games</div><button type="button" class="sec-link" id="my-hist-all" style="display:none" onclick="_histAll=!_histAll;renderMyHist()"></button></div>
+      <div id="my-hist"><div class="card"><div class="empty">No games yet. Join your first one from Home.</div></div></div>
+
+      <section class="kj-card" aria-labelledby="kj-title">
+        <h2 id="kj-title">The Best Decision</h2>
+        <p>More than the games we play, what matters most is knowing Jesus. If you've ever wondered about faith, hope, or what happens after this life, we'd love to share something with you. No pressure, just an open door.</p>
+        <div class="kj-actions">
+          <a href="best-decision.pdf" target="_blank" rel="noopener" class="kj-primary">Read it</a>
+          <button type="button" class="kj-secondary" onclick="openTalkToSomeone()">Talk to someone</button>
         </div>
-        <div style="font-size:14px;line-height:1.6;color:var(--tx2);margin-bottom:16px">
-          More than the games we play, what matters most is knowing Jesus. If you've ever wondered about faith, hope, or what happens after this life — we'd love to share something with you. No pressure, just an open door.
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <a href="best-decision.pdf" target="_blank" rel="noopener" class="btn btn-g" style="width:100%;justify-content:center;text-decoration:none"><i class="ti ti-book-2"></i>Read: The Best Decision</a>
-          <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openTalkToSomeone()"><i class="ti ti-message-circle-heart"></i>Talk to Someone</button>
-        </div>
-      </div>
+      </section>
 
       <div id="dg-log-card"></div>
       <div id="dg-join-card" style="display:none"></div>
 
-      <div class="sec-h" style="margin-top:18px"><div class="sec-t">Account</div></div>
-      <div class="card" style="border-color:rgba(185,28,28,.25)">
-        <div style="font-weight:600;margin-bottom:4px">Disable My Account</div>
-        <div style="font-size:13px;color:var(--text-3);margin-bottom:14px;line-height:1.5">You will be logged out and won't be able to use the app until you log back in. Your profile and game history are kept.</div>
-        <button type="button" class="btn" style="background:transparent;border:1px solid var(--danger,#e53e3e);color:var(--danger,#e53e3e);width:auto;padding:9px 18px;font-size:13px" onclick="disableMyAccount()"><i class="ti ti-user-off"></i>Disable My Account</button>
-      </div>
+      <div class="sec-h"><div class="sec-t">Account</div></div>
+      <nav class="acct-list" aria-label="Account">
+        <button type="button" onclick="openEditProfile()"><span>Edit profile</span><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        <a href="privacy.html"><span>Privacy Policy</span><i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+        <a href="terms.html"><span>Terms of Use</span><i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+        <a href="community-guidelines.html"><span>Community Guidelines</span><i class="ti ti-chevron-right" aria-hidden="true"></i></a>
+      </nav>
+      <button type="button" class="acct-logout" onclick="doLogout()">Log out</button>
+      <button type="button" class="acct-disable" onclick="disableMyAccount()">Disable my account</button>
+      <p class="acct-note">Disabling logs you out until you sign in again. Your profile and game history are kept.</p>
   </div>
 
     <!-- TOURNAMENTS TAB -->
@@ -3608,6 +3662,31 @@ async function disableMyAccount(){
 }
 
 // ── PROFILE ───────────────────────────────────────────────────
+// "5/29/2026" -> "May 2026" (blank when unknown).
+function memberSince(p){
+  const d = p && p.joined ? new Date(p.joined) : null;
+  return d && !isNaN(d) ? d.toLocaleDateString('en-US',{month:'long',year:'numeric'}) : '';
+}
+// Stats per sport, each in its own row of tiles.
+function profileStatsHtml(sportsList, since){
+  const tile = (n,l) => `<div class="ps-tile"><div class="ps-n">${n}</div><div class="ps-l">${l}</div></div>`;
+  const block = (title, note, tiles) => `<section class="ps-block"><div class="ps-h"><h2>${title}</h2>${note?`<span>${note}</span>`:''}</div><div class="ps-grid">${tiles.join('')}</div></section>`;
+  const out = [];
+  if (sportsList.includes('basketball') || (ME.games||0)>0)
+    out.push(block('Basketball', since?'Since '+since:'', [tile(ME.wins||0,'Wins'), tile(ME.games||0,'Games'), tile((ME.games||0)>0?Math.round((ME.wins||0)/ME.games*100)+'%':'—','Win rate')]));
+  if (sportsList.includes('pickleball')) {
+    const rt = ME.ratingPickleball!=null ? ME.ratingPickleball : (ME.dupr!=null ? ME.dupr : null);
+    const m = ME.pickleballMatches||0, prov = m < 3;
+    out.push(block('Pickleball', prov&&rt!=null?'Rating counts after 3 matches':'', [tile(rt!=null?Number(rt).toFixed(3):'—', 'Rating'+(prov&&rt!=null?' · '+m+'/3':'')), tile(pickleballGames(ME.id),'Games')]));
+  }
+  // Other sports get a row once there is something to count.
+  const runs=runningRuns(ME.id), bad=badmintonGames(ME.id), boat=dragonboatRuns(ME.id);
+  if (runs>0) out.push(block('Running', '', [tile(runs,'Runs')]));
+  if (bad>0)  out.push(block('Badminton', '', [tile(bad,'Games')]));
+  if (boat>0) out.push(block('Dragonboat', '', [tile(boat,'Sessions')]));
+  return out.join('');
+}
+
 function renderProfile() {
   if (!ME) return;
   const av=document.getElementById('d-av');
@@ -3618,7 +3697,6 @@ function renderProfile() {
     if (av.tagName!=='IMG') {
       // swap div for img by setting background image instead (keeps element)
       av.style.background='url('+ME.avatarUrl+') center/cover';
-      av.style.border='1.5px solid rgba(201,162,39,.4)';
       av.textContent='';
     }
   } else {
@@ -3627,27 +3705,20 @@ function renderProfile() {
     av.textContent=ini(ME.firstName,ME.lastName);
   }
   document.getElementById('d-name').textContent  = ME.firstName+' '+ME.lastName;
-  // One tag per sport (pickleball rating right after pickleball), then Dgroup.
-  // Each tag stays on one line so the row wraps between tags, never mid-tag.
+  // Header: "Member since May 2026", then one chip per sport and the Dgroup.
+  const since = memberSince(ME);
+  const sinceEl = document.getElementById('d-since'); if (sinceEl) sinceEl.textContent = since ? 'Member since '+since : '';
   const sportsList = [...new Set((ME.sports||'basketball').split(',').map(s=>s.trim()).filter(Boolean))];
-  const myRt = (ME.ratingPickleball!=null?ME.ratingPickleball:(ME.dupr!=null?ME.dupr:null));
-  const myProvisional = (ME.pickleballMatches||0) < 3;
-  const rtTag = myRt!=null ? `<i class="ti ti-star" style="font-size:12px;color:var(--hi-text);margin-right:3px"></i>${Number(myRt).toFixed(3)} skill${myProvisional?` <span style="color:var(--tx3)">(provisional ${ME.pickleballMatches||0}/3)</span>`:''}` : '';
-  const SPORT_TAG={pickleball:['spi-p','Pickleball'],running:['spi-r','Running'],badminton:['spi-bd','Badminton'],dragonboat:['spi-db','Dragonboat']};
+  const SPORT_TAG={pickleball:'Pickleball',running:'Running',badminton:'Badminton',dragonboat:'Dragonboat',basketball:'Basketball'};
+  const skillLabel = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
   const tags = sportsList.map(s=>{
-    if (s==='pickleball') return `<span class="spi spi-p"></span>Pickleball${ME.pickleballSkill?' ('+feedEsc(ME.pickleballSkill)+')':''}`;
-    if (s==='basketball') return `<span class="spi spi-b"></span>Basketball${ME.position?' · '+feedEsc(posShort(ME.position)):''}`;
-    const [cls,label]=SPORT_TAG[s]||['spi-b',s.charAt(0).toUpperCase()+s.slice(1)];
-    return `<span class="spi ${cls}"></span>${feedEsc(label)}`;
-  });
-  const pbIdx = sportsList.indexOf('pickleball');
-  if (rtTag && pbIdx>-1) tags.splice(pbIdx+1,0,rtTag);
-  tags.push(ME.hasDgroup?(ME.dgroupLeader?'Dgroup · '+feedEsc(ME.dgroupLeader):'Has Dgroup'):'No Dgroup');
-  document.getElementById('d-sub').innerHTML = tags.map(t=>`<span class="pb-tag">${t}</span>`).join('');
-  document.getElementById('d-wins').textContent  = ME.wins  || 0;
-  document.getElementById('d-games').textContent = ME.games || 0;
-  document.getElementById('d-rate').textContent  = (ME.games||0)>0 ? Math.round((ME.wins||0)/ME.games*100)+'%' : '—';
-  document.getElementById('d-pball').textContent = pickleballGames(ME.id);
+    if (s==='pickleball') return 'Pickleball'+(ME.pickleballSkill?' · '+feedEsc(skillLabel(ME.pickleballSkill)):'');
+    if (s==='basketball') return 'Basketball'+(ME.position?' · '+feedEsc(posShort(ME.position)):'');
+    return feedEsc(SPORT_TAG[s]||s);
+  }).map(t=>`<span class="pb-tag">${t}</span>`);
+  tags.push(`<span class="pb-tag dg">${ME.hasDgroup?(ME.dgroupLeader?'Dgroup · '+feedEsc(ME.dgroupLeader):'Has Dgroup'):'No Dgroup'}</span>`);
+  document.getElementById('d-sub').innerHTML = tags.join('');
+  const st = document.getElementById('my-stats'); if (st) st.innerHTML = profileStatsHtml(sportsList, since);
   const bio=document.getElementById('d-bio');
   if (ME.bio) { bio.style.display=''; bio.textContent=ME.bio; } else bio.style.display='none';
   const stack = document.getElementById('my-team-stack');
@@ -3882,7 +3953,10 @@ function renderDgroupSection(){
     <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center" onclick="openDgLog()"><i class="ti ti-forms"></i>Fill in my Dgroup details</button>`;
 
   if (ME.hasDgroup) {
-    el.innerHTML = head('My Dgroup') + `<div class="card">${logOption('Joined a new Dgroup through Sports Ministry?', 'Fill in a few details for CCF&rsquo;s Lifestage Ministry records. The Dgroup coordinator confirms your leader first.')}</div>`;
+    el.innerHTML = head('My Dgroup') + `<div class="card dg-row">
+        <div style="flex:1;min-width:0"><div class="dg-row-t">Joined a new Dgroup through Sports Ministry?</div><div class="dg-row-s">Add a few details for CCF&rsquo;s Lifestage Ministry records. The Dgroup coordinator confirms your leader first.</div>${rejected}</div>
+        <button type="button" class="dg-row-btn" onclick="openDgLog()">Fill in</button>
+      </div>`;
     return;
   }
 
@@ -6223,34 +6297,52 @@ function renderDirectory() {
 }
 
 // ── MY HISTORY ────────────────────────────────────────────────
+// What's next on top (navy, tap for details), then the 3 most recent games;
+// "See all" opens the rest.
+let _histAll = false;
+const HIST_RECENT = 3;
 function renderMyHist() {
   if (!ME) return;
   const el  =document.getElementById('my-hist');
-  // Game date: from the schedule when the game is still listed, otherwise from
-  // the label ("Sun, Jun 14, 2026"). Unknown dates sort last.
-  const gameDates={}; LC.arr('games').forEach(g=>{ if(g.date) gameDates[g.id]=g.date; });
+  const allBtn = document.getElementById('my-hist-all');
+  const games = LC.arr('games'); const gameById = {}; games.forEach(g=>{ gameById[g.id]=g; });
   const dateOf=r=>{
-    if (gameDates[r.gameId]) return new Date(gameDates[r.gameId]+'T00:00:00').getTime();
+    const g=gameById[r.gameId];
+    if (g && g.date) return new Date(g.date+'T00:00:00').getTime();
     const t=Date.parse(String(r.gameLabel||'').replace(/^[A-Za-z]{3},\s*/,''));
     return isNaN(t)?0:t;
   };
   const today=new Date(); today.setHours(0,0,0,0);
-  const regs=LC.arr('regs').filter(r=>r.playerId===ME.id).map(r=>({...r,_t:dateOf(r)}));
-  if (!regs.length) { el.innerHTML='<div class="empty">No games yet. Join your first one from Home.</div>'; return; }
-  // Upcoming games first (soonest on top), then past games (newest on top).
+  const regs=LC.arr('regs').filter(r=>r.playerId===ME.id&&r.status!=='cancelled').map(r=>({...r,_t:dateOf(r)}));
+  if (allBtn) allBtn.style.display='none';
+  if (!regs.length) { el.innerHTML='<div class="card"><div class="empty">No games yet. Join your first one from Home.</div></div>'; return; }
   const upcoming=regs.filter(r=>r._t>=today.getTime()).sort((a,b)=>a._t-b._t);
   const past=regs.filter(r=>r._t<today.getTime()).sort((a,b)=>b._t-a._t);
-  const label={confirmed:'Confirmed',pending:'Pending',cancelled:'Cancelled',waitlist:'Waitlist'};
-  el.innerHTML=[...upcoming,...past].map(r=>{
-    const st=r.status||'pending';
-    const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':'b-tbd';
-    const isNext=r._t>=today.getTime();
-    const sub=isNext?'<span style="color:var(--hi-text);font-weight:700">Upcoming</span>':(r.registered||'');
-    return `<div class="hist-row">
-      <div><div style="font-size:14px;font-weight:700">${feedEsc(r.gameLabel||'Game')}</div><div style="font-size:11px;color:var(--tx3);margin-top:2px">${sub}</div></div>
-      <span class="badge ${bc}">${label[st]||feedEsc(st.charAt(0).toUpperCase()+st.slice(1))}</span>
-  </div>`;
+  const shortDate = r => { const d=new Date(r._t); return r._t ? d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : (r.gameLabel||'Game'); };
+  const sportName = r => SPORT_NAME[r.sport] || 'Basketball';
+
+  const next = upcoming.map(r=>{
+    const g = gameById[r.gameId];
+    const d = new Date(r._t), days = dayDiff(d);
+    const when = days===0 ? 'Today' : days===1 ? 'Tomorrow' : d.toLocaleDateString('en-US',{weekday:'short'});
+    const st = r.status==='waitlist' ? 'On the waitlist' : r.status==='pending' ? 'Waiting for confirmation' : 'You\'re in';
+    const pay = g && r.status!=='waitlist' ? myPaymentText(r, g) : '';
+    const inner = `<div class="mh-date"><b>${String(d.getDate()).padStart(2,'0')}</b><span>${d.toLocaleDateString('en-US',{month:'short'}).toUpperCase()}</span></div>
+      <div class="mh-info"><div class="mh-t">${sportName(r)} · ${when}</div><div class="mh-s">${st}${pay?' · '+feedEsc(pay):''}</div></div>
+      ${g?'<i class="ti ti-chevron-right" aria-hidden="true"></i>':''}`;
+    return g ? `<button type="button" class="mh-next" onclick="openGameDetail('${g.id}')">${inner}</button>` : `<div class="mh-next">${inner}</div>`;
   }).join('');
+
+  const shown = _histAll ? past : past.slice(0,HIST_RECENT);
+  const pastRows = shown.map(r=>`<div class="mh-row">
+      <div style="flex:1;min-width:0"><div class="mh-rt">${feedEsc(shortDate(r))}</div><div class="mh-rs">${sportName(r)}</div></div>
+      ${r.attended===true?'<span class="badge b-on">Played</span>':''}
+    </div>`).join('');
+  el.innerHTML = next + (past.length ? `<div class="card mh-past"><div class="mh-label">${_histAll?'All past games':'Recent'}</div>${pastRows}</div>` : '');
+  if (allBtn && past.length>HIST_RECENT) {
+    allBtn.style.display='';
+    allBtn.textContent = _histAll ? 'Show less' : 'See all '+past.length;
+  }
 }
 
 // ── LEADERBOARD + PLAYER PROFILES ─────────────────────────────
