@@ -8469,12 +8469,10 @@ function lqName(pid){
   const ln=(p.lastName||'').trim();
   return p.firstName+(ln?(' '+ln.charAt(0)+'.'):'');
 }
-async function fetchLiveSession(){
+// Turns the game_sessions row into what the live cards need (null = nothing live).
+function parseLiveRow(row){
   try{
-    const rows=await dbGet('game_sessions','select=status,state,game_id&id=eq.current');
-    if(!Array.isArray(rows)||!rows[0]) return null;
-    const row=rows[0];
-    if(row.status!=='active') return null;
+    if(!row || row.status!=='active') return null;
     const st=row.state||{};
     const extra={presentIds:Array.isArray(st.presentIds)?st.presentIds:null, gameId:row.game_id||''};
     if(st.sport==='pickleball' && st.pb && st.pb.active) return {sport:'pickleball', pb:st.pb, ...extra};
@@ -8482,10 +8480,28 @@ async function fetchLiveSession(){
     return null;
   }catch(e){ return null; }
 }
-async function renderLiveQueue(){
+async function fetchLiveSession(){
+  const rows=await dbGet('game_sessions','select=status,state,game_id&id=eq.current');
+  return Array.isArray(rows) ? parseLiveRow(rows[0]) : null;
+}
+// Realtime: the organizer's changes reach members instantly. Polling stays as
+// a slow safety net (60s) while connected, and goes back to 8s/20s if the
+// channel drops (realtime_game_sessions.sql must be applied).
+let _lqChannel=null, _lqRtOn=false, _lqRtLastAt=0;
+function subscribeLiveSessionRealtime(){
+  const sb=_getSbRt(); if(!sb || _lqChannel) return;
+  _lqChannel=sb.channel('ccf-game-session')
+    .on('postgres_changes',{event:'*',schema:'public',table:'game_sessions',filter:'id=eq.current'},payload=>{
+      _lqRtLastAt=Date.now();
+      const row=payload.new && Object.keys(payload.new).length ? payload.new : null;
+      renderLiveQueue({row}).catch(()=>{});
+    })
+    .subscribe(status=>{ _lqRtOn = status==='SUBSCRIBED'; });
+}
+async function renderLiveQueue(push){
   const card=document.getElementById('live-queue');
   if(!card) return;
-  const live=await fetchLiveSession();
+  const live = push ? parseLiveRow(push.row) : await fetchLiveSession();
   if(!live){
     card.style.display='none';
     lqNotify('none');
@@ -8836,6 +8852,7 @@ function renderLiveBasketball(card, bb, bbTimer, live){
 
 function startLiveQueuePoll(){
   if(_lqTimer) return;
+  try { subscribeLiveSessionRealtime(); } catch(e) { console.error('live realtime', e); }
   let _last=0;
   const tick=()=>{
     if(document.visibilityState!=='visible') return;   // don't poll in the background
@@ -8846,7 +8863,7 @@ function startLiveQueuePoll(){
   // (8s while a session is live, 20s when idle — keeps DB reads light at scale).
   _lqTimer=setInterval(()=>{
     const now=Date.now();
-    if(now-_last < _lqInterval) return;
+    if(now-_last < (_lqRtOn ? 60000 : _lqInterval)) return;
     _last=now; tick();
   }, 2000);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') _last=0; });
