@@ -4756,13 +4756,16 @@ const QS=[['What does this verse teach you about God?','How can you act on this 
 async function fetchVOTD() {
   const today=new Date().toISOString().split('T')[0];
   const cached=LC.get('votd')||{};
-  if (cached.date===today&&cached.ref) { showVOTD(cached.ref,cached.text,cached.qs); return; }
+  if (cached.date===today&&cached.ref&&!cached.fallback) { showVOTD(cached.ref,cached.text,cached.qs); return; }
   try {
     const r=await fetch('https://labs.bible.org/api/?passage=votd&type=json');
     const d=await r.json();
-    if (d&&d[0]) {
-      const ref=d[0].bookname+' '+d[0].chapter+':'+d[0].verse;
-      const text=d[0].text.replace(/<[^>]+>/g,'').trim();
+    if (Array.isArray(d)&&d[0]) {
+      // Some days are a passage (e.g. Psalms 118:13-14): show every verse, one reference.
+      const first=d[0], last=d[d.length-1];
+      const sameCh=last.bookname===first.bookname&&last.chapter===first.chapter;
+      const ref=first.bookname+' '+first.chapter+':'+first.verse+(d.length>1&&sameCh?'-'+last.verse:'');
+      const text=d.map(v=>String(v.text||'').replace(/<[^>]+>/g,'').trim()).join(' ').trim();
       const qs=QS[new Date().getDay()%QS.length];
       LC.set('votd',{date:today,ref,text,qs});
       showVOTD(ref,text,qs); return;
@@ -4770,7 +4773,7 @@ async function fetchVOTD() {
   } catch(e) {}
   const v=FB[new Date().getDay()%FB.length];
   const qs=QS[new Date().getDay()%QS.length];
-  LC.set('votd',{date:today,ref:v.ref,text:v.text,qs});
+  LC.set('votd',{date:today,ref:v.ref,text:v.text,qs,fallback:true}); // retried on next load
   showVOTD(v.ref,v.text,qs);
 }
 function showVOTD(ref,text,qs) {
