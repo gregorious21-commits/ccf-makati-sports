@@ -530,6 +530,9 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:13px;color:var(--text-3);
   margin-top:var(--s-2);font-weight:500;
 }
+.pb-sub{display:flex;flex-wrap:wrap;gap:4px 14px}
+.pb-tag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pb-tag .spi{vertical-align:-2px;margin-right:4px}
 .pb-av{
   width:64px;height:64px;
   border-radius:var(--r-full);
@@ -1516,6 +1519,11 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   flex-shrink:0;
   background-size:cover;background-position:center;
 }
+.dir-av{position:relative;overflow:hidden}
+.dir-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.dir-more{display:block;width:100%;margin-top:10px;padding:12px;border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--surface-1);color:var(--hi-text);font-family:inherit;font-weight:700;font-size:14px;line-height:1.2;cursor:pointer}
+.dir-more span{font-weight:500;color:var(--text-3)}
+.dir-more:active{transform:translateY(1px)}
 .dir-name{font-weight:600;font-size:14px}
 .dir-meta{font-size:12px;color:var(--text-3);margin-top:2px}
 .dir-chev{
@@ -2162,7 +2170,7 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
   <div class="profile-band" id="profile-band">
     <div class="pb-in">
       <div class="pb-top">
-        <div><div class="pb-eye">Player Profile</div><div class="pb-name" id="d-name">—</div><div class="pb-sub" id="d-sub">—</div></div>
+        <div style="min-width:0;flex:1"><div class="pb-eye">Player Profile</div><div class="pb-name" id="d-name">—</div><div class="pb-sub" id="d-sub">—</div></div>
         <div class="pb-av" id="d-av" onclick="openEditProfile()">??</div>
     </div>
       <div class="pb-bio" id="d-bio" style="display:none"></div>
@@ -2339,7 +2347,7 @@ button.gd-row:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;b
       </div>
 
       <!-- Search -->
-      <input class="dir-search" id="dir-search" placeholder="Search by name…" oninput="renderDirectory()" style="margin-bottom:12px">
+      <input class="dir-search" id="dir-search" placeholder="Search by name…" oninput="dirLimit=DIR_PAGE;renderDirectory()" style="margin-bottom:12px">
 
       <!-- Board -->
       <div id="dir-list">
@@ -3242,6 +3250,7 @@ async function doRegister() {
   const em  =(document.getElementById('r-em').value||'').trim();
   const pin =(document.getElementById('r-pin').value||'').trim();
   if (!fn||!ln)          { toast('Enter your full name','er'); return; }
+  if (unsafeText(fn,ln)) { toast(UNSAFE_TEXT_MSG,'er'); return; }
   if (!ph)               { toast('Enter your phone number','er'); return; }
   if (!em||!em.includes('@')) { toast('Enter a valid email','er'); return; }
   if (pin.length!==4)    { toast('Set a 4-digit PIN','er'); return; }
@@ -3276,6 +3285,7 @@ async function doRegister() {
       document.getElementById('guardian-row').scrollIntoView({behavior:'smooth'});
       return;
     }
+    if (unsafeText(guardianName,guardianContact)) { toast(UNSAFE_TEXT_MSG,'er'); return; }
     if (!document.getElementById('r-guardian-consent').checked) {
       toast('Parent/guardian consent is required for under-18','er');
       return;
@@ -3506,18 +3516,23 @@ function renderProfile() {
     av.textContent=ini(ME.firstName,ME.lastName);
   }
   document.getElementById('d-name').textContent  = ME.firstName+' '+ME.lastName;
-  const dg = ME.hasDgroup?(ME.dgroupLeader?'Dgroup · '+ME.dgroupLeader:'Has Dgroup'):'No Dgroup';
+  // One tag per sport (pickleball rating right after pickleball), then Dgroup.
+  // Each tag stays on one line so the row wraps between tags, never mid-tag.
   const sportsList = [...new Set((ME.sports||'basketball').split(',').map(s=>s.trim()).filter(Boolean))];
-  const sportTags = sportsList.map(s => s==='pickleball'
-    ? `<span class="spi spi-p"></span>Pickleball${ME.pickleballSkill?' ('+ME.pickleballSkill+')':''}`
-    : s==='running'
-      ? '<span class="spi spi-r"></span>Running'
-      : '<span class="spi spi-b"></span>Basketball'+(ME.position?' · '+ME.position:'')
-  ).join(' · ');
   const myRt = (ME.ratingPickleball!=null?ME.ratingPickleball:(ME.dupr!=null?ME.dupr:null));
-  const myProvisional = ((ME.pickleballMatches||0) < 3) && sportsList.includes('pickleball');
-  const rtTag = myRt!=null ? ` · <span style="color:var(--gold)"><i class="ti ti-star" style="font-size:11px"></i> ${Number(myRt).toFixed(3)} skill${myProvisional?' <span style="font-size:9px;color:var(--tx3)">(provisional · '+(ME.pickleballMatches||0)+'/3)</span>':''}</span>` : '';
-  document.getElementById('d-sub').innerHTML     = sportTags + ' · ' + dg + rtTag;
+  const myProvisional = (ME.pickleballMatches||0) < 3;
+  const rtTag = myRt!=null ? `<i class="ti ti-star" style="font-size:12px;color:var(--hi-text);margin-right:3px"></i>${Number(myRt).toFixed(3)} skill${myProvisional?` <span style="color:var(--tx3)">(provisional ${ME.pickleballMatches||0}/3)</span>`:''}` : '';
+  const SPORT_TAG={pickleball:['spi-p','Pickleball'],running:['spi-r','Running'],badminton:['spi-bd','Badminton'],dragonboat:['spi-db','Dragonboat']};
+  const tags = sportsList.map(s=>{
+    if (s==='pickleball') return `<span class="spi spi-p"></span>Pickleball${ME.pickleballSkill?' ('+feedEsc(ME.pickleballSkill)+')':''}`;
+    if (s==='basketball') return `<span class="spi spi-b"></span>Basketball${ME.position?' · '+feedEsc(posShort(ME.position)):''}`;
+    const [cls,label]=SPORT_TAG[s]||['spi-b',s.charAt(0).toUpperCase()+s.slice(1)];
+    return `<span class="spi ${cls}"></span>${feedEsc(label)}`;
+  });
+  const pbIdx = sportsList.indexOf('pickleball');
+  if (rtTag && pbIdx>-1) tags.splice(pbIdx+1,0,rtTag);
+  tags.push(ME.hasDgroup?(ME.dgroupLeader?'Dgroup · '+feedEsc(ME.dgroupLeader):'Has Dgroup'):'No Dgroup');
+  document.getElementById('d-sub').innerHTML = tags.map(t=>`<span class="pb-tag">${t}</span>`).join('');
   document.getElementById('d-wins').textContent  = ME.wins  || 0;
   document.getElementById('d-games').textContent = ME.games || 0;
   document.getElementById('d-rate').textContent  = (ME.games||0)>0 ? Math.round((ME.wins||0)/ME.games*100)+'%' : '—';
@@ -3654,6 +3669,7 @@ async function saveDgLog(){
   if (!details.dgroup_profile) missing.push('Dgroup profile');
   if (!details.mode) missing.push('how you meet');
   if (missing.length) return toast('Please add '+missing.join(', '),'er');
+  if (unsafeText(leader,leaderMobile)) return toast(UNSAFE_TEXT_MSG,'er');
   const btn = document.getElementById('dgl-save'); btn.disabled = true;
   const j = await rpc('member_save_dgroup_join', { p_phone:AUTH.phone(), p_pin:AUTH.pin(), p_leader_name:leader, p_leader_mobile:leaderMobile, p_details:details });
   btn.disabled = false;
@@ -4640,6 +4656,7 @@ async function saveProfile(){
   const ln=(document.getElementById('ep-ln').value||'').trim();
   if (!fn || !ln){ toast('First and last name are required','er'); return; }
   const bio=(document.getElementById('ep-bio').value||'').trim();
+  if (unsafeText(fn,ln,bio)) { toast(UNSAFE_TEXT_MSG,'er'); return; }
   // Sport selection: at least one must be picked
   if (!epSports.basketball && !epSports.pickleball && !epSports.running && !epSports.badminton && !epSports.dragonboat){
     toast('Pick at least one sport','er'); return;
@@ -5462,6 +5479,12 @@ function toggleNotifs() {
 
 // ── NEWS FEED ─────────────────────────────────────────────────
 function feedEsc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// "Shooting Guard (SG)" -> "SG". Older sign-ups stored the long form; lists show the code.
+function posShort(pos){ const s=String(pos||'').trim(); const m=s.match(/\(([A-Za-z]{1,3})\)\s*$/); return m?m[1].toUpperCase():s; }
+// Characters the database refuses in names, team names and notes (security_step3_safe_text.sql).
+const UNSAFE_TEXT=/[<>"`\\]/;
+function unsafeText(...vals){ return vals.some(v=>v&&UNSAFE_TEXT.test(v)); }
+const UNSAFE_TEXT_MSG="Please remove these characters: < > \" ` \\";
 function feedTime(ts){try{return new Date(ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
 
 // Reactions (emoji)
@@ -5856,8 +5879,11 @@ window.addEventListener('popstate', _handleHash);
 // ── PLAYERS DIRECTORY ─────────────────────────────────────────
 let dirSport='basketball';
 let dirSort='wins';
+const DIR_PAGE=40;          // players shown per "Show more" step
+let dirLimit=DIR_PAGE;
 function setDirSort(s){
   dirSort=s;
+  dirLimit=DIR_PAGE;
   ['wins','games','rate'].forEach(k=>{
     const b=document.getElementById('dir-plb-'+k);
     if(b) b.className='lb-tab'+(k===s?' on':'');
@@ -5866,6 +5892,7 @@ function setDirSort(s){
 }
 function setDirSport(s){
   dirSport=s;
+  dirLimit=DIR_PAGE;
   ['all','basketball','pickleball','running','badminton','dragonboat'].forEach(k=>{
     const b=document.getElementById('dir-f-'+k);
     if(b) b.className='tog'+(k===s?' on':'');
@@ -5918,11 +5945,13 @@ function renderDirectory() {
 
   const meIdx = ME ? list.findIndex(p=>p.id===ME.id) : -1;
 
-  el.innerHTML = list.map((p,i)=>{
+  el.innerHTML = list.slice(0,dirLimit).map((p,i)=>{
     const rank=i+1;
     const mine=ME&&p.id===ME.id;
-    const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}');background-size:cover`:`background:${lbCol(i)}`;
-    const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
+    // Initials sit under the photo, so the circle is never blank while the
+    // photo loads (or if it fails). Photos load only when scrolled into view.
+    const avStyle=`background:${lbCol(i)}`;
+    const avTxt=ini(p.firstName,p.lastName)+(p.avatarUrl?`<img src="${feedEsc(p.avatarUrl)}" loading="lazy" decoding="async" alt="" onerror="this.remove()">`:'');
     const rankColor=rank<=3?'var(--hi-text)':'var(--tx3)';
     const rankStyle=rank<=3?`font-family:var(--font-display);font-weight:700;font-size:18px;color:${rankColor}`:`font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--tx3)`;
 
@@ -5942,20 +5971,20 @@ function renderDirectory() {
     const sub=dirSport==='all'
       ? (p.sports||'basketball').split(',').map(s=>s.trim()).map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join(' · ')
       : dirSport==='basketball'
-      ? `${p.position||'Player'} · ${p.games||0} games`
+      ? `${feedEsc(posShort(p.position)||'Player')} · ${p.games||0} games`
       : dirSport==='pickleball'
       ? (()=>{ const wl=playerWL(p.id); return (p.pickleballSkill||'')+(wl.w+wl.l>0?' · '+wl.w+'W '+wl.l+'L':''); })()
       : dirSport==='running'
       ? `Runner · ${p._runs} run${p._runs===1?'':'s'}`
       : dirSport==='dragonboat'
       ? `Paddler · ${p._runs} session${p._runs===1?'':'s'}`
-      : `${p.position||'Player'} · ${p._games} game${p._games===1?'':'s'}`;
+      : `${feedEsc(posShort(p.position)||'Player')} · ${p._games} game${p._games===1?'':'s'}`;
 
     return `<div onclick="viewPlayer('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
-      <div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank}</div>
+      ${dirSport==='all'?'':`<div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank}</div>`}
       <div class="dir-av" style="${avStyle};flex-shrink:0">${avTxt}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold);font-weight:700">(You)</span>':''}</div>
+        <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold);font-weight:700">(You)</span>':''}</div>
         <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sub}</div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -5967,14 +5996,18 @@ function renderDirectory() {
 
   // wrap in card
   el.innerHTML=`<div class="card" style="padding:0;overflow:hidden">${el.innerHTML}</div>`;
+  if(list.length>dirLimit){
+    const left=list.length-dirLimit;
+    el.innerHTML+=`<button type="button" class="dir-more" onclick="dirLimit+=DIR_PAGE;renderDirectory()">Show ${Math.min(left,DIR_PAGE)} more <span>(${left} left)</span></button>`;
+  }
 
   // pin "You" banner if off-screen
   if(meIdx>9&&meIdx!==-1){
     const p=list[meIdx]; const rank=meIdx+1;
-    let sv=dirSport==='basketball'?(playerLbSort==='wins'?p.wins||0:playerLbSort==='games'?p.games||0:winRate(p.wins,p.games)):dirSport==='pickleball'?(p.dupr||p.pickleballRating||'—'):p.games||0;
+    let sv=dirSport==='basketball'?(dirSort==='wins'?p.wins||0:dirSort==='games'?p.games||0:winRate(p.wins,p.games)):dirSport==='pickleball'?(p.dupr||p.pickleballRating||'—'):p.games||0;
     el.innerHTML+=`<div style="margin-top:8px;padding:10px 14px;background:rgba(var(--gold-rgb,212,175,55),.1);border:1px solid rgba(var(--gold-rgb,212,175,55),.25);border-radius:10px;display:flex;align-items:center;gap:10px">
       <div style="font-size:12px;color:var(--gold);font-weight:700">#${rank}</div>
-      <div style="flex:1;font-size:13px;font-weight:600">${p.firstName} ${p.lastName} <span style="color:var(--gold)">(You)</span></div>
+      <div style="flex:1;font-size:13px;font-weight:600">${feedEsc(p.firstName)} ${feedEsc(p.lastName)} <span style="color:var(--gold)">(You)</span></div>
       <div style="font-weight:800;font-size:15px">${sv} <span style="font-size:10px;color:var(--tx3);font-weight:400">${statLabel}</span></div>
     </div>`;
   }
@@ -5983,15 +6016,30 @@ function renderDirectory() {
 // ── MY HISTORY ────────────────────────────────────────────────
 function renderMyHist() {
   if (!ME) return;
-  const regs=LC.arr('regs').filter(r=>r.playerId===ME.id).reverse();
   const el  =document.getElementById('my-hist');
-  if (!regs.length) { el.innerHTML='<div class="empty">No games yet — join your first one!</div>'; return; }
-  el.innerHTML=regs.map(r=>{
+  // Game date: from the schedule when the game is still listed, otherwise from
+  // the label ("Sun, Jun 14, 2026"). Unknown dates sort last.
+  const gameDates={}; LC.arr('games').forEach(g=>{ if(g.date) gameDates[g.id]=g.date; });
+  const dateOf=r=>{
+    if (gameDates[r.gameId]) return new Date(gameDates[r.gameId]+'T00:00:00').getTime();
+    const t=Date.parse(String(r.gameLabel||'').replace(/^[A-Za-z]{3},\s*/,''));
+    return isNaN(t)?0:t;
+  };
+  const today=new Date(); today.setHours(0,0,0,0);
+  const regs=LC.arr('regs').filter(r=>r.playerId===ME.id).map(r=>({...r,_t:dateOf(r)}));
+  if (!regs.length) { el.innerHTML='<div class="empty">No games yet. Join your first one from Home.</div>'; return; }
+  // Upcoming games first (soonest on top), then past games (newest on top).
+  const upcoming=regs.filter(r=>r._t>=today.getTime()).sort((a,b)=>a._t-b._t);
+  const past=regs.filter(r=>r._t<today.getTime()).sort((a,b)=>b._t-a._t);
+  const label={confirmed:'Confirmed',pending:'Pending',cancelled:'Cancelled',waitlist:'Waitlist'};
+  el.innerHTML=[...upcoming,...past].map(r=>{
     const st=r.status||'pending';
     const bc=st==='confirmed'?'b-on':st==='cancelled'?'b-rd':'b-tbd';
+    const isNext=r._t>=today.getTime();
+    const sub=isNext?'<span style="color:var(--hi-text);font-weight:700">Upcoming</span>':(r.registered||'');
     return `<div class="hist-row">
-      <div><div style="font-size:14px;font-weight:700">${r.gameLabel||'Game'}</div><div style="font-size:11px;color:var(--tx3);margin-top:2px">${r.registered||''}</div></div>
-      <span class="badge ${bc}">${st}</span>
+      <div><div style="font-size:14px;font-weight:700">${feedEsc(r.gameLabel||'Game')}</div><div style="font-size:11px;color:var(--tx3);margin-top:2px">${sub}</div></div>
+      <span class="badge ${bc}">${label[st]||feedEsc(st.charAt(0).toUpperCase()+st.slice(1))}</span>
   </div>`;
   }).join('');
 }
@@ -6125,7 +6173,7 @@ function renderLeaderboard(){
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
-          <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}${provTag}</div>
+          <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}${provTag}</div>
           <div class="lb-meta">${metaLabel}</div>
       </div>
         <div class="lb-stat"><div class="lb-stat-n">${ratingDisplay}</div><div class="lb-stat-l">rating</div></div>
@@ -6147,8 +6195,8 @@ function renderLeaderboard(){
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
-          <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-          <div class="lb-meta">${p.position||'Paddler'} · Sessions</div>
+          <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+          <div class="lb-meta">${feedEsc(posShort(p.position)||'Paddler')} · Sessions</div>
       </div>
         <div class="lb-stat"><div class="lb-stat-n">${p.dbRuns}</div><div class="lb-stat-l">sessions</div></div>
     </div>`;
@@ -6169,8 +6217,8 @@ function renderLeaderboard(){
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
-          <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-          <div class="lb-meta">${p.position||'Player'} · Open play</div>
+          <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+          <div class="lb-meta">${feedEsc(posShort(p.position)||'Player')} · Open play</div>
       </div>
         <div class="lb-stat"><div class="lb-stat-n">${p.bdGames}</div><div class="lb-stat-l">games</div></div>
     </div>`;
@@ -6192,7 +6240,7 @@ function renderLeaderboard(){
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
-          <div class="lb-name">${p.firstName} ${p.lastName}${fire}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+          <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${fire}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
           <div class="lb-meta">Runner · ${p.runs} run${p.runs===1?'':'s'}</div>
       </div>
         <div class="lb-stat"><div class="lb-stat-n">${p.runs}</div><div class="lb-stat-l">runs</div></div>
@@ -6216,8 +6264,8 @@ function renderLeaderboard(){
       <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
       <div class="lb-av" style="${avStyle}">${avTxt}</div>
       <div style="flex:1;min-width:0">
-        <div class="lb-name">${p.firstName} ${p.lastName}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
-        <div class="lb-meta">${p.position||'Player'} · ${p.games||0} games · ${winRate(p.wins,p.games)}</div>
+        <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}</div>
+        <div class="lb-meta">${feedEsc(posShort(p.position)||'Player')} · ${p.games||0} games · ${winRate(p.wins,p.games)}</div>
     </div>
       <div class="lb-stat"><div class="lb-stat-n">${big}</div><div class="lb-stat-l">${bigL}</div></div>
   </div>`;
@@ -6405,13 +6453,13 @@ function viewPlayer(id){
   const rank=list.findIndex(x=>x.id===id);
   const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(Math.max(rank,0))}`;
   const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
-  const dg=p.hasDgroup?(p.dgroupLeader?'Dgroup · '+p.dgroupLeader:'Has Dgroup'):'No Dgroup';
+  const dg=p.hasDgroup?(p.dgroupLeader?'Dgroup · '+feedEsc(p.dgroupLeader):'Has Dgroup'):'No Dgroup';
   const rankTxt=rank>-1?('#'+(rank+1)+' on the leaderboard'):'Not yet ranked';
   document.getElementById('pv-body').innerHTML=`
     <div class="pv-head">
       <div class="pv-av" style="${avStyle}">${avTxt}</div>
-      <div class="pv-name">${p.firstName} ${p.lastName}</div>
-      <div class="pv-pos">${p.position||'Player'} · ${dg}</div>
+      <div class="pv-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</div>
+      <div class="pv-pos">${feedEsc(posShort(p.position)||'Player')} · ${dg}</div>
       <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-top:4px">${rankTxt}</div>
       ${renderTeamStackHtml(myCurrentTeamEntries(id), {compact:true})}
   </div>
@@ -6421,7 +6469,7 @@ function viewPlayer(id){
       <div class="pv-stat"><div class="pv-stat-n">${winRate(p.wins,p.games)}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Rate</div></div>
       <div class="pv-stat"><div class="pv-stat-n">${pickleballGames(p.id)}</div><div class="pv-stat-l"><span class="spi spi-p"></span>Games</div></div>
   </div>
-    ${p.bio?`<div class="pv-bio">${p.bio}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
+    ${p.bio?`<div class="pv-bio">${feedEsc(p.bio)}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
     ${(()=>{ const rec=basketballMatchRecord(id); return (p.sports&&p.sports.includes('basketball'))||rec.total>0 ? `
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -6461,6 +6509,13 @@ const TOURN_SPORT_ACCENT = {
   basketball:'var(--hi-text)', pickleball:'var(--hi-text)', badminton:'var(--hi-text)', running:'var(--hi-text)', dragonboat:'var(--hi-text)'
 };
 
+// Human labels for tournament formats (values come from the admin and proposal forms).
+const TOURN_FORMAT_LABEL={single_elim_4:'Round Robin + Finals',groups_ko:'Groups + Knockout',round_robin:'Round Robin',single_elimination:'Single Elimination',double_elimination:'Double Elimination'};
+function tournFormatLabel(f){ return f ? (TOURN_FORMAT_LABEL[f] || f.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())) : ''; }
+// Letter for a team bubble: "Team Luke" -> "L".
+function teamInitial(name){ const n=String(name||'').replace(/^team\s+/i,'').trim(); return (n.charAt(0)||'?').toUpperCase(); }
+const TOURN_MAX_PIPS=8; // above this many slots, show a fill bar instead of bubbles
+
 function renderTournaments() {
   const list = document.getElementById('tourn-list');
   const detail = document.getElementById('tourn-detail');
@@ -6484,16 +6539,18 @@ function renderTournaments() {
     const filledSlots = teams.length;
     const ds = t.start_date ? new Date(t.start_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
     const de = t.end_date   ? new Date(t.end_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '';
-    const dateStr    = ds && de ? `${ds} – ${de}` : ds||de||'Date TBD';
+    const dateStr    = ds && de && ds!==de ? `${ds} – ${de}` : ds||de||'Date TBD';
     const ownerIds   = teams.map(tm=>tm.owner).filter(Boolean);
     const ownerNames = ownerIds.map(id=>_tpName(id)).filter(Boolean);
     const sportLabel = (t.sport||'').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
-    const formatLabel= t.format ? t.format.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) : '';
-    // team slot pips
-    const pips = Array.from({length:totalSlots},(_,i)=>{
+    const formatLabel= tournFormatLabel(t.format);
+    // team slot pips (or a fill bar for big brackets)
+    const pips = totalSlots>TOURN_MAX_PIPS
+      ? `<div class="track" style="width:90px;flex:none;background:rgba(255,255,255,.2)"><i style="width:${Math.min(100,Math.round(filledSlots/totalSlots*100))}%;background:#fff"></i></div>`
+      : Array.from({length:totalSlots},(_,i)=>{
       const tm = teams[i];
       return tm
-        ? `<div title="${tm.name||'Team '+(i+1)}" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">${(tm.name||'T').charAt(0).toUpperCase()}</div>`
+        ? `<div title="${feedEsc(tm.name||'Team '+(i+1))}" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;flex-shrink:0">${feedEsc(teamInitial(tm.name))}</div>`
         : `<div style="width:28px;height:28px;border-radius:50%;border:2px dashed rgba(255,255,255,.3);flex-shrink:0"></div>`;
     }).join('');
 
@@ -6519,15 +6576,15 @@ function renderTournaments() {
         <!-- top row: status + sport label -->
         <div style="position:relative;display:flex;align-items:center;gap:8px;margin-bottom:12px">
           ${isActive?`<span style="width:8px;height:8px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 1.4s infinite;flex-shrink:0"></span>`:''}
-          <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,${isCompleted?'.4':'.9'})">${statusLabel}</span>
+          <span style="font-size:11px;font-weight:800;color:rgba(255,255,255,${isCompleted?'.75':'.9'})">${statusLabel}</span>
           ${!isCrossCourt?`<span style="font-size:11px;font-weight:700;background:rgba(0,0,0,.35);border-radius:6px;padding:3px 9px;color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.08);margin-left:auto">${sportLabel}</span>`:''}
         </div>
         <!-- tournament name -->
         <div style="position:relative;font-size:${isCrossCourt?'17px':'19px'};font-weight:800;color:#fff;line-height:1.25;margin-bottom:14px;letter-spacing:-.2px;max-width:${isCrossCourt||t.banner_url?'65%':'100%'}">${t.name}</div>
         <!-- team slots -->
-        <div style="position:relative;display:flex;align-items:center;gap:6px">
+        <div style="position:relative;display:flex;align-items:center;gap:6px;max-width:${isCrossCourt||t.banner_url?'65%':'100%'}">
           ${pips}
-          <span style="font-size:11px;color:rgba(255,255,255,.55);margin-left:4px">${filledSlots}/${totalSlots} teams</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.8);margin-left:4px">${filledSlots}/${totalSlots} teams</span>
         </div>
       </div>
       <!-- info strip -->
@@ -6537,7 +6594,7 @@ function renderTournaments() {
         ${formatLabel?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-tournament" style="color:${accent};font-size:13px"></i>${formatLabel}</span>`:''}
         ${t.game_days?`<span style="font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:4px"><i class="ti ti-repeat" style="color:${accent};font-size:13px"></i>${t.game_days}</span>`:''}
       </div>
-      ${ownerNames.length?`<div style="padding:0 16px 10px;font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.join(', ')}</div>`:''}
+      ${ownerNames.length?`<div style="padding:0 16px 10px;font-size:12px;color:var(--tx3)"><span style="color:var(--tx2);font-weight:600">Team Owners:</span> ${ownerNames.map(feedEsc).join(', ')}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -6621,7 +6678,7 @@ function renderTournDetail(id) {
         </tr>`;
       }).join('');
       if (!rows) return '';
-      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${teamObj.name}</div>
+      return `<div style="font-size:10px;font-weight:700;color:var(--tx3);margin:8px 0 4px">${feedEsc(teamObj.name)}</div>
         <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">${thead}${rows}</table></div>`;
     };
     return teamRows(tA) + teamRows(tB);
@@ -6722,7 +6779,7 @@ function renderTournDetail(id) {
       <div class="card" style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
           <div>
-            <div style="font-weight:700;font-size:15px">${myTeam.name}</div>
+            <div style="font-weight:700;font-size:15px">${feedEsc(myTeam.name)}</div>
             <div style="font-size:12px;color:var(--tx2);margin-top:2px">You are the team owner</div>
           </div>
           <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
@@ -6774,7 +6831,7 @@ function renderTournDetail(id) {
       <div class="sec-h" style="margin-top:4px"><div class="sec-t">Your Registration</div></div>
       <div class="card" style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-weight:700;font-size:15px">${myReg.team_name}</div>
+          <div style="font-weight:700;font-size:15px">${feedEsc(myReg.team_name)}</div>
           <span style="font-size:11px;font-weight:700;color:${regStatusColor};">${regStatusLabel}</span>
         </div>
         <div style="font-size:13px;color:var(--tx2);line-height:1.7">${regPlayerNames||'No players listed'}</div>
@@ -6818,7 +6875,7 @@ function renderTournDetail(id) {
     }).join('')}</div>` : '<div class="empty" style="padding:8px 0">No players assigned</div>';
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-weight:700">${tm.name}</div>
+        <div style="font-weight:700">${feedEsc(tm.name)}</div>
         ${ownerName?`<span style="font-size:11px;color:var(--tx3)">Owner: ${ownerName}</span>`:''}
       </div>
       ${grid}
@@ -6872,7 +6929,7 @@ function renderTournDetail(id) {
           ${standings.map((s,i)=>`
             <tr style="border-top:1px solid var(--b)${i<2?';background:rgba(0,200,100,.04)':''}">
               <td style="padding:10px 12px;font-weight:700;color:${i===0?'var(--gold)':i<2?'var(--gr)':'var(--tx3)'}">${i+1}</td>
-              <td style="padding:10px 12px;font-weight:${i<2?'700':'500'}">${s.name}</td>
+              <td style="padding:10px 12px;font-weight:${i<2?'700':'500'}">${feedEsc(s.name)}</td>
               <td style="padding:10px 4px;text-align:center;color:var(--gr);font-weight:700">${s.w}</td>
               <td style="padding:10px 4px;text-align:center;color:var(--tx3)">${s.l}</td>
               <td style="padding:10px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'var(--danger,#e53e3e)'}">${s.diff>0?'+':''}${s.diff}</td>
@@ -6921,7 +6978,7 @@ function renderTournDetail(id) {
         </div>
       </div>
       <div class="card" style="margin-bottom:14px">
-        <div style="font-weight:800;font-size:16px;margin-bottom:2px">${myTeamObj.name}</div>
+        <div style="font-weight:800;font-size:16px;margin-bottom:2px">${feedEsc(myTeamObj.name)}</div>
         <div style="font-size:12px;color:var(--tx3);margin-bottom:12px">Team Owner: ${captainName}</div>
         ${memberRows}
         ${lockBtn}
@@ -7181,7 +7238,7 @@ function renderTournDetail(id) {
         const memberRows = pool.map(p=>`
           <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)">
             ${p.avatar_url?`<img src="${p.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:32px;height:32px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--tx3);flex-shrink:0">${(p.name||'?')[0]}</div>`}
-            <div style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name||'—'}</div>
+            <div style="flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${feedEsc(p.name||'—')}</div>
             ${p.position?`<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:${posBadgeColor(p.position)}22;color:${posBadgeColor(p.position)};border:1px solid ${posBadgeColor(p.position)}44;flex-shrink:0">${p.position}</span>`:''}
           </div>`).join('');
         const joinBtn = poolClosed
@@ -7419,10 +7476,10 @@ function renderMyProposalsBanner() {
     const sportLabel = (meta.sport||'').replace(/\b\w/g,c=>c.toUpperCase());
     return `<div style="background:var(--b2);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid ${sc}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-        <div style="font-weight:700;font-size:13px">${p.team_name}</div>
+        <div style="font-weight:700;font-size:13px">${feedEsc(p.team_name)}</div>
         <span style="font-size:10px;font-weight:700;color:${sc};">${p.status==='proposal_approved'?'✓ Approved':p.status==='proposal_rejected'?'✗ Not approved':'Pending'}</span>
       </div>
-      <div style="font-size:12px;color:var(--tx3)">${sportLabel}${meta.format?' · '+meta.format.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()):''}</div>
+      <div style="font-size:12px;color:var(--tx3)">${sportLabel}${meta.format?' · '+tournFormatLabel(meta.format):''}</div>
       <div style="font-size:12px;color:var(--tx3);margin-top:2px">${sl}</div>
     </div>`;
   }).join('');
@@ -7488,6 +7545,7 @@ async function submitTournProposal() {
   const format = document.getElementById('prop-format')?.value;
   const notes  = document.getElementById('prop-notes')?.value.trim();
   if (!name)  return toast('Enter a tournament name','er');
+  if (unsafeText(name,notes)) return toast(UNSAFE_TEXT_MSG,'er');
   if (!sport) return toast('Select a sport','er');
   if (!ME) return toast('You must be logged in','er');
   const ok = await rpc('member_submit_tournament_reg',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_tournament_id:null,p_team_name:name,p_players:[{sport,format}],p_status:'proposal',p_notes:notes||null});
@@ -7537,9 +7595,9 @@ function _renderRosterEditor(t, tm) {
     const disabled = isOwner || taken;
     return `<button type="button" onclick="${disabled?'':'_toggleRosterPlayer(\''+p.id+'\',\''+t.id+'\',\''+tm.id+'\')'}"
       ${disabled?'disabled':''}
-      title="${taken?'Already on '+(otherTeam?.name||'another team'):isOwner?'Team owner':''}"
+      title="${taken?'Already on '+feedEsc(otherTeam?.name||'another team'):isOwner?'Team owner':''}"
       style="padding:6px 12px;border-radius:20px;border:1.5px solid ${on?'var(--gr)':taken?'var(--b)':'var(--b)'};background:${on?'rgba(72,199,142,.12)':taken?'var(--b2)':'var(--b2)'};color:${on?'var(--gr)':taken?'var(--tx3)':'var(--tx2)'};font-size:13px;font-weight:${on?'700':'500'};cursor:${disabled?'not-allowed':'pointer'};opacity:${taken?'.4':'1'};white-space:nowrap;display:inline-flex;align-items:center;gap:5px">
-      ${on?'<i class="ti ti-check" style="font-size:11px"></i>':taken?'<i class="ti ti-lock" style="font-size:10px"></i>':''}${name}${isOwner?' <span style="font-size:10px;opacity:.6">(you)</span>':taken?' <span style="font-size:10px;opacity:.7">'+( otherTeam?.name||'taken')+'</span>':''}
+      ${on?'<i class="ti ti-check" style="font-size:11px"></i>':taken?'<i class="ti ti-lock" style="font-size:10px"></i>':''}${feedEsc(name)}${isOwner?' <span style="font-size:10px;opacity:.6">(you)</span>':taken?' <span style="font-size:10px;opacity:.7">'+feedEsc(otherTeam?.name||'taken')+'</span>':''}
     </button>`;
   }).join('');
 
@@ -7561,7 +7619,7 @@ function _renderRosterEditor(t, tm) {
   sheet.innerHTML = `
     <div style="background:var(--bg);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:88vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-weight:800;font-size:16px">${tm.name} — Manage Roster</div>
+        <div style="font-weight:800;font-size:16px">${feedEsc(tm.name)} — Manage Roster</div>
         <button type="button" onclick="document.getElementById('roster-editor-sheet').remove()" style="background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;padding:4px;line-height:1"><i class="ti ti-x"></i></button>
       </div>
 
@@ -7768,6 +7826,7 @@ async function submitTournReg(tournId) {
   const nameEl = document.getElementById('treg-name');
   const name = nameEl ? nameEl.value.trim() : '';
   if (!name) return toast('Enter a team name','er');
+  if (unsafeText(name)) return toast(UNSAFE_TEXT_MSG,'er');
   if (_tournRegPlayers.length < 1) return toast('Add at least one player','er');
   if (_tregCtx && _tournRegPlayers.length !== _tregCtx.size) return toast('Your team needs exactly '+_tregCtx.size+' players (you have '+_tournRegPlayers.length+')','er');
   if (!document.getElementById('treg-waiver')?.checked) return toast('Please confirm the health & liability declaration','er');
@@ -8452,8 +8511,8 @@ function _showPickAnnouncement(pick, draft, tourn, widget) {
       <div style="width:96px;height:96px;border-radius:50%;background:#1D3A73;border:3px solid var(--hi);box-shadow:0 0 0 6px rgba(255,255,255,.15);display:${fallbackDisplay};align-items:center;justify-content:center;font-size:28px;font-weight:900;color:var(--hi)">${initials}</div>
       <div style="position:absolute;bottom:-4px;right:calc(50% - 56px);background:var(--hi);border-radius:20px;padding:2px 8px;font-size:9px;font-weight:900;color:var(--hi-ink);letter-spacing:.06em;white-space:nowrap">DRAFTED</div>
     </div>
-    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.01em;margin-bottom:4px">${pick.player_name}</div>
-    <div style="font-size:13px;font-weight:700;color:var(--hi)">${pick.team_name}</div>
+    <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.01em;margin-bottom:4px">${feedEsc(pick.player_name)}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--hi)">${feedEsc(pick.team_name)}</div>
     <div id="pick-announce-bar" style="margin-top:20px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden">
       <div id="pick-announce-fill" style="height:100%;background:var(--hi);width:100%;transition:width 3.2s linear"></div>
     </div>
@@ -8554,8 +8613,8 @@ function _renderDraftWidget(draft, tourn) {
   const recentHtml = recent.length
     ? recent.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.06)">
         <div style="font-size:10px;font-weight:800;color:var(--hi);min-width:36px;flex-shrink:0">R${p.round}.${p.slot}</div>
-        <div style="flex:1;font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.player_name}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">${p.team_name}</div>
+        <div style="flex:1;font-size:12px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${feedEsc(p.player_name)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);flex-shrink:0">${feedEsc(p.team_name)}</div>
       </div>`).join('')
     : '<div style="font-size:12px;color:rgba(255,255,255,.35);padding:6px 0">No picks yet</div>';
 
@@ -8573,7 +8632,7 @@ function _renderDraftWidget(draft, tourn) {
       <div style="flex:1;min-width:0">
         <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:3px">${slot&&currentPick<=totalPicks?(slot.deferred?'Deferred Pick':'Round '+slot.round)+' · Pick '+currentPick+' of '+totalPicks:'Draft'}</div>
         <div style="font-size:${isMyTurn?'17px':'15px'};font-weight:800;color:${isMyTurn?'var(--hi)':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          ${currentPick>totalPicks?'All picks complete!':(isMyTurn?'YOUR PICK!':(curTeam?curTeam.name+' on the clock':'Waiting…'))}
+          ${currentPick>totalPicks?'All picks complete!':(isMyTurn?'YOUR PICK!':(curTeam?feedEsc(curTeam.name)+' on the clock':'Waiting…'))}
         </div>
       </div>
       <div style="text-align:center;flex-shrink:0;min-width:40px">
@@ -8617,8 +8676,8 @@ function openDraftPickModal() {
   if (!el) return;
 
   const playerRows = allPlayers.slice(0,100).map(p=>`
-    <div class="dpm-row" data-name="${(p.firstName+' '+(p.lastName||'')).toLowerCase().trim()}" onclick="submitDraftPick('${draft.id}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.firstName}${p.lastName?' '+p.lastName:''}</div><div style="font-size:11px;color:var(--tx3)">${p.position||'—'}</div></div>
+    <div class="dpm-row" data-name="${feedEsc((p.firstName+' '+(p.lastName||'')).toLowerCase().trim())}" onclick="submitDraftPick('${draft.id}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${feedEsc(p.firstName+(p.lastName?' '+p.lastName:''))}</div><div style="font-size:11px;color:var(--tx3)">${feedEsc(posShort(p.position)||'—')}</div></div>
       <span style="font-size:11px;font-weight:700;color:var(--gold)">Select</span>
     </div>`).join('');
 
@@ -8628,7 +8687,7 @@ function openDraftPickModal() {
       <div style="padding:15px 16px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
         <div>
           <div style="font-size:15px;font-weight:800">Make Your Pick</div>
-          <div style="font-size:12px;color:var(--gold);font-weight:600">Round ${slot?.round} · Pick ${draft.current_pick} — ${team?.name||'Your Team'}</div>
+          <div style="font-size:12px;color:var(--gold);font-weight:600">Round ${slot?.round} · Pick ${draft.current_pick} — ${feedEsc(team?.name||'Your Team')}</div>
         </div>
         <button type="button" onclick="document.getElementById('draft-pick-modal').style.display='none'" style="background:none;border:none;font-size:20px;color:var(--tx3);cursor:pointer;padding:4px"><i class="ti ti-x"></i></button>
       </div>

@@ -2952,7 +2952,7 @@ function renderDash(){
   // Pending
   document.getElementById('dash-pend').innerHTML=pend.length?pend.slice(0,5).map(r=>`
     <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b)">
-      <div><div style="font-weight:700;font-size:13px">${r.playerName||'—'}</div><div style="font-size:11px;color:var(--tx2)">${r.gameLabel||'—'}</div></div>
+      <div><div style="font-weight:700;font-size:13px">${feedEsc(r.playerName||'—')}</div><div style="font-size:11px;color:var(--tx2)">${r.gameLabel||'—'}</div></div>
       <div style="display:flex;gap:5px">
         ${r.hasProof&&r.proofUrl?`<button type="button" class="btn btn-blue btn-sm" onclick="viewProof('${r.id}')" data-tip="View payment proof"><i class="ti ti-photo"></i></button>`:''}
         <button type="button" class="btn btn-gr btn-sm" onclick="confirmReg('${r.id}')" data-tip="Approve"><i class="ti ti-check"></i></button>
@@ -3012,7 +3012,7 @@ function renderUnpaidThisWeek(){
       : `<button type="button" class="btn btn-gr btn-sm" onclick="togglePaid('${r.id}',true)"><i class="ti ti-cash"></i>Mark Paid</button>`;
     return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--b)">
       <div style="min-width:0;flex:1">
-        <div style="font-weight:700;font-size:13px">${r.playerName||'—'}</div>
+        <div style="font-weight:700;font-size:13px">${feedEsc(r.playerName||'—')}</div>
         <div style="font-size:11px;color:var(--tx2)">${sp} ${r.gameLabel||'—'} · ${payLabel(r.payType)}</div>
     </div>
       <div style="display:flex;align-items:center;gap:6px">${stPill}${action}</div>
@@ -3294,7 +3294,7 @@ function renderRegs(){
           : `<button type="button" class="btn btn-gr btn-sm" onclick="togglePaid('${r.id}',true)"><i class="ti ti-cash"></i>Mark Paid</button>`)
       : '';
     return `<tr>
-      <td data-label="Player"><strong>${r.playerName||'—'}</strong><div style="font-size:10px;color:var(--tx3)">${r.phone||''}</div></td>
+      <td data-label="Player"><strong>${feedEsc(r.playerName||'—')}</strong><div style="font-size:10px;color:var(--tx3)">${r.phone||''}</div></td>
       <td data-label="Game"><div style="font-size:12px">${sportIcon} ${r.gameLabel||'—'}</div></td>
       <td data-label="Payment">${payBadge}${r.refNum?`<div style="font-size:10px;color:var(--tx3);margin-top:2px">${r.payType==='advance'?'Ref: ':'Note: '}${r.refNum}</div>`:''}</td>
       <td data-label="Proof">${r.hasProof&&r.proofUrl?`<button type="button" class="btn btn-blue btn-sm" onclick="viewProof('${r.id}')"><i class="ti ti-photo"></i>View</button>`:'<span style="font-size:11px;color:var(--tx3)">None</span>'}</td>
@@ -3319,7 +3319,7 @@ async function viewProof(id){
   else if(r.proofUrl){
     body.innerHTML=`<img src="${src}" class="proof-img" alt="Payment screenshot">
       <div style="margin-top:14px;font-size:13px">
-        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Player</span><strong>${r.playerName||'—'}</strong></div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Player</span><strong>${feedEsc(r.playerName||'—')}</strong></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Game</span><strong>${r.gameLabel||'—'}</strong></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--b)"><span style="color:var(--tx2)">Reference</span><strong>${r.refNum||'N/A'}</strong></div>
         <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="color:var(--tx2)">Amount</span><strong>₱${r.fee!=null?r.fee:200}</strong></div>
@@ -3409,7 +3409,7 @@ function renderPlayers(){
     }).join(' · ');
     return `<tr style="${!p.isActive?'opacity:.5':''}">
     <td><div style="width:30px;height:30px;border-radius:50%;background:${p.avatarUrl?'url('+p.avatarUrl+') center/cover':col(i)};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#fff">${p.avatarUrl?'':ini(p.firstName,p.lastName)}</div></td>
-    <td><strong>${p.firstName} ${p.lastName}</strong>${!p.isActive?'<span class="badge b-rd" style="margin-left:6px;font-size:9px">Disabled</span>':''}<div style="font-size:10px;color:var(--tx3)">${p.email||''}</div></td>
+    <td><strong>${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</strong>${!p.isActive?'<span class="badge b-rd" style="margin-left:6px;font-size:9px">Disabled</span>':''}<div style="font-size:10px;color:var(--tx3)">${p.email||''}</div></td>
     <td>${p.phone||'—'}</td>
     <td><div style="font-size:14px">${sportIcons}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px;text-transform:capitalize">${sportDetail||'—'}</div></td>
     <td>${p.hasDgroup?(p.dgroupLeader||'Has Dgroup'):'<span style="color:var(--tx3)">None</span>'}</td>
@@ -3429,7 +3429,7 @@ function renderPlayers(){
 function openResetPin(id){
   resetPinId=id;
   const p=LC.arr('players').find(x=>x.id===id);if(!p)return;
-  document.getElementById('rpin-info').innerHTML=`<strong>${p.firstName} ${p.lastName}</strong> · ${p.phone||''}`;
+  document.getElementById('rpin-info').innerHTML=`<strong>${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</strong> · ${p.phone||''}`;
   document.getElementById('new-ppin').value='';
   openModal('rpin');
 }
@@ -4110,7 +4110,7 @@ function renderGameDay(){
     const ftBtn = ftReg
       ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" data-tip="${ftOn?'Remove new-player tag':'Mark as new player'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
       : '';
-    return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')">${ini(p.firstName,p.lastName)} ${p.firstName} ${p.lastName}${skTag}${statusTag}${ftBtn}${
+    return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')">${ini(p.firstName,p.lastName)} ${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${skTag}${statusTag}${ftBtn}${
       (sessionLive || teamsLive) && (cssClass.indexOf(' on') > -1)
         ? `<button type="button" class="chip-x" onclick="event.stopPropagation(); removeFromLiveSession('${p.id}')" data-tip="Remove from session">×</button>`
         : ''
@@ -7017,7 +7017,7 @@ function renderTournRegsPanel(t, regs, pays) {
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
       </div>
-      <div style="font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:${showActions||payBlock?'10':'0'}px">${playerNames||'No players listed'}</div>
+      <div style="font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:${showActions||payBlock?'10':'0'}px">${feedEsc(playerNames||'No players listed')}</div>
       ${payBlock}
       ${showActions ? `<div style="display:flex;gap:6px">
         <button type="button" class="btn btn-sm" style="flex:1;background:var(--gr);color:#fff" onclick="approveTournReg('${r.id}','${t.id}')"><i class="ti ti-check"></i>${gko?'Approve &amp; secure slot':'Approve'}</button>
@@ -7323,10 +7323,10 @@ function renderTournProposals() {
     return `<div class="card" style="margin-bottom:10px;border-color:${sc}">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px">${p.team_name}</div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">${feedEsc(p.team_name)}</div>
           <div style="font-size:12px;color:var(--tx3);margin-bottom:2px"><i class="ti ti-user" style="margin-right:4px"></i>${pName}</div>
           <div style="font-size:12px;color:var(--tx3);margin-bottom:2px">${sportLabel}${fmtLabel?' · '+fmtLabel:''}</div>
-          ${p.notes?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;background:var(--b2);padding:8px 10px;border-radius:8px">${p.notes}</div>`:''}
+          ${p.notes?`<div style="font-size:12px;color:var(--tx2);margin-top:6px;background:var(--b2);padding:8px 10px;border-radius:8px">${feedEsc(p.notes)}</div>`:''}
           <div style="font-size:11px;color:var(--tx3);margin-top:6px">${dt}</div>
         </div>
         <span style="font-size:10px;font-weight:700;color:${sc};white-space:nowrap">${sl}</span>
@@ -7664,7 +7664,7 @@ function renderTournGameDay(t) {
         </tr></thead><tbody>
         ${st.map((s,i)=>`<tr style="border-top:1px solid var(--b)${i<2?';background:rgba(0,200,100,.04)':''}">
           <td style="padding:9px 12px;font-weight:700;color:${i===0?'var(--gold)':i<2?'var(--gr)':'var(--tx3)'}">${i+1}</td>
-          <td style="padding:9px 12px;font-weight:${i<2?'700':'400'}">${s.name}</td>
+          <td style="padding:9px 12px;font-weight:${i<2?'700':'400'}">${feedEsc(s.name)}</td>
           <td style="padding:9px 6px;text-align:center;color:var(--gr);font-weight:700">${s.w}</td>
           <td style="padding:9px 6px;text-align:center;color:var(--tx3)">${s.l}</td>
           <td style="padding:9px 12px;text-align:center;color:${s.diff>=0?'var(--gr)':'var(--danger)'}">${s.diff>0?'+':''}${s.diff}</td>
@@ -7764,7 +7764,7 @@ async function openTournPayments(id) {
     return `<div style="background:var(--b2);border-radius:10px;padding:12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <div>
-          <div style="font-weight:700">${tm.name}</div>
+          <div style="font-weight:700">${feedEsc(tm.name)}</div>
           <div style="font-size:12px;color:var(--tx2)">Team Owner: ${ownerName}</div>
         </div>
         <span style="font-size:11px;font-weight:700;color:${statusColor};">${statusLabel}</span>
@@ -8057,7 +8057,7 @@ function renderTournTeamsForm() {
     const count = selected.length;
     const countColor = 'var(--tx3)';
     // All players are eligible as team owner (owners may or may not play)
-    const ownerOpts = `<option value="">— Select owner —</option>`+allPlayers.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${p.firstName+(p.lastName?' '+p.lastName:'')}</option>`).join('');
+    const ownerOpts = `<option value="">— Select owner —</option>`+allPlayers.map(p=>`<option value="${p.id}" ${tm.owner===p.id?'selected':''}>${feedEsc(p.firstName+(p.lastName?' '+p.lastName:''))}</option>`).join('');
     const pills = allPlayers.map(p => {
       const on = selected.includes(p.id);
       const name = p.firstName+(p.lastName?' '+p.lastName:'');
@@ -8065,7 +8065,7 @@ function renderTournTeamsForm() {
     }).join('');
     return `<div style="background:var(--surface-1,var(--b2));border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <input type="text" class="fi" style="flex:1;font-size:14px;font-weight:600" value="${tm.name}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
+        <input type="text" class="fi" style="flex:1;font-size:14px;font-weight:600" value="${feedEsc(tm.name)}" oninput="_tTeams[${i}].name=this.value" placeholder="Team name (required)">
         <button type="button" onclick="_tTeams.splice(${i},1);_tGkoExpanded=new Set();renderTournTeamsForm();if(isGkoForm()){gkoRenderGroups();gkoRenderSchedule();}" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:20px;padding:4px;line-height:1" data-tip="Remove team"><i class="ti ti-x"></i></button>
       </div>
       ${compact ? `<div class="dp-actions" style="margin:-6px 0 8px"><button type="button" class="dp-link" onclick="_tGkoExpanded.delete(${i});renderTournTeamsForm()">Done editing</button></div>` : ''}
@@ -8439,7 +8439,7 @@ function renderLb(){
       <div style="width:28px;font-family:var(--font-display);font-weight:700;font-size:20px;color:${i<3?'var(--gold2)':'var(--tx3)'};text-align:center">${(i+1)}</div>
       <div class="lb-av" style="background:${col(i)}">${ini(p.firstName,p.lastName)}</div>
       <div style="flex:1">
-        <div style="font-weight:700;font-size:14px">${p.firstName} ${p.lastName}</div>
+        <div style="font-weight:700;font-size:14px">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</div>
         <div style="font-size:11px;color:var(--tx2)">${p.games||0} games · ${pct(p.wins||0,p.games||0)} win rate</div>
         <div class="lb-bar"><div class="lb-fill" style="width:${Math.round((p.wins||0)/maxW*100)}%;background:${col(i)}"></div></div>
     </div>
@@ -9184,7 +9184,7 @@ function renderWeekly(){
       : `<button type="button" class="btn btn-ghost btn-sm" onclick="toggleVolunteer('${r.id}')">Tag Volunteer</button>`;
     return `<tr style="${st==='cancelled'?'opacity:.5':''}">
       <td><div style="width:30px;height:30px;border-radius:50%;background:${col(i)};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:12px;color:#fff">${ini((r.playerName||'?').split(' ')[0],(r.playerName||'? ?').split(' ')[1]||'')}</div></td>
-      <td><strong>${r.playerName||'—'}</strong></td>
+      <td><strong>${feedEsc(r.playerName||'—')}</strong></td>
       <td>${r.phone||'—'}</td>
       <td><span class="badge ${r.payType==='advance'?'b-nv':'b-gd'}">${r.payType==='advance'?'Advance':r.payType==='walkin'?'Walk-in':'Cash'}</span></td>
       <td>${ftBtn}</td>
@@ -9274,7 +9274,7 @@ function openAddToWeek(){
   const taken=LC.arr('regs').filter(r=>r.gameId===weekGameId&&r.status!=='cancelled').map(r=>r.playerId);
   const avail=LC.arr('players').filter(p=>!taken.includes(p.id)).sort((a,b)=>(a.firstName+a.lastName).localeCompare(b.firstName+b.lastName));
   const sel=document.getElementById('aw-player');
-  sel.innerHTML='<option value="">— Select a registered player —</option>'+avail.map(p=>`<option value="${p.id}">${p.firstName} ${p.lastName}${p.phone?' · '+p.phone:''}</option>`).join('');
+  sel.innerHTML='<option value="">— Select a registered player —</option>'+avail.map(p=>`<option value="${p.id}">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${p.phone?' · '+p.phone:''}</option>`).join('');
   document.getElementById('aw-fn').value='';
   document.getElementById('aw-ln').value='';
   document.getElementById('aw-ph').value='';
@@ -9742,7 +9742,7 @@ function _renderTournPool() {
       <div style="font-size:11px;font-weight:700;color:var(--tx3);min-width:22px;text-align:center">${i+1}</div>
       ${p.avatar_url?`<img src="${p.avatar_url}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0">`:`<div style="width:34px;height:34px;border-radius:50%;background:var(--b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--tx3);flex-shrink:0">${(p.name||'?')[0]}</div>`}
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name||'—'}</div>
+        <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${feedEsc(p.name||'—')}</div>
         <div style="font-size:11px;color:var(--tx3)">Joined ${joinedDate}${fullPlayer?.phone?' · '+fullPlayer.phone:''}</div>
       </div>
       ${posBadge(p.position)}
@@ -9920,7 +9920,7 @@ function _renderDraftManager(draft, tourn) {
       const pos = draftOrder.indexOf(tm.id);
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--b)">
         <div style="width:26px;height:26px;border-radius:50%;background:${pos>=0?'var(--gold)':'var(--b2)'};color:${pos>=0?'#fff':'var(--tx3)'};font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${pos>=0?pos+1:'?'}</div>
-        <div style="flex:1;font-size:13px;font-weight:600">${tm.name}</div>
+        <div style="flex:1;font-size:13px;font-weight:600">${feedEsc(tm.name)}</div>
         ${pos>=0?`<span style="font-size:11px;font-weight:700;color:var(--gr)">Pick #${pos+1}</span>`:'<span style="font-size:11px;color:var(--tx3)">TBD</span>'}
       </div>`;
     }).join('');
@@ -9996,8 +9996,8 @@ function _renderAdminPlayerList(players, draftId, pool) {
     const poolEntry = (pool||[]).find(x=>x.id===p.id);
     const pos = poolEntry?.position || p.position || null;
     const pc = posColor[pos] || '#6b7280';
-    return `<div class="draft-pr" data-name="${(p.firstName+' '+(p.lastName||'')).toLowerCase().trim()}" onclick="adminMakePick('${draftId}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">${p.firstName}${p.lastName ? ' '+p.lastName : ''}</div></div>
+    return `<div class="draft-pr" data-name="${feedEsc((p.firstName+' '+(p.lastName||'')).toLowerCase().trim())}" onclick="adminMakePick('${draftId}','${p.id}')" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--b);cursor:pointer" onmouseover="this.style.background='var(--b2)'" onmouseout="this.style.background=''">
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${feedEsc(p.firstName+(p.lastName ? ' '+p.lastName : ''))}</div></div>
       ${pos ? `<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:${pc}22;color:${pc};border:1px solid ${pc}44;flex-shrink:0">${pos}</span>` : ''}
       <button type="button" style="background:var(--gold);border:none;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0">Pick</button>
     </div>`;
@@ -10021,7 +10021,7 @@ function _renderAdminDraftBoard(draft, teams) {
       ${order.map(tid => {
         const pk = teamPicks[tid];
         return pk
-          ? `<div style="background:var(--b2);border-radius:5px;padding:4px 5px"><div style="font-size:9px;font-weight:700;line-height:1.2;word-break:break-word">${pk.player_name}</div><div style="font-size:8px;color:var(--tx3)">#${pk.pick}</div></div>`
+          ? `<div style="background:var(--b2);border-radius:5px;padding:4px 5px"><div style="font-size:9px;font-weight:700;line-height:1.2;word-break:break-word">${feedEsc(pk.player_name)}</div><div style="font-size:8px;color:var(--tx3)">#${pk.pick}</div></div>`
           : `<div style="border:1px dashed var(--b);border-radius:5px;min-height:30px;opacity:.3"></div>`;
       }).join('')}
     </div>`).join('');
