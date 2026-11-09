@@ -5,10 +5,13 @@
  *    copy is used ONLY when the network fails (offline / no signal).
  *  - The site's own scripts, styles and manifests: also network first, so a new
  *    page never runs with an old script.
- *  - Images, icons, PDFs and the font/icon/library CDNs: served from the saved
- *    copy for speed, refreshed in the background.
- *  - Everything else (Supabase API, storage, realtime, other sites): not
- *    touched at all; it goes straight to the network.
+ *  - The site's own images, icons and PDFs: served from the saved copy for
+ *    speed, refreshed in the background.
+ *  - Everything on other hosts (font/icon/library CDNs, Supabase API,
+ *    storage, realtime): NOT touched at all; the browser loads it exactly as
+ *    it would without this worker. (A worker's own fetch() is bound by the
+ *    site's connect-src CSP, which doesn't list the CDNs, so intercepting
+ *    them broke icons and fonts in v1.)
  *  - Bump VERSION to drop all old saved copies on the next visit.
  *
  * Emergency off switch: replace this file's contents with
@@ -17,7 +20,7 @@
  *     .then(()=>self.registration.unregister()).then(()=>self.clients.matchAll()).then(cs=>cs.forEach(c=>c.navigate(c.url)))));
  * and deploy: every installed copy clears itself and goes back to plain website behaviour.
  */
-const VERSION = 'ccf-v1';
+const VERSION = 'ccf-v2';
 const SHELL = [
   '/',
   '/admin.html',
@@ -28,7 +31,6 @@ const SHELL = [
   '/icons/icon-192.png',
   '/icons/apple-touch-icon.png'
 ];
-const CDN_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -43,11 +45,18 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    // Devices that ran v1 loaded their open page with icons/fonts blocked.
+    // Reload those pages once so they come back with icons (only for v1).
+    const hadBrokenV1 = keys.includes('ccf-v1');
+    await Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)));
+    await self.clients.claim();
+    if (hadBrokenV1) {
+      const windows = await self.clients.matchAll({ type: 'window' });
+      windows.forEach(client => { try { client.navigate(client.url); } catch (e) {} });
+    }
+  })());
 });
 
 function saveCopy(request, response, allowOpaque) {
@@ -115,8 +124,5 @@ self.addEventListener('fetch', event => {
     event.respondWith(savedThenRefresh(request, false));
     return;
   }
-  if (CDN_HOSTS.includes(url.hostname)) {
-    event.respondWith(savedThenRefresh(request, true));
-  }
-  // Anything else (Supabase etc.) is not intercepted.
+  // Other hosts (CDNs, Supabase, ...) are never intercepted.
 });
