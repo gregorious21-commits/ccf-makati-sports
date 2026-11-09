@@ -1243,7 +1243,15 @@ body{letter-spacing:0}
 #attendance-card .gd-count{font-size:14px;font-weight:700;background:var(--brand);color:#fff;padding:6px 12px}
 .gd-find{margin:4px 0 12px;padding-top:0;border-top:0}
 .gd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-#present-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+/* Names fill the width: 2 columns on phones, 5-6 on laptops */
+.gd-roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(150px,calc(50% - 4px)),1fr));gap:8px}
+@media(min-width:900px){#present-chips .chip{min-height:40px;font-size:13px}}
+.gd-roster-fold summary{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;list-style:none;cursor:pointer;min-height:40px;font-weight:700;color:var(--text-1)}
+.gd-roster-fold summary::-webkit-details-marker{display:none}
+.gd-roster-fold summary em{font-style:normal;font-weight:500;font-size:12px;color:var(--text-3)}
+.gd-roster-fold summary::after{content:'+';margin-left:auto;font-size:18px;color:var(--text-3)}
+.gd-roster-fold[open] summary::after{content:'–'}
+.gd-roster-fold[open] .gd-roster-grid{margin-top:8px}
 #present-chips .gd-group,#present-chips .empty{grid-column:1/-1;margin:8px 0 0}
 #present-chips .gd-group:first-child{margin-top:0}
 #present-chips .chip{margin:0;min-height:48px;border-radius:10px;padding:0 8px 0 10px;justify-content:flex-start;gap:6px;min-width:0;color:var(--text-1);font-weight:600}
@@ -4196,9 +4204,19 @@ function renderGameDay(){
     html+=`<div class="gd-group">Walk-ins here</div>`;
     html+=walkins.map(renderChip).join('');
   }
-  chips.innerHTML=html;
+  // Once a session is running the list is only needed for late changes, so it
+  // folds away (search stays open for late arrivals).
+  if (sessionLive || teamsLive) {
+    const hereN = gdHereIds().size;
+    chips.innerHTML = `<details class="gd-roster-fold"${_gdRosterOpen?' open':''} ontoggle="_gdRosterOpen=this.open">
+      <summary><span>Everyone here · ${hereN}</span><em>Tap to add or remove someone</em></summary>
+      <div class="gd-roster-grid">${html}</div></details>`;
+  } else {
+    chips.innerHTML = `<div class="gd-roster-grid">${html}</div>`;
+  }
   renderGdSearch();
 }
+let _gdRosterOpen = false;
 
 // Everyone checked in or already placed in the live session.
 function gdHereIds(){
@@ -5144,6 +5162,7 @@ function startPickleballSession(){
   pbStartTick();
   renderPballSession();
   startSharedSession();
+  try { renderGameDay(); } catch(e) {}   // fold the check-in list now that play has started
   const msg = seedMode === 'manual'
     ? courts.length+' empty courts · tap Edit on a court to assign players'
     : courts.length+' courts running · '+queue.length+' in queue';
@@ -6387,6 +6406,7 @@ function bbStart(){
   renderBbRotation();
   renderBbTimer(); bbStartTick();
   startSharedSession();
+  try { renderGameDay(); } catch(e) {}   // fold the check-in list now that play has started
   toast('Match 1 ready · '+(bbRotation.teamA.length+bbRotation.teamB.length)+' on court');
 }
 
