@@ -1226,6 +1226,77 @@ body{letter-spacing:0}
 .bb-teams-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:560px){.bb-teams-grid{grid-template-columns:1fr}}
 #bb-active .card-h{flex-wrap:wrap;gap:8px}
+
+/* ── Game Day redesign ── */
+#panel-gameday:not(.gd-tips) .note{display:none}
+.gd-top{background:var(--surface-1);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.gd-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.gd-title{font-family:var(--font-head);font-weight:800;font-size:22px;letter-spacing:-.02em;color:var(--text-1)}
+.gd-sub{font-size:12px;color:var(--text-3);margin-top:2px}
+.gd-tips-btn{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-2);font:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:none}
+.gd-tips-btn[aria-pressed="true"]{background:var(--brand-soft);border-color:var(--brand);color:var(--hi-text)}
+.gd-sport-pills{display:flex;gap:6px;overflow-x:auto;margin-top:12px;padding-bottom:2px;scrollbar-width:none}
+.gd-sport-pills::-webkit-scrollbar{display:none}
+.gd-sport{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-2);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.gd-sport.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.gd-sport.on .spi{filter:brightness(0) invert(1)}
+#attendance-card .gd-count{font-size:14px;font-weight:700;background:var(--brand);color:#fff;padding:6px 12px}
+.gd-find{margin:4px 0 12px;padding-top:0;border-top:0}
+.gd-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+#present-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#present-chips .gd-group,#present-chips .empty{grid-column:1/-1;margin:8px 0 0}
+#present-chips .gd-group:first-child{margin-top:0}
+#present-chips .chip{margin:0;min-height:48px;border-radius:10px;padding:0 8px 0 10px;justify-content:flex-start;gap:6px;min-width:0;color:var(--text-1);font-weight:600}
+#present-chips .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+#present-chips .chip.on span{color:rgba(255,255,255,.85)!important}
+#present-chips .chip.on .chip-ft{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);color:#fff}
+.chip-nm{flex:1;min-width:0;white-space:normal;line-height:1.2;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;padding:4px 0}
+.chip-sk{font-size:11px;font-weight:600;color:var(--text-3);flex:none}
+.gd-legend{font-size:12px;color:var(--text-3);margin-top:10px}
+.gd-setup summary{display:flex;align-items:center;gap:8px;list-style:none;cursor:pointer;min-height:44px}
+.gd-setup summary::-webkit-details-marker{display:none}
+.gd-setup-t{font-weight:700;color:var(--text-1)}
+.gd-setup-s{flex:1;min-width:0;font-size:13px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gd-setup-edit{font-size:13px;font-weight:700;color:var(--hi-text)}
+.gd-setup[open] .gd-setup-edit{display:none}
+.gd-start-bar{position:sticky;bottom:0;z-index:3;background:var(--surface-1);padding:12px 0 4px;margin-top:6px}
+.gd-start-bar .btn{min-height:50px;font-size:15px}
+.gd-more summary{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;list-style:none;cursor:pointer;min-height:40px;font-weight:700;color:var(--text-1)}
+.gd-more summary::-webkit-details-marker{display:none}
+.gd-more summary em{font-style:normal;font-weight:500;font-size:12px;color:var(--text-3)}
+.gd-more summary::after{content:'+';margin-left:auto;font-size:18px;color:var(--text-3)}
+.gd-more[open] summary::after{content:'–'}
+.gd-sub-h{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--text-1);margin:6px 0}
+.gd-more summary span{display:inline-flex;align-items:center;gap:8px}
+.gd-more summary span i{color:var(--text-3)}
+.court-settings{padding:0 var(--s-4);margin-top:-2px}
+.court-settings summary{font-size:12px;font-weight:600;color:var(--hi-text);cursor:pointer;min-height:32px;display:flex;align-items:center}
+.gd-qname{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gd-next{flex:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--brand);color:#fff}
+.bb-clock{display:flex;align-items:center;gap:6px}
+#bb-timer-display{font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1;color:var(--gold);min-width:64px;text-align:right}
+.gd-win-bar{position:sticky;bottom:0;z-index:3;background:var(--surface-1);padding:12px 0 6px;margin-top:6px;border-top:1px solid var(--border)}
+.gd-rows{padding:0}
+.gd-rows > button,.gd-rows summary{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;padding:0 16px;border:0;border-bottom:1px solid var(--border);background:none;font:inherit;font-size:14px;font-weight:600;color:var(--text-1);cursor:pointer;list-style:none}
+.gd-rows summary::-webkit-details-marker{display:none}
+.gd-rows details > div{padding-left:16px;padding-right:16px}
+.gd-rows > :last-child,.gd-rows > :last-child summary{border-bottom:0}
+.gd-rows span{display:inline-flex;align-items:center;gap:8px}
+.gd-rows i{color:var(--text-3)}
+.bb-row{flex-wrap:wrap}
+.bb-pl{display:flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:40px;padding:0;border:0;background:none;font:inherit;text-align:left;color:var(--text-1);cursor:pointer}
+.bb-num{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:11px;color:#fff}
+.bb-nm{flex:1;min-width:0;font-size:14px;overflow-wrap:anywhere}
+.bb-pg{font-size:11px;color:var(--text-3)}
+.bb-acts{display:flex;flex-wrap:wrap;gap:6px;width:100%;padding:4px 0 8px 30px}
+.bb-acts button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);font:inherit;font-size:12px;font-weight:700;color:var(--text-1);cursor:pointer}
+.bb-acts button.rm{border-color:var(--danger);color:var(--danger)}
+#panel-gameday .team-players{flex-direction:column;flex-wrap:nowrap;gap:2px;color:var(--text-1);font-size:14px;font-weight:600}
+#panel-gameday .team-players .tp{display:block}
+#panel-gameday .team-players .sk-tag{font-weight:600}
+#panel-gameday .team-line{padding:8px 0}
+#panel-gameday .court-body{padding:4px var(--s-4)}
+.queue-chip.gd-qname{display:block;background:none;border:0;padding:0;margin:0;font-size:14px;font-weight:600;color:var(--text-1);white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -1536,35 +1607,28 @@ body{letter-spacing:0}
 
     <!-- GAME DAY -->
     <div class="panel" id="panel-gameday">
-      <div style="background:var(--surface-1);border:1px solid var(--b);border-radius:14px;padding:20px;margin-bottom:14px">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <div style="font-family:var(--font-head);font-weight:700;font-size:24px;letter-spacing:-.02em;margin-bottom:4px">Game Day Manager</div>
-            <div id="gd-subtitle" style="font-size:12px;color:var(--tx2)">Randomize teams · Record wins · Archive results</div>
+      <div class="gd-top">
+        <div class="gd-top-row">
+          <div style="min-width:0"><div class="gd-title">Game Day</div><div id="gd-subtitle" class="gd-sub">Randomize teams · Record wins · Archive results</div></div>
+          <button type="button" class="gd-tips-btn" id="gd-tips-btn" onclick="gdToggleTips()" aria-pressed="false"><i class="ti ti-help-circle"></i>Tips</button>
         </div>
+        <div id="gd-sport-pills" class="gd-sport-pills" role="tablist" aria-label="Sport"></div>
       </div>
-      <!-- Large, unmistakable sport picker — this drives which live session
-           a manager is actually running, so it needs to be impossible to
-           mistake for a minor form field. -->
-      <div style="margin-top:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:8px">Now Managing</div>
-        <div id="gd-sport-pills" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-      </div>
-    </div>
       <div id="session-banner" style="display:none;align-items:center;gap:10px;background:rgba(9,37,87,.10);border:1px solid var(--gold);border-radius:12px;padding:11px 15px;margin-bottom:14px;font-size:12.5px;font-weight:600;color:var(--gold)"><i class="ti ti-broadcast" style="font-size:16px"></i><span id="session-banner-text"></span></div>
       <div class="card" id="attendance-card">
         <div class="card-h"><div class="card-t"><i class="ti ti-users-group"></i>Who Showed Up?</div><span class="gd-count" id="gd-count"></span></div>
-        <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="selectAll()">Select all registered</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="clearSel()">Clear</button>
-          <button type="button" class="btn btn-g btn-sm" onclick="openModal('walkin')" data-tip="For someone who isn't in the app yet"><i class="ti ti-user-plus"></i>New walk-in</button>
-        </div>
-        <div id="present-chips"></div>
         <div class="gd-find">
           <label class="fl" for="gd-search">Someone else showed up?</label>
           <div class="gd-search-wrap"><i class="ti ti-search"></i><input type="search" class="fi" id="gd-search" placeholder="Type their name" autocomplete="off" oninput="renderGdSearch()"></div>
           <div id="gd-search-results"></div>
         </div>
+        <div class="gd-actions">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="selectAll()">Mark all registered here</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="clearSel()">Clear</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="openModal('walkin')" data-tip="For someone who isn't in the app yet"><i class="ti ti-user-plus"></i>New person</button>
+        </div>
+        <div id="present-chips"></div>
+        <div class="gd-legend">Int = Intermediate · New = Newbie · <i class="ti ti-star"></i> = mark as first game (free)</div>
     </div>
 
       <!-- ── BASKETBALL FLOW ── -->
@@ -1596,48 +1660,47 @@ body{letter-spacing:0}
 
         <!-- ACTIVE ROTATION -->
         <div id="bb-active" style="display:none">
-          <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-clock"></i>Game Timer</div></div>
-            <div class="note">One shared timer for the session — all managers see it live. Set the minutes, then start.</div>
-            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <div style="display:flex;align-items:center;gap:6px">
-                <label class="fl" style="margin:0">Minutes</label>
-                <input type="number" class="fi" id="bb-timer-min" value="12" min="1" max="60" style="width:74px" onchange="setBbTimerMinutes(this.value)">
-              </div>
-              <div id="bb-timer-display" style="font-family:var(--font-display);font-weight:700;font-size:46px;letter-spacing:1px;line-height:1;color:var(--gold);min-width:120px">12:00</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button type="button" class="btn btn-g btn-sm" id="bb-timer-start" onclick="startBbTimer()"><i class="ti ti-player-play"></i>Start</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="pauseBbTimer()"><i class="ti ti-player-pause"></i>Pause</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="resetBbTimer()"><i class="ti ti-rotate"></i>Reset</button>
-              </div>
-            </div>
-          </div>
-          <div class="card" id="bb-squad-card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-lock"></i>Locked Squads</div></div>
-            <div class="note" style="margin-bottom:8px">Lock any group together, anytime, for the rest of the night — everyone else keeps rotating &amp; reshuffling normally. Lock a 2nd (or 3rd) group and they'll play each other directly when both are up.</div>
-            <div id="bb-squad-list"></div>
-          </div>
           <div id="bb-standings"></div>
           <div class="card">
             <div class="card-h">
               <div class="card-t"><i class="ti ti-tournament"></i>Match <span id="bb-match-num">1</span></div>
-              <div style="display:flex;gap:6px">
-                <button type="button" class="btn btn-ghost btn-sm" onclick="bbUndoLast()"><i class="ti ti-arrow-back-up"></i>Undo Last</button>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="bbShuffleMatch()"><i class="ti ti-dice"></i>Shuffle Teams</button>
+              <div class="bb-clock">
+                <span id="bb-timer-display">12:00</span>
+                <button type="button" class="btn btn-ghost btn-sm" id="bb-timer-start" onclick="startBbTimer()"><i class="ti ti-player-play"></i>Start</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="pauseBbTimer()" aria-label="Pause timer"><i class="ti ti-player-pause"></i></button>
               </div>
             </div>
-            <div class="note">Move anyone between teams or the bench, or remove a player who left. Tap the winning team to record it and set up the next match. A draw sets up the next match without recording a result.</div>
+            <div class="note">Tap a player to move them, bench them or remove them. Tap the winning team to record it and set up the next match. A draw sets up the next match without recording a result.</div>
             <div id="bb-match"></div>
-            <div style="display:flex;gap:10px;margin-top:14px">
-              <button type="button" class="btn btn-gr" style="flex:1;justify-content:center" onclick="bbRecordWinner('A')"><i class="ti ti-trophy"></i>Team A wins</button>
-              <button type="button" class="btn btn-blue" style="flex:1;justify-content:center" onclick="bbRecordWinner('B')"><i class="ti ti-trophy"></i>Team B wins</button>
+            <div class="gd-win-bar">
+              <div style="display:flex;gap:10px">
+                <button type="button" class="btn btn-gr" style="flex:1;justify-content:center;min-height:52px;font-size:15px" onclick="bbRecordWinner('A')"><i class="ti ti-trophy"></i>Team A won</button>
+                <button type="button" class="btn btn-blue" style="flex:1;justify-content:center;min-height:52px;font-size:15px" onclick="bbRecordWinner('B')"><i class="ti ti-trophy"></i>Team B won</button>
+              </div>
+              <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="bbRecordWinner('draw')" data-tip="Next match is set up as usual; no wins, games or ratings are saved for this one"><i class="ti ti-equal"></i>Draw (not recorded)</button>
             </div>
-            <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="bbRecordWinner('draw')" data-tip="Next match is set up as usual; no wins, games or ratings are saved for this one"><i class="ti ti-equal"></i>Draw (not recorded)</button>
           </div>
-          <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-list"></i>Session Log</div></div>
-            <div id="bb-log"><div class="empty">No matches recorded yet.</div></div>
+          <div class="card gd-rows">
+            <button type="button" onclick="bbShuffleMatch()"><span><i class="ti ti-dice"></i>Shuffle teams</span><i class="ti ti-chevron-right"></i></button>
+            <button type="button" onclick="bbUndoLast()"><span><i class="ti ti-arrow-back-up"></i>Undo last result</span><i class="ti ti-chevron-right"></i></button>
+            <details>
+              <summary><span><i class="ti ti-clock"></i>Timer settings</span><i class="ti ti-chevron-down"></i></summary>
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 0 10px">
+                <label class="fl" style="margin:0" for="bb-timer-min">Minutes</label>
+                <input type="number" class="fi" id="bb-timer-min" value="12" min="1" max="60" style="width:74px" onchange="setBbTimerMinutes(this.value)">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="resetBbTimer()"><i class="ti ti-rotate"></i>Reset</button>
+              </div>
+            </details>
           </div>
+          <details class="card gd-more" id="bb-squad-card">
+            <summary><span><i class="ti ti-lock"></i>Locked squads</span><em>Keep a group together all night</em></summary>
+            <div class="note" style="margin:10px 0 8px">Lock any group together, anytime, for the rest of the night — everyone else keeps rotating &amp; reshuffling normally. Lock a 2nd (or 3rd) group and they'll play each other directly when both are up.</div>
+            <div id="bb-squad-list"></div>
+          </details>
+          <details class="card gd-more">
+            <summary><span><i class="ti ti-list"></i>Results so far</span></summary>
+            <div id="bb-log" style="margin-top:10px"><div class="empty">No matches recorded yet.</div></div>
+          </details>
           <button type="button" class="btn btn-rd" style="width:100%;justify-content:center;margin-top:4px" onclick="bbEndSession()"><i class="ti ti-flag"></i>End Game Day & Archive</button>
           <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;color:var(--tx3)" onclick="discardLiveSession()"><i class="ti ti-trash"></i>Discard — don't save</button>
       </div>
@@ -1647,7 +1710,8 @@ body{letter-spacing:0}
       <div id="pball-flow" style="display:none">
         <div id="pball-setup">
           <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-settings"></i>Session Setup</div></div>
+            <details class="gd-setup" id="pb-setup-details">
+            <summary><span class="gd-setup-t">Session setup</span><span class="gd-setup-s" id="pb-setup-summary"></span><span class="gd-setup-edit">Change</span></summary>
             <div class="g2">
               <div>
                 <label class="fl" style="margin-top:0">Number of Courts</label>
@@ -1705,7 +1769,8 @@ body{letter-spacing:0}
               <label class="fl" style="margin-top:0">Court Skill Assignment <span style="font-weight:400;color:var(--tx3);text-transform:none;letter-spacing:0">(optional — can also be changed live once the session starts)</span></label>
               <div id="pb-court-tier-setup"></div>
             </div>
-            <button type="button" class="btn btn-w" style="width:100%;justify-content:center;margin-top:12px" onclick="pbMaybePair()"><i class="ti ti-player-play"></i>Start Session</button>
+            </details>
+            <div class="gd-start-bar"><button type="button" class="btn btn-w" style="width:100%;justify-content:center" onclick="pbMaybePair()"><i class="ti ti-player-play"></i><span id="pb-start-label">Start session</span></button></div>
         </div>
       </div>
 
@@ -1733,43 +1798,42 @@ body{letter-spacing:0}
 
         <div id="pball-active" style="display:none">
           <div id="pball-courts-grid"></div>
-          <div style="margin-bottom:10px">
-            <label class="fl">Matchmaking Style</label>
-            <select class="fi" id="pb-style-live" onchange="pbSetStyleLive(this.value)">
-              <option value="balanced">Balanced · everyone rotates</option>
-              <option value="ladder">Winners vs Winners · ladder</option>
-              <option value="fifo">Straight Queue · no fairness boost</option>
-            </select>
-          </div>
-          <div style="margin-bottom:10px">
-            <label class="fl">Partner Mode</label>
-            <select class="fi" id="pb-partner-mode-live" onchange="pbSetPartnerModeLive(this.value)">
-              <option value="random">Random partners each rotation</option>
-              <option value="fixed">Fixed partners</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:14px">
-            <button type="button" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="pbAddCourt()"><i class="ti ti-plus"></i>Add a Court</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-partners" style="flex:1;justify-content:center;display:none" onclick="pbOpenPairPickerMidSession()"><i class="ti ti-arrows-exchange"></i>Edit Partners</button>
-          </div>
           <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-pin"></i>Pinned Pairs</div></div>
+            <div class="card-h"><div class="card-t"><i class="ti ti-clock-pause"></i>Waiting</div><div id="pb-queue-count" style="font-size:12px;color:var(--tx3)"></div></div>
+            <div id="pball-queue"></div>
+          </div>
+          <details class="card gd-more">
+            <summary><span>More tools</span><em>Add a court, partners, pinned pairs, rematches, matchmaking</em></summary>
+            <div style="margin:12px 0 10px">
+              <label class="fl">Matchmaking Style</label>
+              <select class="fi" id="pb-style-live" onchange="pbSetStyleLive(this.value)">
+                <option value="balanced">Balanced · everyone rotates</option>
+                <option value="ladder">Winners vs Winners · ladder</option>
+                <option value="fifo">Straight Queue · no fairness boost</option>
+              </select>
+            </div>
+            <div style="margin-bottom:10px">
+              <label class="fl">Partner Mode</label>
+              <select class="fi" id="pb-partner-mode-live" onchange="pbSetPartnerModeLive(this.value)">
+                <option value="random">Random partners each rotation</option>
+                <option value="fixed">Fixed partners</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px">
+              <button type="button" class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="pbAddCourt()"><i class="ti ti-plus"></i>Add a Court</button>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-edit-partners" style="flex:1;justify-content:center;display:none" onclick="pbOpenPairPickerMidSession()"><i class="ti ti-arrows-exchange"></i>Edit Partners</button>
+            </div>
+            <div class="gd-sub-h"><i class="ti ti-pin"></i>Pinned pairs</div>
             <div class="note" style="margin-bottom:8px">Keep specific players partnered together — everyone else keeps rotating normally.</div>
             <div id="pb-pinned-list"></div>
-          </div>
-          <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-swords"></i>Rematch Requests</div></div>
+            <div class="gd-sub-h" style="margin-top:16px"><i class="ti ti-swords"></i>Rematch requests</div>
             <div class="note" style="margin-bottom:8px">They'll face off once it's naturally their turn — this never skips them ahead of anyone waiting.</div>
             <div id="pb-rematch-list"></div>
-          </div>
-          <div class="card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-clock-pause"></i>Waiting Queue</div><div id="pb-queue-count" style="font-size:11px;color:var(--tx3);letter-spacing:.3px"></div></div>
-            <div id="pball-queue"></div>
-        </div>
-          <div class="card" id="pball-history-card">
-            <div class="card-h"><div class="card-t"><i class="ti ti-list"></i>Session Log</div></div>
-            <div id="pball-log"><div class="empty">No matches recorded yet.</div></div>
-        </div>
+          </details>
+          <details class="card gd-more" id="pball-history-card">
+            <summary><span>Results so far</span></summary>
+            <div id="pball-log" style="margin-top:10px"><div class="empty">No matches recorded yet.</div></div>
+          </details>
           <button type="button" class="btn btn-rd" style="width:100%;justify-content:center;margin-top:12px" onclick="endPickleballSession()"><i class="ti ti-flag"></i>End Session & Save</button>
           <button type="button" class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;color:var(--tx3)" onclick="discardLiveSession()"><i class="ti ti-trash"></i>Discard — don't save</button>
       </div>
@@ -2860,7 +2924,7 @@ function renderPanel(pid){
   if(pid==='discipleship') renderDiscipleshipPanel();
   if(pid==='attendance')   renderRunRecords();
   if(pid==='devotion')     loadDevotion();
-  if(pid==='gameday')      renderGameDay();
+  if(pid==='gameday')    { try{ gdToggleTips(localStorage.getItem('gd_tips')==='1'); }catch(e){} renderGameDay(); }
   if(pid==='weekly')       renderWeekly();
   if(pid==='leaderboard')  renderLb();
   if(pid==='history')      renderHist();
@@ -4107,20 +4171,21 @@ function renderGameDay(){
       if (presentIds.includes(p.id)) cssClass += ' on';
     }
     const skTag = gdSport==='pickleball' && p.pickleballSkill
-      ? ` <span style="font-size:9px;color:var(--tx3);">${p.pickleballSkill.slice(0,3)}</span>`
+      ? ` <span class="chip-sk">${({newbie:'New',intermediate:'Int',expert:'Exp'})[p.pickleballSkill]||feedEsc(p.pickleballSkill.slice(0,3))}</span>`
       : '';
     const ftReg = next ? regs.find(r=>r.gameId===next.id&&r.playerId===p.id&&r.status!=='cancelled') : null;
     const ftOn  = ftReg && ftReg.isFirstTimer;
     const ftBtn = ftReg
       ? `<button type="button" class="chip-ft ${ftOn?'ft-on':''}" onclick="event.stopPropagation();toggleFirstTimerGd('${ftReg.id}',${!ftOn})" data-tip="${ftOn?'Remove new-player tag':'Mark as new player'}"><i class="ti ti-star${ftOn?'-filled':''}"></i>${ftOn?' 1st':''}</button>`
       : '';
-    return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')">${ini(p.firstName,p.lastName)} ${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${skTag}${statusTag}${ftBtn}${
+    return `<div class="${cssClass}" id="chip-${p.id}" data-pid="${p.id}" onclick="togglePresent('${p.id}')"><span class="chip-nm">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</span>${skTag}${statusTag}${ftBtn}${
       (sessionLive || teamsLive) && (cssClass.indexOf(' on') > -1)
         ? `<button type="button" class="chip-x" onclick="event.stopPropagation(); removeFromLiveSession('${p.id}')" data-tip="Remove from session">×</button>`
         : ''
     }</div>`;
   };
   _gdRenderChip = renderChip;
+  try { gdPbSetupSummary(); } catch(e){}
   if(confirmed.length){
     html+=`<div class="gd-group">Registered for ${next?feedEsc(next.label)+(next.date!==gdLocalISO(new Date())&&!todaysGameFor(gdSport)?' (next game)':''):'this game'}</div>`;
     html+=confirmed.map(renderChip).join('');
@@ -4187,19 +4252,30 @@ const GD_SPORT_META = {
 // Large, color-coded pill row for picking which sport's Game Day a manager
 // is running — a plain <select> here was easy to miss and a wrong pick
 // means managing (and saving results for) the wrong session entirely.
+
+// Game Day: tips (the blue help boxes) are hidden unless a manager turns them on.
+function gdToggleTips(force){
+  const on = typeof force==='boolean' ? force : !document.getElementById('panel-gameday').classList.contains('gd-tips');
+  document.getElementById('panel-gameday').classList.toggle('gd-tips', on);
+  const b=document.getElementById('gd-tips-btn'); if(b) b.setAttribute('aria-pressed', on);
+  try{ localStorage.setItem('gd_tips', on?'1':'0'); }catch(e){}
+}
+// One-line summary of the pickleball setup, and the player count on Start.
+function gdPbSetupSummary(){
+  const el=document.getElementById('pb-setup-summary'); if(!el) return;
+  const txt=id=>{ const s=document.getElementById(id); return s&&s.selectedOptions[0]?s.selectedOptions[0].text:''; };
+  el.textContent=[txt('pb-courts'), txt('pb-format'), (txt('pb-style').split('·')[0]||'').trim()].filter(Boolean).join(' · ');
+  const lb=document.getElementById('pb-start-label');
+  if(lb) lb.textContent = presentIds.length ? 'Start session · '+presentIds.length+' players' : 'Start session';
+}
+document.addEventListener('change', e=>{ if(e.target && e.target.closest && e.target.closest('#pball-setup')) gdPbSetupSummary(); });
 function renderGdSportPills(){
   const el = document.getElementById('gd-sport-pills');
   if (!el) return;
   el.innerHTML = Object.keys(GD_SPORT_META).map(sp => {
     const m = GD_SPORT_META[sp];
     const on = sp === gdSport;
-    return `<button type="button" onclick="switchGdSport('${sp}')" style="
-      display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;cursor:pointer;
-      font-size:15px;font-weight:700;transition:background .15s,border-color .15s;
-      border:2px solid ${on ? m.color : 'var(--b)'};
-      background:${on ? m.color+'26' : 'var(--bg2)'};
-      color:${on ? m.color : 'var(--tx2)'};
-    "><span class="spi ${m.icon}"></span>${m.label}</button>`;
+    return `<button type="button" role="tab" aria-selected="${on}" class="gd-sport${on?' on':''}" onclick="switchGdSport('${sp}')"><span class="spi ${m.icon}"></span>${m.label}</button>`;
   }).join('');
 }
 function switchGdSport(s){
@@ -5156,12 +5232,12 @@ function renderPballSession(){
       : cFormatValue+'-min timer';
     const aPlayers = c.teamA.map(pid=>{
       const sk = pbSkill(pid);
-      return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
-    }).join('<br>');
+      return `<span class="tp">${feedEsc(pbName(pid))}${sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : ''}</span>`;
+    }).join('');
     const bPlayers = c.teamB.map(pid=>{
       const sk = pbSkill(pid);
-      return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
-    }).join('<br>');
+      return `<span class="tp">${feedEsc(pbName(pid))}${sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : ''}</span>`;
+    }).join('');
     let progress = '';
     if (cFormat === 'points'){
       progress = `Target: ${cFormatValue} pts`;
@@ -5187,10 +5263,13 @@ function renderPballSession(){
         <div class="court-name">${c.name}${fixedBadge}</div>
         <div class="court-format">${fmtLabel}</div>
     </div>
-      <div style="padding:0 var(--s-4);margin-top:-4px;display:flex;flex-direction:column;gap:6px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" data-tip="Changes only affect who's auto-pulled next — anyone already on this court stays put">${tierBoxes}</div>
-        <select class="fi" style="font-size:11px;padding:5px 8px" data-tip="This court's target — overrides the session default" onchange="pbSetCourtFormat('${c.id}',this.value)">${fmtOpts}</select>
-      </div>
+      <details class="court-settings">
+        <summary>Court settings${courtTiers.length?' · '+courtTiers.map(t=>SKILL_LABEL[t]).join(' + '):''}</summary>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center" data-tip="Changes only affect who's auto-pulled next — anyone already on this court stays put">${tierBoxes}</div>
+          <select class="fi" style="font-size:12px;padding:6px 8px" data-tip="This court's target — overrides the session default" onchange="pbSetCourtFormat('${c.id}',this.value)">${fmtOpts}</select>
+        </div>
+      </details>
       <div class="court-body">
         <div class="team-line">
           <div class="team-roster">
@@ -5249,8 +5328,9 @@ function renderPballSession(){
       </select>` : '';
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--b)">
         <span style="font-size:11px;font-weight:700;color:${upNext?'var(--gr)':'var(--tx3)'};min-width:20px;text-align:right">${posLabel}</span>
-        <span class="${cls}" style="flex:1">${pbName(item.pid)} ${skillPicker}${overridePicker}</span>
-        ${upNext?'<span style="font-size:10px;font-weight:700;color:var(--gr);letter-spacing:.5px">UP NEXT</span>':''}
+        <span class="${cls} gd-qname" style="flex:1">${feedEsc(pbName(item.pid))}</span>
+        ${upNext?'<span class="gd-next">Next</span>':''}
+        ${skillPicker}${overridePicker}
         <button type="button" data-tip="Move up" onclick="pbMoveQueue('${item.pid}',-1)" ${disableUp?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-up"></i></button>
         <button type="button" data-tip="Move down" onclick="pbMoveQueue('${item.pid}',1)" ${disableDown?'disabled':''} style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-chevron-down"></i></button>
         <button type="button" data-tip="Remove from session" onclick="pbRemoveFromSession('${item.pid}')" style="background:none;border:none;color:var(--tx3);cursor:pointer;padding:4px;font-size:14px;line-height:1"><i class="ti ti-user-minus"></i></button>
@@ -6568,23 +6648,23 @@ function bbRemovePlayer(pid){
   toast(bbFirst(pid)+' removed');
 }
 
+let _bbActPid = null;   // the player whose actions are open (tap a name)
+function bbToggleAct(pid){ _bbActPid = _bbActPid===pid ? null : pid; renderBbRotation(); }
 function bbRosterHtml(pids, teamKey, color, title){
   const players=LC.arr('players');
-  const moveOpts=cur=>{
-    const dests=[['A','Team A'],['B','Team B'],['bench','Bench']];
-    return dests.map(d=>`<option value="${d[0]}"${d[0]===cur?' selected':''}>${d[1]}</option>`).join('');
-  };
   const curOf=k=>k==='teamA'?'A':k==='teamB'?'B':'bench';
   const numbered = teamKey==='bench' && bbIsLine();   // waiting line: show place in line
   const rows=pids.length? pids.map((pid,idx)=>{
     const p=players.find(x=>x.id===pid);
     const nm=p?(p.firstName+' '+p.lastName):'?';
     const played=bbRotation.played[pid]||0;
-    return `<div class="t-row">
-      <div style="width:22px;height:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:${numbered?'12px':'10px'};color:#fff;flex-shrink:0"${numbered?` title="Place in line"`:''}>${numbered?idx+1:ini(p?p.firstName:'?',p?p.lastName:'')}</div>
-      <span style="flex:1;min-width:0;overflow-wrap:anywhere">${feedEsc(nm)} <span style="font-size:10px;color:var(--tx3)">· ${played} played</span></span>
-      <select onchange="bbMovePlayer('${pid}',this.value)" style="background:var(--bg2);border:1px solid var(--b);border-radius:6px;color:var(--tx2);font-size:10px;padding:3px 4px;outline:none;cursor:pointer">${moveOpts(curOf(teamKey))}</select>
-      <button type="button" class="chip-x" style="position:static;color:var(--danger)" onclick="bbRemovePlayer('${pid}')" data-tip="Remove from session">×</button>
+    const open=_bbActPid===pid, cur=curOf(teamKey);
+    const acts=open?`<div class="bb-acts">${[['A','Team A'],['B','Team B'],['bench','Bench']].filter(d=>d[0]!==cur).map(d=>`<button type="button" onclick="_bbActPid=null;bbMovePlayer('${pid}','${d[0]}')">To ${d[1]}</button>`).join('')}<button type="button" class="rm" onclick="_bbActPid=null;bbRemovePlayer('${pid}')">Remove</button></div>`:'';
+    return `<div class="t-row bb-row${open?' open':''}">
+      <button type="button" class="bb-pl" onclick="bbToggleAct('${pid}')" aria-expanded="${open}">
+        <span class="bb-num" style="background:${color}">${numbered?idx+1:ini(p?p.firstName:'?',p?p.lastName:'')}</span>
+        <span class="bb-nm">${feedEsc(nm)} <span class="bb-pg">· ${played} played</span></span>
+      </button>${acts}
     </div>`;
   }).join('') : '<div style="font-size:12px;color:var(--tx3);padding:8px 0">— empty —</div>';
   return `<div class="team-card">
