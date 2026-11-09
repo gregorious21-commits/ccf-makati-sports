@@ -18,6 +18,12 @@
 <meta property="og:image:alt" content="CCF Sports Makati logo">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="logo.jpg?v=2">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CCF Sports">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=Inter:wght@500;600;700;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2032,6 +2038,16 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
 .lv-tag{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--brand-soft);color:var(--hi-text);font-size:11px;font-weight:700}
 .lv-foot{font-size:12px;color:var(--text-3);text-align:center}
 @media(min-width:1024px){.lv-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:start}}
+/* Install-the-app card (Home, phones only) */
+#install-card{display:flex;gap:12px;align-items:flex-start;background:var(--brand-soft);border-radius:var(--r-lg);padding:14px;margin-bottom:16px}
+.inst-ic img{display:block;width:40px;height:40px;border-radius:10px}
+.inst-tx{flex:1;min-width:0}
+.inst-t{font-weight:800;font-size:15px;color:var(--text-1)}
+.inst-s{font-size:13px;line-height:1.5;color:var(--text-2);margin-top:2px}
+.inst-s i{font-size:14px;vertical-align:-2px}
+.inst-b{display:flex;gap:8px;margin-top:10px}
+.inst-go{min-height:40px;padding:0 18px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.inst-x{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-1);color:var(--text-1);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .feed-err-btn{margin-top:14px;min-height:44px;padding:0 20px;border-radius:999px;border:0;background:var(--brand);color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 /* Laptop Home: bento tiles (phones keep the list) */
 .home-bento{display:none}
@@ -2464,6 +2480,7 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
       <div id="live-queue" class="card lq-card" style="display:none"></div>
       <!-- Live Now Tournament Banner -->
       <div id="live-now-banner" style="display:none;margin-bottom:14px"></div>
+      <div id="install-card" style="display:none" role="region" aria-label="Install the app"></div>
       <div id="home-bento" class="home-bento"></div>
       <div class="sec-h week-head"><div class="sec-t">This Week</div></div>
       <div class="sport-pills" role="tablist">
@@ -5134,6 +5151,48 @@ function renderDevotion() {
 }
 
 
+// ── INSTALL THE APP (home screen) ─────────────────────────────
+// Android/desktop Chrome: use the browser's install prompt. iPhone/iPad: no
+// prompt exists, so show the two-step Share → Add to Home Screen hint.
+// Only on phones/tablets, only when signed in, never once installed, and a
+// dismissal hides it for 30 days.
+let _installEvt = null;
+const INSTALL_SNOOZE_DAYS = 30;
+const isStandaloneApp = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const isIOSDevice = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); _installEvt = e; renderInstallCard(); });
+window.addEventListener('appinstalled', () => { _installEvt = null; renderInstallCard(); toast('App installed. Find CCF Sports on your home screen.'); });
+function installSnoozed(){
+  try { const t = +localStorage.getItem('install_dismissed_at') || 0; return Date.now() - t < INSTALL_SNOOZE_DAYS*864e5; } catch(e){ return false; }
+}
+function renderInstallCard(){
+  const el = document.getElementById('install-card'); if (!el) return;
+  const phoneOrTablet = window.matchMedia && matchMedia('(max-width: 1023px)').matches;
+  const show = ME && phoneOrTablet && !isStandaloneApp() && !installSnoozed() && (_installEvt || isIOSDevice());
+  if (!show) { if (el.style.display !== 'none') { el.style.display = 'none'; el.innerHTML = ''; } return; }
+  const ios = !_installEvt;
+  const html = `<div class="inst-ic"><img src="/icons/icon-192.png" alt="" width="40" height="40"></div>
+    <div class="inst-tx">
+      <div class="inst-t">Get the CCF Sports app</div>
+      <div class="inst-s">${ios
+        ? 'Tap the Share button <i class="ti ti-share-2" aria-hidden="true"></i> in your browser, then <b>Add to Home Screen</b>. You\'ll sign in once inside the app.'
+        : 'Add it to your home screen: opens full screen, faster, and works on weak signal.'}</div>
+      <div class="inst-b">${ios ? '' : '<button type="button" class="inst-go" onclick="doInstallApp()">Install</button>'}<button type="button" class="inst-x" onclick="dismissInstallCard()">${ios ? 'Got it' : 'Not now'}</button></div>
+    </div>`;
+  if (el.dataset.mode !== (ios?'ios':'prompt') || el.style.display === 'none') { el.innerHTML = html; el.dataset.mode = ios?'ios':'prompt'; }
+  el.style.display = '';
+}
+async function doInstallApp(){
+  if (!_installEvt) return;
+  const evt = _installEvt; _installEvt = null;
+  try { evt.prompt(); const choice = await evt.userChoice; if (choice && choice.outcome !== 'accepted') dismissInstallCard(); } catch(e) {}
+  renderInstallCard();
+}
+function dismissInstallCard(){
+  try { localStorage.setItem('install_dismissed_at', String(Date.now())); } catch(e){}
+  renderInstallCard();
+}
+
 // ── LAPTOP HOME (bento) ───────────────────────────────────────
 // At 1024px+ Home is a grid of tiles: your next game (big), your stats, the
 // verse, other games, the open tournament, top players, the devotion and the
@@ -5327,6 +5386,7 @@ function avatarStackHtml(people, max, size){
 
 function renderWeekGames() {
   try { renderHomeBento(); } catch(e) { console.error('home bento', e); }
+  try { renderInstallCard(); } catch(e) {}
   const all  =LC.arr('games').filter(g=>g.status!=='cancelled'&&g.status!=='completed');
   const games=currentSportFilter==='all'?all:all.filter(g=>(g.sport||'basketball')===currentSportFilter);
   const regs =LC.arr('regs');
@@ -9341,6 +9401,14 @@ async function submitDraftPick(draftId, playerId) {
   // Realtime will push the update to all viewers automatically.
   // Only fall back to a manual fetch if the realtime channel isn't connected.
   if (!_draftChannel) await _loadLiveDraft();
+}
+</script>
+<script>
+// Installable app: register the service worker (see sw.js for the caching rules).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => console.warn('[CCF] service worker not registered', err));
+  });
 }
 </script>
 </body>
