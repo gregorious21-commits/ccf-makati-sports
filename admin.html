@@ -6011,6 +6011,8 @@ async function endPickleballSession(){
   LC.set('history',hist);
   await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:(sportNow==='badminton'?'Badminton':'Pickleball')+' Session Complete',p_message:dateLabel+' · '+entry.player_count+' players · '+pbSession.log.length+' matches',p_type:'success'});
   toast('Session saved · '+pbSession.log.length+' matches archived');
+  const pbRoster = await recordGameDayRoster(sportNow, [...everyoneAttended]);
+  if (pbRoster.added) toast(pbRoster.added+' walk-in'+(pbRoster.added===1?'':'s')+' added to the game roster (unpaid)','in');
   // Reset state (only after a confirmed save)
   await endSharedSession();
   pbStopTick();
@@ -6714,6 +6716,48 @@ function todaysGameFor(sport){
   return LC.arr('games').find(g => (g.sport||'basketball')===sport && g.date===todayStr);
 }
 
+// Walk-ins (tapped in on Game Day without registering) get a registration for
+// the game when the session ends, so they show on the game's roster, in their
+// own "My games", and in Unpaid (fee defaults to unpaid for a manager to
+// collect). Also records attendance on everyone's registration for the game.
+async function recordGameDayRoster(sport, attendedIds){
+  const games = LC.arr('games');
+  const game = todaysGameFor(sport) || games.find(g=>(g.sport||'basketball')===sport && (g.status==='confirmed'||g.status==='tbd'));
+  if (!game) return {added:0};
+  const here = new Set(attendedIds);
+  const regs = LC.arr('regs');
+  const players = LC.arr('players');
+  const now = new Date();
+  const forGame = regs.filter(r=>r.gameId===game.id && (r.status||'').toLowerCase()!=='cancelled');
+  // Attendance on existing registrations (basketball already has its own pass).
+  if (sport!=='basketball') {
+    for (const r of forGame.filter(r=>r.status==='confirmed')) {
+      const attended = here.has(r.playerId);
+      if (r.attended===attended) continue;
+      await rpc('admin_update_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:r.id,p_status:'confirmed',p_paid:r.paid||false,p_is_first_timer:r.isFirstTimer||false,p_has_proof:r.hasProof||false,p_proof_url:r.proofUrl||'',p_attended:attended,p_attended_at:attended?now.toISOString():''});
+      r.attended = attended; r.attendedAt = attended ? now.toISOString() : '';
+    }
+  }
+  const registered = new Set(forGame.map(r=>r.playerId));
+  let added = 0, i = 0;
+  for (const pid of here) {
+    if (registered.has(pid)) continue;
+    const p = players.find(x=>x.id===pid);
+    if (!p) continue;
+    const reg = {
+      id:'R'+Date.now()+'w'+(i++), playerId:pid, playerName:(p.firstName+' '+(p.lastName||'')).trim(),
+      phone:p.phone||'', email:p.email||'', gameId:game.id, gameLabel:game.label, gameTime:game.time||'',
+      fee:game.fee||0, payType:'walkin', refNum:'', hasProof:false, proofUrl:'', status:'confirmed',
+      isFirstTimer:false, sport, paid:false, attended:true, attendedAt:now.toISOString(),
+      registered:now.toLocaleString('en-PH',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})
+    };
+    const ok = await rpc('admin_insert_registration',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:reg.id,p_player_id:reg.playerId,p_player_name:reg.playerName,p_phone:reg.phone,p_email:reg.email,p_game_id:reg.gameId,p_game_label:reg.gameLabel,p_game_time:reg.gameTime,p_fee:reg.fee,p_pay_type:'walkin',p_ref_num:'',p_has_proof:false,p_proof_url:'',p_status:'confirmed',p_is_first_timer:false,p_sport:sport,p_paid:false,p_attended:true,p_attended_at:reg.attendedAt,p_registered:reg.registered});
+    if (ok) { regs.push(reg); added++; }
+  }
+  LC.set('regs', regs);
+  return {added, game};
+}
+
 // Mark no-shows on the real registration rows for today's basketball game:
 // anyone confirmed-registered but never toggled present gets attended:false.
 // This is what index.html's join flow checks to block a no-show from the
@@ -6806,6 +6850,8 @@ async function bbEndSession(){
   await rpc('admin_create_notification',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_title:'Game Day Complete',p_message:dateLabel+' — '+everyone.size+' players, '+decided.length+' matches',p_type:'success'});
   toast('Game Day archived · wins saved!');
   await markBasketballAttendance(); // uses presentIds — must run before it's reset below
+  const bbRoster = await recordGameDayRoster('basketball', [...new Set([...presentIds, ...everyone])]);
+  if (bbRoster.added) toast(bbRoster.added+' walk-in'+(bbRoster.added===1?'':'s')+' added to the game roster (unpaid)','in');
   await endSharedSession();
   bbRotation=null; presentIds=[]; bbTimerStop();
   document.getElementById('bb-active').style.display='none';
