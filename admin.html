@@ -1221,6 +1221,11 @@ body{letter-spacing:0}
 /* Elevation from shadow alone; calmer panel switch */
 .modal{border:none}
 .panel.on{animation:fadeIn 160ms var(--ease)}
+
+/* Game Day on phones: Team A / Team B stack instead of squeezing side by side */
+.bb-teams-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.bb-teams-grid{grid-template-columns:1fr}}
+#bb-active .card-h{flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
@@ -3726,8 +3731,7 @@ async function saveWalkin(){
 // registration row (or flips an existing one to paid) so they count as paid and
 // drop out of "Unpaid This Week". Returns {ok, reason?, game?}.
 async function recordWalkinPaid(pid, pname, phone, email){
-  const games=LC.arr('games');
-  const next=games.find(g=>(g.sport||'basketball')===gdSport && (g.status==='confirmed'||g.status==='tbd'));
+  const next=gameDayGameFor(gdSport);
   if(!next) return {ok:false, reason:'no-game'};
   const regs=LC.arr('regs');
   const existing=regs.find(r=>r.gameId===next.id && r.playerId===pid && (r.status||'').toLowerCase()!=='cancelled');
@@ -4055,8 +4059,8 @@ function renderGameDay(){
   if ((gdSport==='pickleball'||gdSport==='badminton') && (!pbSession || !pbSession.active)) pbRenderCourtTierSetup();
   if (gdSport==='basketball' && (!bbRotation || !bbRotation.active)) bbRenderModeSetup();
   if (gdSport==='running'||gdSport==='dragonboat'){ renderRunAttendance(); return; }
-  // Find the next game OF THE SELECTED SPORT (so attendance card matches)
-  const next = games.find(g=>(g.sport||'basketball')===gdSport && (g.status==='confirmed'||g.status==='tbd'));
+  // Today's game of the selected sport, else the next upcoming one
+  const next = gameDayGameFor(gdSport);
   const confIds = next ? regs.filter(r=>r.gameId===next.id&&(r.status||'').toLowerCase()==='confirmed').map(r=>r.playerId).filter(Boolean) : [];
   // For pickleball, also filter players to those who play pickleball
   const playerPool = (gdSport==='pickleball'||gdSport==='badminton')
@@ -4118,7 +4122,7 @@ function renderGameDay(){
   };
   _gdRenderChip = renderChip;
   if(confirmed.length){
-    html+=`<div class="gd-group">Registered for ${next?next.label:'this game'}</div>`;
+    html+=`<div class="gd-group">Registered for ${next?feedEsc(next.label)+(next.date!==gdLocalISO(new Date())&&!todaysGameFor(gdSport)?' (next game)':''):'this game'}</div>`;
     html+=confirmed.map(renderChip).join('');
   } else {
     html+=`<div class="gd-group">${next?'Nobody registered for '+next.label+' yet.':'No upcoming '+gdSport+' game scheduled.'} Find players below.</div>`;
@@ -4240,8 +4244,7 @@ function updateSessionBanner(){
 
 async function startSharedSession(){
   if(!USE_SHARED_SESSION || !sessionLiveLocally()) return;
-  const games=LC.arr('games');
-  const next=games.find(g=>(g.sport||'basketball')===gdSport && (g.status==='confirmed'||g.status==='tbd'));
+  const next=gameDayGameFor(gdSport);
   const tok=newToken();
   const startedAt=new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
   sessionPushing=true;
@@ -5154,11 +5157,11 @@ function renderPballSession(){
     const aPlayers = c.teamA.map(pid=>{
       const sk = pbSkill(pid);
       return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
-    }).join(', ');
+    }).join('<br>');
     const bPlayers = c.teamB.map(pid=>{
       const sk = pbSkill(pid);
       return pbName(pid) + (sk ? ` <span class="sk-tag">${sk.slice(0,3)}</span>` : '');
-    }).join(', ');
+    }).join('<br>');
     let progress = '';
     if (cFormat === 'points'){
       progress = `Target: ${cFormatValue} pts`;
@@ -6579,7 +6582,7 @@ function bbRosterHtml(pids, teamKey, color, title){
     const played=bbRotation.played[pid]||0;
     return `<div class="t-row">
       <div style="width:22px;height:22px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:${numbered?'12px':'10px'};color:#fff;flex-shrink:0"${numbered?` title="Place in line"`:''}>${numbered?idx+1:ini(p?p.firstName:'?',p?p.lastName:'')}</div>
-      <span style="flex:1">${nm} <span style="font-size:10px;color:var(--tx3)">· ${played} played</span></span>
+      <span style="flex:1;min-width:0;overflow-wrap:anywhere">${feedEsc(nm)} <span style="font-size:10px;color:var(--tx3)">· ${played} played</span></span>
       <select onchange="bbMovePlayer('${pid}',this.value)" style="background:var(--bg2);border:1px solid var(--b);border-radius:6px;color:var(--tx2);font-size:10px;padding:3px 4px;outline:none;cursor:pointer">${moveOpts(curOf(teamKey))}</select>
       <button type="button" class="chip-x" style="position:static;color:var(--danger)" onclick="bbRemovePlayer('${pid}')" data-tip="Remove from session">×</button>
     </div>`;
@@ -6604,7 +6607,7 @@ function renderBbRotation(){
     if (bbRotation.mode!=='fixedTeams') bbRenderSquadManager();
   }
   const el=document.getElementById('bb-match'); if(!el) return;
-  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+  let html='<div class="bb-teams-grid">';
   html+=bbRosterHtml(bbRotation.teamA,'teamA','var(--success)','Team A');
   html+=bbRosterHtml(bbRotation.teamB,'teamB','#3B82F6','Team B');
   html+='</div>';
@@ -6711,9 +6714,22 @@ function bbUndoLast(){
 // The game actually happening today for a given sport, date-matched (not
 // just "first non-cancelled/completed game" — that pattern used elsewhere in
 // this file can wrongly return a stale past game nobody marked completed).
+function gdLocalISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+// Local date (not UTC). Until 6 AM, last night's game still counts as today's,
+// so a session ended after midnight attaches to the right game.
 function todaysGameFor(sport){
-  const todayStr = new Date().toISOString().slice(0,10);
-  return LC.arr('games').find(g => (g.sport||'basketball')===sport && g.date===todayStr);
+  const games = LC.arr('games').filter(g => (g.sport||'basketball')===sport && g.status!=='cancelled');
+  const now = new Date(), today = gdLocalISO(now);
+  const y = new Date(now); y.setDate(y.getDate()-1);
+  return games.find(g => g.date===today) || (now.getHours()<6 ? games.find(g => g.date===gdLocalISO(y)) : null) || null;
+}
+// The game Game Day works with: today's, else the next upcoming one. Never an
+// older game that just wasn't marked completed.
+function gameDayGameFor(sport){
+  const today = gdLocalISO(new Date());
+  return todaysGameFor(sport) || LC.arr('games')
+    .filter(g => (g.sport||'basketball')===sport && g.date && g.date>today && (g.status==='confirmed'||g.status==='tbd'))
+    .sort((a,b) => a.date.localeCompare(b.date))[0] || null;
 }
 
 // Walk-ins (tapped in on Game Day without registering) get a registration for
@@ -6722,7 +6738,7 @@ function todaysGameFor(sport){
 // collect). Also records attendance on everyone's registration for the game.
 async function recordGameDayRoster(sport, attendedIds){
   const games = LC.arr('games');
-  const game = todaysGameFor(sport) || games.find(g=>(g.sport||'basketball')===sport && (g.status==='confirmed'||g.status==='tbd'));
+  const game = todaysGameFor(sport);
   if (!game) return {added:0};
   const here = new Set(attendedIds);
   const regs = LC.arr('regs');
