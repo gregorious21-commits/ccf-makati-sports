@@ -63,7 +63,9 @@ function saveCopy(request, response, allowOpaque) {
 
 async function networkFirstFile(request) {
   try {
-    const response = await fetch(request);
+    // 'no-cache' = always confirm with the server (Cloudflare tells browsers
+    // to keep .js for 4 hours; this keeps scripts in step with the page).
+    const response = await fetch(new Request(request, { cache: 'no-cache' }));
     saveCopy(request, response);
     return response;
   } catch (err) {

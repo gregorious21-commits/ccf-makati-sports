@@ -11344,7 +11344,7 @@ function dpExportLeadersCSV(){
 // Installable app: register the service worker (see sw.js for the caching rules).
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => console.warn('[CCF] service worker not registered', err));
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(err => console.warn('[CCF] service worker not registered', err));
   });
 }
 </script>
