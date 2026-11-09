@@ -1305,6 +1305,15 @@ body{letter-spacing:0}
 #panel-gameday .team-line{padding:8px 0}
 #panel-gameday .court-body{padding:4px var(--s-4)}
 .queue-chip.gd-qname{display:block;background:none;border:0;padding:0;margin:0;font-size:14px;font-weight:600;color:var(--text-1);white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25;overflow-wrap:anywhere}
+
+/* Laptop: hide/show the sidebar with the menu button */
+@media(min-width:769px){
+  .tb-burger{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;font-size:20px;color:var(--text-2)}
+  .tb-burger:hover{background:var(--surface-2);color:var(--text-1)}
+  .sb{transition:margin-left 220ms cubic-bezier(.22,1,.36,1)}
+  #app.sb-hidden .sb{margin-left:calc(-1 * var(--sb))}
+}
+@media(min-width:769px) and (prefers-reduced-motion:reduce){.sb{transition:none}}
 </style>
 </head>
 <body>
@@ -2941,10 +2950,28 @@ function renderPanel(pid){
   if(pid==='summary')      renderSummary();
   if(pid==='settings')     loadSettings();
 }
+// Laptops: the menu button hides/shows the sidebar (remembered on this device)
+// so the page gets the full width. Phones keep the slide-in menu.
+const SB_DESKTOP_MQ = window.matchMedia('(min-width: 769px)');
+function setSidebarHidden(hidden){
+  const app=document.getElementById('app'); if(!app) return;
+  app.classList.toggle('sb-hidden', hidden);
+  const b=document.getElementById('tb-burger');
+  if(b){ b.setAttribute('aria-expanded', String(!hidden)); b.setAttribute('aria-label', hidden?'Show menu':'Hide menu'); b.dataset.tip = hidden?'Show menu ( [ )':'Hide menu ( [ )'; }
+  try{ localStorage.setItem('admin_sb_hidden', hidden?'1':'0'); }catch(e){}
+}
 function toggleNav(){
+  if (SB_DESKTOP_MQ.matches){ setSidebarHidden(!document.getElementById('app').classList.contains('sb-hidden')); return; }
   const sb=document.querySelector('.sb');
   if(sb && sb.classList.contains('open')) closeNav(); else openNav();
 }
+try{ setSidebarHidden(localStorage.getItem('admin_sb_hidden')==='1'); }catch(e){}
+document.addEventListener('keydown', e=>{
+  if (e.key!=='[' || e.metaKey || e.ctrlKey || e.altKey || !SB_DESKTOP_MQ.matches) return;
+  const t=e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+  if (document.getElementById('app')?.style.display!=='flex') return;
+  e.preventDefault(); toggleNav();
+});
 function openNav(){
   document.querySelector('.sb')?.classList.add('open');
   document.getElementById('sb-backdrop')?.classList.add('open');
