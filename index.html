@@ -143,6 +143,7 @@ body{
 .ann.success{background:var(--success);color:#062B12}
 .ann.warning{background:var(--warning);color:#3A2A05}
 .ann.urgent{background:var(--danger)}
+.ann-link{color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .ann-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:var(--s-3);width:100%}
 .ann-x{
   margin-left:auto;
@@ -3468,13 +3469,26 @@ function stopRefresh(){if(refreshTimer){clearInterval(refreshTimer);refreshTimer
 // ── ANNOUNCEMENTS ─────────────────────────────────────────────
 function renderAnn() {
   const wrap=document.getElementById('ann-wrap');
-  const anns=LC.arr('announcements').filter(a=>a.active&&a.message);
+  const gone=annDismissed();
+  const anns=LC.arr('announcements').filter(a=>a.active&&a.message&&!gone.includes(a.id));
   if (!anns.length){wrap.className='';wrap.innerHTML='';return}
   const icons={info:'',success:'',warning:'',urgent:''};
   wrap.className='live';
-  wrap.innerHTML=anns.map((a,i)=>`<div class="ann ${a.type||'info'}"><div class="ann-inner"><span>${icons[a.type]||''}</span><span>${a.message}</span><button type="button" class="ann-x" onclick="dismissAnn(${i})">✕</button></div></div>`).join('');
+  wrap.innerHTML=anns.map((a,i)=>`<div class="ann ${a.type||'info'}"><div class="ann-inner"><span>${icons[a.type]||''}</span><span>${annHtml(a.message)}</span><button type="button" class="ann-x" onclick="dismissAnn(${Number(a.id)||0})" aria-label="Dismiss announcement">✕</button></div></div>`).join('');
 }
-function dismissAnn(i){const a=LC.arr('announcements');if(a[i]){a[i].active=false;LC.set('announcements',a);renderAnn()}}
+// Announcement text is plain text. "[label](#section)" becomes an in-app link
+// (same-page # links only, so a message can never point members off-site).
+function annHtml(msg){
+  return feedEsc(msg).replace(/\[([^\]\n]{1,40})\]\((#[a-z0-9-]{1,30})\)/gi,
+    (m, label, href) => `<a class="ann-link" href="${href}">${label}</a>`);
+}
+// Dismissed announcements stay dismissed on this device (by id), instead of
+// coming back on the next refresh.
+function annDismissed(){ try { const d=JSON.parse(localStorage.getItem('ann_dismissed')||'[]'); return Array.isArray(d)?d:[]; } catch(e){ return []; } }
+function dismissAnn(id){
+  try { const d=annDismissed(); if(!d.includes(id)){ d.push(id); localStorage.setItem('ann_dismissed', JSON.stringify(d.slice(-50))); } } catch(e){}
+  renderAnn();
+}
 
 // ── HERO STATUS ───────────────────────────────────────────────
 // Day number + "NOV · SUN" badge; falls back to the plain status dot when

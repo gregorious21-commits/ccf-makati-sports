@@ -3908,7 +3908,7 @@ async function loadAnnouncements(){
   el.innerHTML=all.map(a=>`
     <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg2);border-radius:8px;margin-bottom:8px">
       <span style="font-size:18px">${icons[a.type]||''}</span>
-      <div style="flex:1"><div style="font-size:13px;font-weight:600">${a.message}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px;">${a.type||'info'} · ${new Date(a.created_at).toLocaleDateString('en-PH')}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${feedEsc(a.message)}</div><div style="font-size:10px;color:var(--tx3);margin-top:2px;">${a.type||'info'} · ${new Date(a.created_at).toLocaleDateString('en-PH')}</div></div>
       <button type="button" class="btn btn-rd btn-sm" onclick="removeAnn(${a.id})"><i class="ti ti-x"></i>Remove</button>
   </div>`).join('');
 }
