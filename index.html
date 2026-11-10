@@ -131,28 +131,31 @@ body{
 /* ─────────────────────────────────────────────────────
    ANNOUNCEMENT BANNER
    ───────────────────────────────────────────────────── */
-#ann-wrap{pointer-events:none;position:sticky;top:0;z-index:200}
-#ann-wrap.live{pointer-events:auto}
+/* A notice card at the top of the page content: it scrolls away with the
+   page instead of staying pinned over every screen. */
+#ann-wrap:empty{display:none}
+#ann-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:var(--s-4)}
 .ann{
-  padding:var(--s-3) var(--s-5);
-  display:flex;align-items:center;gap:var(--s-3);
-  font-size:14px;font-weight:600;
-  color:#fff;
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 6px 12px 14px;
+  border-radius:var(--r-lg,14px);
+  font-size:14px;font-weight:500;line-height:1.45;
+  background:var(--brand-soft);color:var(--brand);
 }
-.ann.info{background:var(--info)}
-.ann.success{background:var(--success);color:#062B12}
-.ann.warning{background:var(--warning);color:#3A2A05}
-.ann.urgent{background:var(--danger)}
-.ann-link{color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
-.ann-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:var(--s-3);width:100%}
+.ann.success{background:var(--success-soft);color:#14532D}
+.ann.warning{background:var(--warning-soft);color:#713F12}
+.ann.urgent{background:var(--danger-soft);color:#991B1B}
+.ann-ic{font-size:19px;line-height:1.2;flex-shrink:0;margin-top:1px}
+.ann-tx{flex:1;min-width:0;overflow-wrap:anywhere}
+.ann-link{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .ann-x{
-  margin-left:auto;
-  background:rgba(0,0,0,.20);
-  border:none;border-radius:var(--r-full);
-  width:24px;height:24px;cursor:pointer;
-  color:inherit;font-size:13px;
+  flex-shrink:0;margin:-6px 0 -6px auto;
+  width:40px;height:40px;border:none;border-radius:var(--r-full);
+  background:transparent;color:inherit;font-size:18px;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
 }
+.ann-x:hover{background:rgba(9,37,87,.08)}
+.ann-x:focus-visible{outline:2px solid currentColor;outline-offset:1px}
 
 /* ─────────────────────────────────────────────────────
    HERO (landing)
@@ -1672,6 +1675,45 @@ footer a:hover{color:var(--text-1)}
 .spi-bd{--spi:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2718.5%27%20r%3D%272.8%27%2F%3E%3Cpath%20d%3D%27M9.4%2016.6%205%205.5%2012%209%2019%205.5%2014.6%2016.6%27%2F%3E%3Cpath%20d%3D%27M12%209v7.5M8.4%207.2l1.6%208.8M15.6%207.2l-1.6%208.8%27%2F%3E%3C%2Fsvg%3E")}
 .spi-db{--spi:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%271.6%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27M3%2011.5%20C7%2016.5%2C%2017%2016.5%2C%2021%2011.5%20Z%27%2F%3E%3Cpath%20d%3D%27M14.5%2011%20L9.5%204%27%2F%3E%3Cpath%20d%3D%27M8%202.6%20L11.4%205%27%2F%3E%3Cpath%20d%3D%27M2.5%2019.5%20q%202.4%201.5%204.8%200%20t%204.8%200%20t%204.8%200%27%2F%3E%3C%2Fsvg%3E")}
 .reax{display:flex;gap:7px;margin-top:12px;padding-top:11px;border-top:1px solid var(--border)}
+/* Feed posts */
+.fp{padding:0;overflow:hidden;margin-bottom:12px}
+.fp.pinned{border-color:var(--brand)}
+.fp-pin{display:flex;align-items:center;gap:6px;background:var(--brand);color:#fff;font-size:12px;font-weight:700;padding:6px 16px}
+.fp-in{padding:14px 16px}
+.fp-head{display:flex;align-items:center;gap:10px}
+.fp-av{position:relative;overflow:hidden;width:38px;height:38px;border-radius:50%;flex-shrink:0;background:var(--brand);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.fp-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fp-who{flex:1;min-width:0}
+.fp-name{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--text-1)}
+.fp-staff{font-size:11px;font-weight:700;color:var(--brand);background:var(--brand-soft);border-radius:var(--r-full);padding:1px 8px}
+.fp-time{font-size:12px;color:var(--text-3)}
+.fp-del{flex-shrink:0;width:36px;height:36px;border:none;border-radius:var(--r-full);background:none;color:var(--text-3);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.fp-del:hover{background:var(--surface-2);color:var(--danger)}
+.fp-body{margin-top:12px;font-size:15px;line-height:1.55;color:var(--text-1);overflow-wrap:anywhere}
+.fp-body p{margin:0 0 10px}
+.fp-body>:last-child{margin-bottom:0}
+.fp-title{font-size:18px;font-weight:800;line-height:1.3;letter-spacing:-.01em;margin:0 0 8px;text-wrap:balance}
+.fp-h{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--brand);margin:16px 0 6px}
+.fp-body ul{margin:0 0 10px;padding-left:20px}
+.fp-body li{margin:4px 0}
+.fp-body a{color:var(--brand);text-decoration:underline;text-underline-offset:2px}
+.fp-body.clamp{max-height:10.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
+.fp-more{display:block;min-height:36px;padding:4px 0 0;border:none;background:none;font:inherit;font-size:14px;font-weight:700;color:var(--brand);cursor:pointer}
+.fp-img{display:block;width:100%;height:auto;max-height:min(80vh,760px);object-fit:contain;background:var(--surface-2)}
+.fp-foot{display:flex;align-items:center;gap:7px;padding:10px 16px;border-top:1px solid var(--border)}
+.fp .reax{margin:0;padding:0;border:0}
+.fp-cbtn{margin-left:auto}
+.fp .cmts{margin:0;padding:10px 16px 14px}
+.cmts[hidden]{display:none}
+.cmt-all{display:block;min-height:32px;padding:0 0 6px;border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer}
+/* Composer: one line until tapped */
+.fc-card:not(.open){padding:10px 12px}
+.fc-row{display:flex;align-items:center;gap:10px}
+.fc-row[hidden]{display:none}
+.fc-open{flex:1;min-width:0;min-height:42px;text-align:left;padding:0 16px;border:1px solid var(--border-strong);border-radius:var(--r-full);background:var(--surface-2);color:var(--text-3);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-open:hover{border-color:var(--brand)}
+.fc-photo{flex-shrink:0;width:42px;height:42px;border:none;border-radius:var(--r-full);background:none;color:var(--text-2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fc-photo:hover{background:var(--surface-2)}
 .reax-btn{display:flex;align-items:center;gap:5px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:6px 12px;color:var(--text-3);cursor:pointer;font-size:13px;font-weight:600;font-family:var(--font-ui);transition:all .15s var(--ease)}
 .reax-btn:hover{border-color:var(--gold)}
 .reax-btn.on{background:var(--gold-soft);border-color:var(--gold);color:var(--text-1)}
@@ -1749,7 +1791,7 @@ footer a:hover{color:var(--text-1)}
    display type with sentence-case headings, and place the accent.
    ═════════════════════════════════════════════════════ */
 body{letter-spacing:0}
-.ann.success,.ann.warning{color:#fff}
+
 
 /* Landing */
 .hero{min-height:auto;background:var(--bg);padding:0 var(--s-5)}
@@ -2371,8 +2413,6 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
   </div>
 </div>
 
-<div id="ann-wrap"></div>
-
 <!-- ════ LANDING ════ -->
 <div id="view-landing" style="display:none;flex-direction:column">
   <div class="land-card">
@@ -2544,6 +2584,7 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
   </div>
 </div>
   <div class="content">
+    <div id="ann-wrap"></div>
     <!-- ───── HOME TAB ───── -->
     <div id="tab-home" class="tab-panel">
       <div class="home-main">
@@ -2664,7 +2705,13 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
     <!-- ───── FEED TAB ───── -->
     <div id="tab-feed" class="tab-panel" style="display:none">
       <div class="sec-h"><div class="sec-t">Community Feed</div></div>
-      <div class="card" id="feed-composer" style="display:none;margin-bottom:14px">
+      <div class="card fc-card" id="feed-composer" style="display:none;margin-bottom:14px">
+        <div class="fc-row" id="fc-row">
+          <div class="fp-av" id="fc-av" aria-hidden="true"></div>
+          <button type="button" class="fc-open" onclick="openComposer()">Share something with the community…</button>
+          <button type="button" class="fc-photo" onclick="openComposer(true)" aria-label="Add a photo"><i class="ti ti-photo" aria-hidden="true"></i></button>
+        </div>
+        <div id="fc-full" hidden>
         <textarea class="fi" id="fc-body" rows="3" placeholder="Share something with the community…" style="resize:vertical;font-family:inherit"></textarea>
         <div id="fc-preview" style="display:none;margin-top:10px;position:relative">
           <img id="fc-img" style="width:100%;max-height:300px;object-fit:cover;border-radius:10px;display:block" alt="">
@@ -2674,7 +2721,11 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px">
           <button type="button" class="btn btn-ghost" style="margin-top:0;width:auto;padding:9px 14px" onclick="document.getElementById('fc-file').click()"><i class="ti ti-camera"></i>Photo</button>
           <input type="file" id="fc-file" accept="image/*" style="display:none" onchange="onPostImage(event)">
-          <button type="button" class="btn btn-g" style="margin-top:0;width:auto;padding:9px 20px" id="fc-post" onclick="postMemberFeed()"><i class="ti ti-send"></i>Post</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button type="button" class="btn btn-ghost" style="margin-top:0;width:auto;padding:9px 14px" onclick="closeComposer()">Cancel</button>
+            <button type="button" class="btn btn-g" style="margin-top:0;width:auto;padding:9px 20px" id="fc-post" onclick="postMemberFeed()"><i class="ti ti-send"></i>Post</button>
+          </div>
+        </div>
         </div>
       </div>
       <div id="feed-list" style="margin-bottom:8px">
@@ -3481,10 +3532,12 @@ function renderAnn() {
   const wrap=document.getElementById('ann-wrap');
   const gone=annDismissed();
   const anns=LC.arr('announcements').filter(a=>a.active&&a.message&&!gone.includes(a.id));
-  if (!anns.length){wrap.className='';wrap.innerHTML='';return}
-  const icons={info:'',success:'',warning:'',urgent:''};
-  wrap.className='live';
-  wrap.innerHTML=anns.map((a,i)=>`<div class="ann ${a.type||'info'}"><div class="ann-inner"><span>${icons[a.type]||''}</span><span>${annHtml(a.message)}</span><button type="button" class="ann-x" onclick="dismissAnn(${Number(a.id)||0})" aria-label="Dismiss announcement">✕</button></div></div>`).join('');
+  if (!anns.length){wrap.innerHTML='';return}
+  const icons={info:'ti-speakerphone',success:'ti-circle-check',warning:'ti-alert-triangle',urgent:'ti-alert-octagon'};
+  wrap.innerHTML=anns.map(a=>{
+    const type=icons[a.type]?a.type:'info';
+    return `<div class="ann ${type}" role="status"><i class="ti ${icons[type]} ann-ic" aria-hidden="true"></i><div class="ann-tx">${annHtml(a.message)}</div><button type="button" class="ann-x" onclick="dismissAnn(${Number(a.id)||0})" aria-label="Dismiss announcement"><i class="ti ti-x" aria-hidden="true"></i></button></div>`;
+  }).join('');
 }
 // Announcement text is plain text. "[label](#section)" becomes an in-app link
 // (same-page # links only, so a message can never point members off-site).
@@ -5488,7 +5541,7 @@ function renderBentoFeed(){
   const el = document.getElementById('hb-feed'); if (!el) return;
   const posts = LC.arr('feed').slice(0,2);
   el.innerHTML = posts.length ? `<div class="hb-posts">${posts.map(p=>`<button type="button" class="hb-post" onclick="switchTab('feed')">
-      <span class="hb-post-h">${feedEsc(p.author_name||'CCF Makati Sports')} · ${feedTime(p.created_at)}</span>
+      <span class="hb-post-h">${feedEsc(p.author_name||'CCF Makati Sports')} · ${feedAgo(p.created_at)}</span>
       ${p.body?`<span class="hb-post-b">${feedEsc(p.body)}</span>`:''}
     </button>`).join('')}</div>` : '<div class="hb-post-none">No posts yet. Be the first to share something from Feed.</div>';
 }
@@ -6275,6 +6328,97 @@ const UNSAFE_TEXT=/[<>"`\\]/;
 function unsafeText(...vals){ return vals.some(v=>v&&UNSAFE_TEXT.test(v)); }
 const UNSAFE_TEXT_MSG="Please remove these characters: < > \" ` \\";
 function feedTime(ts){try{return new Date(ts).toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}}
+// "Just now", "5m ago", "3h ago", "Yesterday", "4d ago", then "Nov 7" (+ year if not this year).
+function feedAgo(ts){
+  const t=new Date(ts).getTime(); if(isNaN(t)) return '';
+  const s=Math.max(0,(Date.now()-t)/1000);
+  if(s<60) return 'Just now';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  if(s<172800) return 'Yesterday';
+  if(s<604800) return Math.floor(s/86400)+'d ago';
+  const d=new Date(t), sameYear=d.getFullYear()===new Date().getFullYear();
+  return d.toLocaleDateString('en-PH',sameYear?{month:'short',day:'numeric'}:{month:'short',day:'numeric',year:'numeric'});
+}
+// Post text: plain text in, light formatting out (always escaped).
+//  - a short first line followed by more text becomes the title
+//  - a short ALL-CAPS line becomes a section heading
+//  - lines starting with "- " (or "• ", "* ") become a bulleted list
+//  - blank lines separate paragraphs; web links become tappable
+const FEED_URL=/(https?:\/\/[^\s<>"']+)/g;
+function feedInline(t){
+  return String(t).split(FEED_URL).map((part,i)=>{
+    if(i%2===0) return feedEsc(part);
+    const m=part.match(/^(.*?)([.,!?;:)]*)$/);
+    return `<a href="${feedEsc(m[1])}" target="_blank" rel="noopener nofollow">${feedEsc(m[1])}</a>${feedEsc(m[2])}`;
+  }).join('');
+}
+function feedBodyHtml(raw){
+  const lines=String(raw||'').replace(/\r/g,'').split('\n');
+  const isBullet=l=>/^\s*[-•*]\s+/.test(l);
+  // Short, all caps, and mostly letters (so "7:30 PM" stays plain text).
+  const isHeading=l=>{ const t=l.trim(), letters=(t.match(/[A-Z]/g)||[]).length, chars=t.replace(/\s/g,'').length;
+    return t.length<=48 && letters>=3 && letters/chars>=0.6 && !/[a-z]/.test(t) && !isBullet(l); };
+  const out=[]; let i=0;
+  while(i<lines.length && !lines[i].trim()) i++;
+  const first=(lines[i]||'').trim();
+  if(first && first.length<=70 && !isBullet(lines[i]) && lines.slice(i+1).some(l=>l.trim())){
+    out.push(`<div class="fp-title">${feedInline(first)}</div>`); i++;
+  }
+  let para=[], list=[];
+  const flushP=()=>{ if(para.length){ out.push('<p>'+para.map(feedInline).join('<br>')+'</p>'); para=[]; } };
+  const flushL=()=>{ if(list.length){ out.push('<ul>'+list.map(l=>'<li>'+feedInline(l.replace(/^\s*[-•*]\s+/,''))+'</li>').join('')+'</ul>'); list=[]; } };
+  for(; i<lines.length; i++){
+    const l=lines[i];
+    if(!l.trim()){ flushP(); flushL(); continue; }
+    if(isBullet(l)){ flushP(); list.push(l); continue; }
+    flushL();
+    if(isHeading(l)){ flushP(); out.push(`<div class="fp-h">${feedInline(l.trim())}</div>`); continue; }
+    para.push(l);
+  }
+  flushP(); flushL();
+  return out.join('');
+}
+function feedAvatarHtml(authorId, name){
+  const r=LC.arr('roster').find(x=>x.id===authorId) || (ME&&ME.id===authorId?ME:null);
+  const parts=String(name||'').trim().split(/\s+/);
+  const initials=ini(parts[0]||'C', parts.length>1?parts[parts.length-1]:'');
+  const img=r&&r.avatarUrl?`<img src="${feedEsc(r.avatarUrl)}" alt="" loading="lazy" decoding="async" onerror="this.remove()">`:'';
+  return `<div class="fp-av" aria-hidden="true">${feedEsc(initials)}${img}</div>`;
+}
+function feedPostHtml(p){
+  const mine = ME && p.author_id===ME.id;
+  const name = p.author_name||'CCF Makati Sports';
+  const del  = mine ? `<button type="button" class="fp-del" onclick="delMyPost('${p.id}')" aria-label="Delete your post"><i class="ti ti-trash" aria-hidden="true"></i></button>` : '';
+  const staff = p.author_staff ? '<span class="fp-staff">Admin</span>' : '';
+  const body = p.body ? `<div class="fp-body clamp" id="fpb-${p.id}">${feedBodyHtml(p.body)}</div><button type="button" class="fp-more" id="fpm-${p.id}" onclick="expandPost('${p.id}')">See more</button>` : '';
+  const img  = p.image_url ? `<img class="fp-img" src="${feedEsc(p.image_url)}" loading="lazy" decoding="async" alt="Photo shared by ${feedEsc(name)}">` : '';
+  const authed = AUTH.isAuthed();
+  return `<article class="card fp${p.pinned?' pinned':''}">
+      ${p.pinned?'<div class="fp-pin"><i class="ti ti-pin" aria-hidden="true"></i>Pinned</div>':''}
+      <div class="fp-in">
+        <div class="fp-head">
+          ${feedAvatarHtml(p.author_id, name)}
+          <div class="fp-who"><div class="fp-name">${feedEsc(name)}${staff}</div><div class="fp-time" title="${feedEsc(feedTime(p.created_at))}">${feedAgo(p.created_at)}</div></div>
+          ${del}
+        </div>
+        ${body}
+      </div>
+      ${img}
+      ${authed?`<div class="fp-foot">${reaxBar(p.id)}${commentBtnHtml(p.id)}</div>${commentsHtml(p.id)}`:''}
+    </article>`;
+}
+// Long posts fold after a few lines; "See more" only shows when text is cut.
+function fitFeedClamps(root){
+  (root||document).querySelectorAll('.fp-body.clamp').forEach(b=>{
+    const more=document.getElementById('fpm-'+b.id.slice(4));
+    if(b.scrollHeight <= b.clientHeight + 4){ b.classList.remove('clamp'); if(more) more.remove(); }
+  });
+}
+function expandPost(id){
+  const b=document.getElementById('fpb-'+id), m=document.getElementById('fpm-'+id);
+  if(b) b.classList.remove('clamp'); if(m) m.remove();
+}
 
 // Reactions (emoji)
 let feedReax={};
@@ -6307,12 +6451,33 @@ function cmtItem(c){
   const canDel = (ME && c.player_id===ME.id) || (AUTH.isAdmin && AUTH.isAdmin());
   return `<div class="cmt"><div class="cmt-b"><div class="cmt-au">${feedEsc(c.author_name||'Member')}</div><div class="cmt-tx">${feedEsc(c.body)}</div></div>${canDel?`<button type="button" class="cmt-dl" title="Delete" onclick="delComment('${c.post_id}','${c.id}')"><i class="ti ti-trash"></i></button>`:''}</div>`;
 }
+// Comments: the latest two show under the post; the box to write one opens
+// from the comment button, so posts without comments stay compact.
+const _cmtOpen=new Set(), _cmtAll=new Set();
+function commentBtnHtml(postId){
+  const n=(feedComments[postId]||[]).length;
+  return `<button type="button" class="reax-btn fp-cbtn${_cmtOpen.has(postId)?' on':''}" id="cbtn-${postId}" onclick="toggleComments('${postId}')" aria-expanded="${_cmtOpen.has(postId)}" aria-label="${n?n+' comment'+(n===1?'':'s')+'. Write a comment':'Write a comment'}"><i class="ti ti-message-circle" aria-hidden="true"></i><span>${n?n:'Comment'}</span></button>`;
+}
 function commentsHtml(postId){
   const list=feedComments[postId]||[];
-  const items=list.map(cmtItem).join('');
-  const input = AUTH.isAuthed() ? `<div class="cmt-in"><input id="ci-${postId}" placeholder="Write a comment…" maxlength="500" onkeydown="if(event.key==='Enter'){event.preventDefault();addComment('${postId}')}"><button type="button" onclick="addComment('${postId}')"><i class="ti ti-send"></i></button></div>` : '';
-  return `<div class="cmts" id="cmts-${postId}">${items}${input}</div>`;
+  const open=_cmtOpen.has(postId);
+  if(!list.length && !open) return `<div class="cmts" id="cmts-${postId}" hidden></div>`;
+  const all=_cmtAll.has(postId) || list.length<=2;
+  const shown=all?list:list.slice(-2);
+  const more=all?'':`<button type="button" class="cmt-all" onclick="showAllComments('${postId}')">View all ${list.length} comments</button>`;
+  const input = AUTH.isAuthed() && open ? `<div class="cmt-in"><input id="ci-${postId}" placeholder="Write a comment…" maxlength="500" aria-label="Write a comment" onkeydown="if(event.key==='Enter'){event.preventDefault();addComment('${postId}')}"><button type="button" onclick="addComment('${postId}')" aria-label="Send comment"><i class="ti ti-send" aria-hidden="true"></i></button></div>` : '';
+  return `<div class="cmts" id="cmts-${postId}">${more}${shown.map(cmtItem).join('')}${input}</div>`;
 }
+function refreshComments(postId, focus){
+  const box=document.getElementById('cmts-'+postId); if(box) box.outerHTML=commentsHtml(postId);
+  const btn=document.getElementById('cbtn-'+postId); if(btn) btn.outerHTML=commentBtnHtml(postId);
+  if(focus){ const ni=document.getElementById('ci-'+postId); if(ni) ni.focus(); }
+}
+function toggleComments(postId){
+  if(_cmtOpen.has(postId)) _cmtOpen.delete(postId); else _cmtOpen.add(postId);
+  refreshComments(postId, _cmtOpen.has(postId));
+}
+function showAllComments(postId){ _cmtAll.add(postId); refreshComments(postId); }
 async function addComment(postId){
   if(!AUTH.isAuthed()){ toast('Log in to comment','er'); return; }
   const inp=document.getElementById('ci-'+postId); if(!inp) return;
@@ -6322,8 +6487,8 @@ async function addComment(postId){
   inp.disabled=false;
   if(id){
     (feedComments[postId]=feedComments[postId]||[]).push({id,post_id:postId,player_id:ME?ME.id:'',author_name:(ME?(ME.firstName+' '+ME.lastName):'Me'),body,created_at:new Date().toISOString()});
-    const box=document.getElementById('cmts-'+postId); if(box) box.outerHTML=commentsHtml(postId);
-    const ni=document.getElementById('ci-'+postId); if(ni) ni.focus();
+    _cmtAll.add(postId);
+    refreshComments(postId, true);
   } else toast('Could not post comment','er');
 }
 async function delComment(postId,commentId){
@@ -6331,7 +6496,7 @@ async function delComment(postId,commentId){
   const ok=await rpc('delete_comment',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_comment_id:commentId});
   if(ok===true){
     feedComments[postId]=(feedComments[postId]||[]).filter(c=>c.id!==commentId);
-    const box=document.getElementById('cmts-'+postId); if(box) box.outerHTML=commentsHtml(postId);
+    refreshComments(postId);
   } else toast('Could not delete','er');
 }
 
@@ -6349,47 +6514,35 @@ async function renderFeed(){
   const el=document.getElementById('feed-list'); if(!el) return;
   const composer=document.getElementById('feed-composer');
   if(composer) composer.style.display = AUTH.isAuthed() ? '' : 'none';
+  renderComposerAvatar();
   el.innerHTML='<div class="skel-card" style="margin-bottom:0">'
     +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:80%"></div><div class="skel skel-line" style="width:50%"></div></div></div>'
     +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:65%"></div><div class="skel skel-line" style="width:40%"></div></div></div>'
     +'<div class="skel-row"><div class="skel skel-avatar"></div><div style="flex:1"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line" style="width:35%"></div></div></div>'
     +'</div>';
   let posts=[], rows=null;
-  feedReax={}; feedComments={};
+  // Built locally and swapped in after loading, so two loads running at the
+  // same time can't add the same comments twice.
+  const rx={}, cm={};
   if (AUTH.isAuthed()){
     const who={p_phone:AUTH.phone(),p_pin:AUTH.pin()};
     const [r, rxs, cms] = await Promise.all([
       rpc('get_feed',who), rpc('get_reactions_for_feed',who), rpc('get_comments_for_feed',who)
     ]);
     rows=r;
-    if(Array.isArray(rxs)) rxs.forEach(x=>{ feedReax[x.post_id]={likes:x.likes||0,loves:x.loves||0,hahas:x.hahas||0,mine:x.mine||''}; });
-    if(Array.isArray(cms)) cms.forEach(c=>{ (feedComments[c.post_id]=feedComments[c.post_id]||[]).push(c); });
+    if(Array.isArray(rxs)) rxs.forEach(x=>{ rx[x.post_id]={likes:x.likes||0,loves:x.loves||0,hahas:x.hahas||0,mine:x.mine||''}; });
+    if(Array.isArray(cms)) cms.forEach(c=>{ (cm[c.post_id]=cm[c.post_id]||[]).push(c); });
   } else {
     rows=await dbGet('posts','select=*&is_public=eq.true&status=eq.active&order=pinned.desc,created_at.desc').catch(()=>null);
   }
   if (!Array.isArray(rows)) { el.innerHTML=feedErrorHtml('renderFeed()'); return; }
+  feedReax=rx; feedComments=cm;
   posts=rows;
   LC.set('feed',posts);
   const note = AUTH.isAuthed() ? '' : '<div class="hint" style="margin:0 0 12px;text-align:left">Log in to see the full community feed and post.</div>';
   if(!posts.length){ el.innerHTML=note+'<div class="card"><div class="empty">No posts yet.</div></div>'; return; }
-  el.innerHTML=note+posts.map(p=>{
-    const mine = ME && p.author_id===ME.id;
-    const img  = p.image_url ? `<img src="${feedEsc(p.image_url)}" loading="lazy" style="width:100%;max-height:420px;object-fit:cover;border-radius:10px;margin-top:10px;display:block" alt="">` : '';
-    const del  = mine ? `<button type="button" onclick="delMyPost('${p.id}')" style="background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 4px" title="Delete"><i class="ti ti-trash"></i></button>` : '';
-    const bodyHtml = p.body ? `<div style="font-size:15px;margin-top:8px;white-space:pre-wrap;line-height:1.55;color:var(--text-1)">${feedEsc(p.body)}</div>` : '';
-    return `<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-3);flex-wrap:wrap">
-          ${p.pinned?'<span style="color:var(--gold);font-weight:700"><i class="ti ti-pin"></i> Pinned</span> ·':''}
-          <span style="font-weight:600;color:var(--text-2)">${feedEsc(p.author_name||'CCF Makati Sports')}</span> · <span>${feedTime(p.created_at)}</span>
-        </div>
-        ${del}
-      </div>
-      ${bodyHtml}${img}
-      ${AUTH.isAuthed()?reaxBar(p.id):''}
-      ${AUTH.isAuthed()?commentsHtml(p.id):''}
-    </div>`;
-  }).join('');
+  el.innerHTML=note+posts.map(feedPostHtml).join('');
+  fitFeedClamps(el);
 }
 
 // Compact 2-post preview for the Home tab (read-only). Reuses cached feed if present.
@@ -6474,6 +6627,27 @@ function feedRateRecord(){
   let ts=[]; try{ ts=JSON.parse(localStorage.getItem('feed_post_ts')||'[]'); }catch(e){ ts=[]; }
   ts.push(Date.now()); localStorage.setItem('feed_post_ts',JSON.stringify(ts.slice(-30)));
 }
+function openComposer(withPhoto){
+  const full=document.getElementById('fc-full'), row=document.getElementById('fc-row');
+  if(!full||!row) return;
+  full.hidden=false; row.hidden=true;
+  document.getElementById('feed-composer').classList.add('open');
+  if(withPhoto){ document.getElementById('fc-file').click(); }
+  else { const t=document.getElementById('fc-body'); if(t) t.focus(); }
+}
+function closeComposer(force){
+  const t=document.getElementById('fc-body');
+  if(!force && t && t.value.trim() && !confirm('Discard this post?')) return;
+  if(t) t.value=''; clearPostImage();
+  const full=document.getElementById('fc-full'), row=document.getElementById('fc-row');
+  if(full) full.hidden=true; if(row) row.hidden=false;
+  document.getElementById('feed-composer').classList.remove('open');
+}
+function renderComposerAvatar(){
+  const el=document.getElementById('fc-av'); if(!el||!ME) return;
+  const img=ME.avatarUrl?`<img src="${feedEsc(ME.avatarUrl)}" alt="" onerror="this.remove()">`:'';
+  el.innerHTML=feedEsc(ini(ME.firstName,ME.lastName))+img;
+}
 async function postMemberFeed(){
   if(!AUTH.isAuthed()){ toast('Log in to post','er'); return; }
   const body=(document.getElementById('fc-body').value||'').trim();
@@ -6484,7 +6658,7 @@ async function postMemberFeed(){
   btn.disabled=false;
   if(id){
     feedRateRecord();
-    document.getElementById('fc-body').value=''; clearPostImage();
+    closeComposer(true);
     toast('Posted');
     renderFeed(); renderFeedPreview();
   } else toast('Post failed — please try again','er');
