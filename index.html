@@ -1378,6 +1378,10 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:32px;letter-spacing:.02em;line-height:1;
 }
 .pv-pos{font-size:13px;color:var(--text-3);font-weight:500}
+.pv-sports{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:var(--s-3)}
+.pv-sp{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:var(--r-full);border:1px solid var(--border);background:var(--surface-1);color:var(--text-2);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.pv-sp.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.pv-sp:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .pv-stats{
   display:flex;
   border-top:1px solid var(--border);
@@ -3394,7 +3398,7 @@ async function syncAll() {
     playersQuery,
     dbGet('registrations_public', 'select=*&status=neq.cancelled&order=created_at.desc'),
     dbGet('payment_methods', 'select=*&active=eq.true&order=sport.asc,sort_order.asc,id.asc'),
-    dbGet('game_history',    'select=*&order=created_at.desc&limit=20'),
+    dbGet('game_history',    'select=*&order=created_at.desc&limit=500'),
     dbGet('tournaments',     'select=*&order=created_at.desc').catch(()=>[]),
   ]);
   if (Array.isArray(history)) LC.set('history', history.map(h=>({id:h.id,date:h.game_date||'',playerCount:h.player_count||0,teams:h.teams||[],matches:h.matches||[],sport:h.sport||'basketball'})));
@@ -5451,7 +5455,7 @@ function renderHomeBento(){
   if (bb.length) {
     const myRank = bb.findIndex(p=>p.id===ME.id)+1;
     tiles.push(`<section class="hb-tile hb-s4"><div class="hb-h"><h2>Top players · Basketball</h2><button type="button" class="hb-link" onclick="switchTab('players')">All</button></div>
-      ${bb.slice(0,3).map((p,i)=>`<button type="button" class="hb-lb" onclick="viewPlayer('${p.id}')"><b>${i+1}</b><span>${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</span><em>${p.wins||0} wins</em></button>`).join('')}
+      ${bb.slice(0,3).map((p,i)=>`<button type="button" class="hb-lb" onclick="viewPlayer('${p.id}','basketball')"><b>${i+1}</b><span>${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</span><em>${p.wins||0} wins</em></button>`).join('')}
       ${myRank>3?`<div class="hb-me">You're #${myRank} with ${ME.wins||0} win${(ME.wins||0)===1?'':'s'}</div>`:''}</section>`);
   }
 
@@ -5756,7 +5760,7 @@ function openGameDetail(gameId, keepExpanded){
       ${p._noProfile?'':'<i class="ti ti-chevron-right gd-chev" aria-hidden="true"></i>'}`;
     return p._noProfile
       ? `<div class="gd-row">${inner}</div>`
-      : `<button type="button" class="gd-row" onclick="viewPlayer('${p.id}')" aria-label="View ${feedEsc(nm)}'s profile">${inner}</button>`;
+      : `<button type="button" class="gd-row" onclick="viewPlayer('${p.id}','${feedEsc(g.sport||'basketball')}')" aria-label="View ${feedEsc(nm)}'s profile">${inner}</button>`;
   };
   // "You, Edilberto, Christian and 22 others"
   const meFirst = ME ? [...going.filter(p=>p.id===ME.id), ...going.filter(p=>p.id!==ME.id)] : going;
@@ -6773,7 +6777,7 @@ function renderDirectory() {
       ? `Paddler · ${p._runs} session${p._runs===1?'':'s'}`
       : `${feedEsc(posShort(p.position)||'Player')} · ${p._games} game${p._games===1?'':'s'}`;
 
-    return `<div onclick="viewPlayer('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
+    return `<div onclick="viewPlayer('${p.id}'${dirSport==='all'?'':`,'${dirSport}'`})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--b);cursor:pointer;background:${mine?'rgba(var(--gold-rgb,212,175,55),.06)':'transparent'};transition:background .15s">
       ${dirSport==='all'?'':`<div style="width:24px;text-align:center;flex-shrink:0;${rankStyle}">${rank}</div>`}
       <div class="dir-av" style="${avStyle};flex-shrink:0">${avTxt}</div>
       <div style="flex:1;min-width:0">
@@ -6797,7 +6801,7 @@ function renderDirectory() {
   // pin "You" banner if off-screen
   if(meIdx>9&&meIdx!==-1){
     const p=list[meIdx]; const rank=meIdx+1;
-    let sv=dirSport==='basketball'?(dirSort==='wins'?p.wins||0:dirSort==='games'?p.games||0:winRate(p.wins,p.games)):dirSport==='pickleball'?(p.dupr||p.pickleballRating||'—'):p.games||0;
+    let sv=dirSport==='basketball'?(dirSort==='wins'?p.wins||0:dirSort==='games'?p.games||0:winRate(p.wins,p.games)):dirSport==='pickleball'?(p._rt!=null?Number(p._rt).toFixed(3):'—'):dirSport==='running'||dirSport==='dragonboat'?p._runs:dirSport==='badminton'?p._games:(p.games||0);
     el.innerHTML+=`<div style="margin-top:8px;padding:10px 14px;background:rgba(var(--gold-rgb,212,175,55),.1);border:1px solid rgba(var(--gold-rgb,212,175,55),.25);border-radius:10px;display:flex;align-items:center;gap:10px">
       <div style="font-size:12px;color:var(--gold);font-weight:700">#${rank}</div>
       <div style="flex:1;font-size:13px;font-weight:600">${feedEsc(p.firstName)} ${feedEsc(p.lastName)} <span style="color:var(--gold)">(You)</span></div>
@@ -6949,20 +6953,33 @@ function runStreak(playerId){
   return streak;
 }
 
+// Ordered board for one sport: the same order the Players leaderboard uses,
+// so a profile's rank always matches the board it was opened from.
+function sportBoard(sport){
+  const R=LC.arr('roster');
+  if (sport==='pickleball'){
+    const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
+    return R.map(p=>({...p, rt:rt(p), pm:(p.pickleballMatches||0)}))
+            .filter(p=>p.rt!=null || p.pm>0)
+            .sort((a,b)=>{
+              // Rated players first (by rating desc); unrated-but-played after
+              if(a.rt!=null && b.rt!=null) return b.rt-a.rt;
+              if(a.rt!=null) return -1;
+              if(b.rt!=null) return 1;
+              return b.pm-a.pm;
+            });
+  }
+  if (sport==='dragonboat') return R.map(p=>({...p, dbRuns: dragonboatRuns(p.id)})).filter(p=>p.dbRuns>0).sort((a,b)=>b.dbRuns-a.dbRuns);
+  if (sport==='badminton')  return R.map(p=>({...p, bdGames: badmintonGames(p.id)})).filter(p=>p.bdGames>0).sort((a,b)=>b.bdGames-a.bdGames);
+  if (sport==='running')    return R.map(p=>({...p, runs: runningRuns(p.id), streak: runStreak(p.id)})).filter(p=>p.runs>0).sort((a,b)=>b.runs-a.runs || b.streak-a.streak);
+  return R.filter(p=>(p.games||0)>0).sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
+}
+
 function renderLeaderboard(){
   const el=document.getElementById('lb-list'); if(!el) return;
   if (lbSport === 'pickleball'){
     // Pickleball: rank by SKILL RATING (DUPR-like). Matches played shown as sub-stat.
-    const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
-    let list = LC.arr('roster').map(p=>({...p, rt:rt(p), pm:(p.pickleballMatches||0)}))
-                               .filter(p=>p.rt!=null || p.pm>0)
-                               .sort((a,b)=>{
-                                 // Rated players first (by rating desc); unrated-but-played after
-                                 if(a.rt!=null && b.rt!=null) return b.rt-a.rt;
-                                 if(a.rt!=null) return -1;
-                                 if(b.rt!=null) return 1;
-                                 return b.pm-a.pm;
-                               });
+    const list = sportBoard('pickleball');
     if (!list.length) { el.innerHTML='<div class="empty">No pickleball ratings yet. Add your DUPR in your profile, or play a few matches.</div>'; return; }
     el.innerHTML = list.map((p,i)=>{
       const rank=(i+1);
@@ -6980,7 +6997,7 @@ function renderLeaderboard(){
         ? 'Provisional · '+wlLabel
         : (seeded?'DUPR (self-entered) · '+wlLabel:wlLabel);
       const ratingDisplay = p.rt!=null ? Number(p.rt).toFixed(3) : '—';
-      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
+      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}','${lbSport}')">
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
@@ -6993,16 +7010,14 @@ function renderLeaderboard(){
     return;
   }
   if (lbSport === 'dragonboat'){
-    let list = LC.arr('roster').map(p => ({...p, dbRuns: dragonboatRuns(p.id)}))
-                               .filter(p => p.dbRuns > 0)
-                               .sort((a,b) => b.dbRuns - a.dbRuns);
+    const list = sportBoard('dragonboat');
     if (!list.length) { el.innerHTML='<div class="empty">No dragonboat sessions attended yet.</div>'; return; }
     el.innerHTML = list.map((p,i)=>{
       const rank=(i+1);
       const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(i)}`;
       const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
       const mine=ME&&p.id===ME.id?' me':'';
-      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
+      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}','${lbSport}')">
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
@@ -7015,16 +7030,14 @@ function renderLeaderboard(){
     return;
   }
   if (lbSport === 'badminton'){
-    let list = LC.arr('roster').map(p => ({...p, bdGames: badmintonGames(p.id)}))
-                               .filter(p => p.bdGames > 0)
-                               .sort((a,b) => b.bdGames - a.bdGames);
+    const list = sportBoard('badminton');
     if (!list.length) { el.innerHTML='<div class="empty">No badminton games played yet.</div>'; return; }
     el.innerHTML = list.map((p,i)=>{
       const rank=(i+1);
       const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(i)}`;
       const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
       const mine=ME&&p.id===ME.id?' me':'';
-      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
+      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}','${lbSport}')">
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
@@ -7037,9 +7050,7 @@ function renderLeaderboard(){
     return;
   }
   if (lbSport === 'running'){
-    let list = LC.arr('roster').map(p => ({...p, runs: runningRuns(p.id), streak: runStreak(p.id)}))
-                               .filter(p => p.runs > 0)
-                               .sort((a,b) => b.runs - a.runs || b.streak - a.streak);
+    const list = sportBoard('running');
     if (!list.length) { el.innerHTML='<div class="empty">No runs recorded yet — lace up!</div>'; return; }
     el.innerHTML = list.map((p,i)=>{
       const rank=(i+1);
@@ -7047,7 +7058,7 @@ function renderLeaderboard(){
       const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
       const mine=ME&&p.id===ME.id?' me':'';
       const fire = p.streak>=3 ? ` <span class="streak-badge" title="${p.streak}-session streak"><i class="ti ti-flame"></i>${p.streak}</span>` : '';
-      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
+      return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}','${lbSport}')">
         <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
         <div class="lb-av" style="${avStyle}">${avTxt}</div>
         <div style="flex:1;min-width:0">
@@ -7071,7 +7082,7 @@ function renderLeaderboard(){
     const big=playerLbSort==='games'?(p.games||0):playerLbSort==='rate'?winRate(p.wins,p.games):(p.wins||0);
     const bigL=playerLbSort==='games'?'games':playerLbSort==='rate'?'win %':'wins';
     const mine=ME&&p.id===ME.id?' me':'';
-    return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}')">
+    return `<div class="lb-row${mine}" onclick="viewPlayer('${p.id}','${lbSport}')">
       <div class="lb-rank" style="color:${i<3?'var(--gold2)':'var(--tx3)'}">${rank}</div>
       <div class="lb-av" style="${avStyle}">${avTxt}</div>
       <div style="flex:1;min-width:0">
@@ -7258,47 +7269,96 @@ function toggleSessionLog(){
   }
 }
 
-function viewPlayer(id){
+// ── PLAYER PROFILE ────────────────────────────────────────────
+// Shown for ONE sport at a time: the board it was opened from, or the
+// player's main sport. Players in several sports get tabs to switch.
+const PV_SPORTS = ['basketball','pickleball','running','badminton','dragonboat'];
+const PV_NAME = {basketball:'Basketball',pickleball:'Pickleball',running:'Running',badminton:'Badminton',dragonboat:'Dragonboat'};
+const PV_SPI  = {basketball:'spi-b',pickleball:'spi-p',running:'spi-r',badminton:'spi-bd',dragonboat:'spi-db'};
+function playerSportsList(p){ return String(p.sports||'basketball').split(',').map(x=>x.trim()).filter(x=>PV_SPORTS.includes(x)); }
+function sportActivity(p, sport){
+  if (sport==='basketball') return p.games||0;
+  if (sport==='pickleball') { const wl=playerWL(p.id); return wl.w+wl.l + (p.pickleballMatches||0) + (p.ratingPickleball!=null?1:0); }
+  if (sport==='running')    return runningRuns(p.id);
+  if (sport==='badminton')  return badmintonGames(p.id);
+  if (sport==='dragonboat') return dragonboatRuns(p.id);
+  return 0;
+}
+function primarySport(p){
+  const listed=playerSportsList(p);
+  const active=PV_SPORTS.filter(x=>sportActivity(p,x)>0);
+  return listed.find(x=>active.includes(x)) || active[0] || listed[0] || 'basketball';
+}
+function pvStat(n, label, sport, gold){
+  return `<div class="pv-stat"><div class="pv-stat-n${gold?' g':''}">${n}</div><div class="pv-stat-l">${label}</div></div>`;
+}
+function pvStatsHtml(p, sport){
+  if (sport==='pickleball'){
+    const rt=p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null);
+    const wl=playerWL(p.id), n=wl.w+wl.l;
+    return pvStat(rt!=null?Number(rt).toFixed(3):'—','Rating',sport,true)
+         + pvStat(wl.w,'Wins',sport) + pvStat(n,'Matches',sport) + pvStat(winRate(wl.w,n),'Rate',sport);
+  }
+  if (sport==='running')    return pvStat(runningRuns(p.id),'Runs',sport,true) + pvStat(runStreak(p.id),'Streak',sport);
+  if (sport==='badminton')  return pvStat(badmintonGames(p.id),'Games',sport,true);
+  if (sport==='dragonboat') return pvStat(dragonboatRuns(p.id),'Sessions',sport,true);
+  return pvStat(p.wins||0,'Wins',sport,true) + pvStat(p.games||0,'Games',sport) + pvStat(winRate(p.wins,p.games),'Rate',sport);
+}
+function pvRoleText(p, sport){
+  if (sport==='pickleball') return p.pickleballSkill ? feedEsc(p.pickleballSkill) : 'Pickleball player';
+  if (sport==='running')    return 'Runner';
+  if (sport==='dragonboat') return 'Paddler';
+  return feedEsc(posShort(p.position)||'Player');
+}
+function viewPlayer(id, sport){
   const p=LC.arr('roster').find(x=>x.id===id); if(!p) return;
-  const list=LC.arr('roster').filter(x=>(x.games||0)>0).sort((a,b)=>(b.wins||0)-(a.wins||0)||(b.games||0)-(a.games||0));
-  const rank=list.findIndex(x=>x.id===id);
-  const avStyle=p.avatarUrl?`background-image:url('${p.avatarUrl}')`:`background:${lbCol(Math.max(rank,0))}`;
+  if (!PV_SPORTS.includes(sport)) sport=primarySport(p);
+  const listed=playerSportsList(p);
+  const tabs=PV_SPORTS.filter(x=>x===sport || listed.includes(x) || sportActivity(p,x)>0);
+  const board=sportBoard(sport);
+  const rank=board.findIndex(x=>x.id===id);
+  const avStyle=p.avatarUrl?`background-image:url('${feedEsc(p.avatarUrl)}')`:`background:${lbCol(Math.max(rank,0))}`;
   const avTxt=p.avatarUrl?'':ini(p.firstName,p.lastName);
   const dg=p.hasDgroup?(p.dgroupLeader?'Dgroup · '+feedEsc(p.dgroupLeader):'Has Dgroup'):'No Dgroup';
-  const rankTxt=rank>-1?('#'+(rank+1)+' on the leaderboard'):'Not yet ranked';
-  document.getElementById('pv-body').innerHTML=`
-    <div class="pv-head">
-      <div class="pv-av" style="${avStyle}">${avTxt}</div>
-      <div class="pv-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</div>
-      <div class="pv-pos">${feedEsc(posShort(p.position)||'Player')} · ${dg}</div>
-      <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-top:4px">${rankTxt}</div>
-      ${renderTeamStackHtml(myCurrentTeamEntries(id), {compact:true})}
-  </div>
-    <div class="pv-stats">
-      <div class="pv-stat"><div class="pv-stat-n g">${p.wins||0}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Wins</div></div>
-      <div class="pv-stat"><div class="pv-stat-n">${p.games||0}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Games</div></div>
-      <div class="pv-stat"><div class="pv-stat-n">${winRate(p.wins,p.games)}</div><div class="pv-stat-l"><span class="spi spi-b"></span>Rate</div></div>
-      <div class="pv-stat"><div class="pv-stat-n">${pickleballGames(p.id)}</div><div class="pv-stat-l"><span class="spi spi-p"></span>Games</div></div>
-  </div>
-    ${p.bio?`<div class="pv-bio">${feedEsc(p.bio)}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
-    ${(()=>{ const rec=basketballMatchRecord(id); return (p.sports&&p.sports.includes('basketball'))||rec.total>0 ? `
+  const rankTxt=rank>-1?('#'+(rank+1)+' in '+PV_NAME[sport]):('Not yet ranked in '+PV_NAME[sport]);
+  const tabsHtml = tabs.length>1 ? `<div class="pv-sports" role="group" aria-label="Show stats for">${tabs.map(x=>
+      `<button type="button" class="pv-sp${x===sport?' on':''}" aria-pressed="${x===sport}" onclick="viewPlayer('${id}','${x}')"><span class="spi ${PV_SPI[x]}"></span>${PV_NAME[x]}</button>`).join('')}</div>` : '';
+  let record='';
+  if (sport==='basketball'){
+    const rec=basketballMatchRecord(id);
+    if (rec.total>0 || listed.includes('basketball')) record=`
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-b"></span> Basketball Record</div>
           <div style="font-size:12px;color:var(--tx2)"><span style="color:var(--success);font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
         </div>
-        <button type="button" id="pv-bb-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleBasketballMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
-        <div id="pv-bb-match-history" style="display:none;margin-top:10px"></div>
-      </div>` : ''; })()}
-    ${(()=>{ const rec=playerMatchRecord(id); return (p.sports&&p.sports.includes('pickleball'))||rec.total>0 ? `
+        ${rec.total>0?`<button type="button" id="pv-bb-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleBasketballMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
+        <div id="pv-bb-match-history" style="display:none;margin-top:10px"></div>`:'<div style="font-size:12px;color:var(--tx3)">No recorded matches yet.</div>'}
+      </div>`;
+  } else if (sport==='pickleball'){
+    const rec=playerMatchRecord(id);
+    record=`
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-p"></span> Pickleball Record</div>
           <div style="font-size:12px;color:var(--tx2)"><span style="color:var(--success);font-weight:700">${rec.wins}W</span> · <span style="color:var(--tx3);font-weight:700">${rec.losses}L</span> <span style="color:var(--tx3)">(${rec.total} ${rec.total===1?'match':'matches'})</span></div>
         </div>
-        <button type="button" id="pv-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
-        <div id="pv-match-history" style="display:none;margin-top:10px"></div>
-      </div>` : ''; })()}`;
+        ${rec.total>0?`<button type="button" id="pv-match-btn" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center" onclick="toggleMatchHistory('${id}')"><i class="ti ti-list-details"></i>View Match Results</button>
+        <div id="pv-match-history" style="display:none;margin-top:10px"></div>`:'<div style="font-size:12px;color:var(--tx3)">No recorded matches yet.</div>'}
+      </div>`;
+  }
+  document.getElementById('pv-body').innerHTML=`
+    <div class="pv-head">
+      <div class="pv-av" style="${avStyle}">${avTxt}</div>
+      <div class="pv-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}</div>
+      <div class="pv-pos">${pvRoleText(p,sport)} · ${dg}</div>
+      <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:.5px;margin-top:4px">${rankTxt}</div>
+      ${renderTeamStackHtml(myCurrentTeamEntries(id), {compact:true})}
+  </div>
+    ${tabsHtml}
+    <div class="pv-stats">${pvStatsHtml(p, sport)}</div>
+    ${p.bio?`<div class="pv-bio">${feedEsc(p.bio)}</div>`:'<div style="text-align:center;font-size:12px;color:var(--tx3);padding:8px">No bio yet</div>'}
+    ${record}`;
   document.getElementById('ovl-view').classList.add('open');
 }
 function closeViewPlayer(){ document.getElementById('ovl-view').classList.remove('open'); }
