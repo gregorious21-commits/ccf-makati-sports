@@ -1025,6 +1025,10 @@ select.fi{
   border-bottom:1px solid var(--border);
 }
 .log-row:last-child{border-bottom:none}
+.feed-tips{font-size:12px;color:var(--tx3);margin-top:6px;line-height:1.5}
+.feed-img-prev{margin-top:10px;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.feed-img-prev[hidden]{display:none}
+.feed-img-prev img{max-width:100%;max-height:260px;border-radius:8px;object-fit:contain;background:var(--bg4)}
 .log-fix-btn{flex-shrink:0;min-height:32px;padding:0 10px;border-radius:var(--r-full,999px);border:1px solid var(--border);background:transparent;color:var(--text-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .log-fix-btn:hover{background:var(--surface-2);color:var(--text-1)}
 .log-fix{align-items:flex-start;flex-wrap:wrap}
@@ -1504,16 +1508,27 @@ body{letter-spacing:0}
 
     <!-- NEWS FEED -->
     <div class="panel" id="panel-feed">
-      <div class="note"><strong>News Feed</strong> — text posts your members see in the app's Feed tab. Members must be logged in to read it.</div>
-      <div class="card">
-        <div class="card-h"><div class="card-t"><i class="ti ti-plus"></i>New Post</div></div>
-        <label class="fl">Message</label>
-        <textarea class="fi" id="feed-body" rows="4" placeholder="Share an update with the community…" style="resize:vertical;font-family:inherit"></textarea>
+      <div class="note"><strong>News Feed</strong> — posts your members see in the app's Feed tab. Members must be logged in to read it.</div>
+      <div class="card" id="feed-form-card">
+        <div class="card-h"><div class="card-t" id="feed-form-title"><i class="ti ti-plus"></i>New Post</div></div>
+        <label class="fl" for="feed-body">Message</label>
+        <textarea class="fi" id="feed-body" rows="6" maxlength="5000" placeholder="Share an update with the community…" style="resize:vertical;font-family:inherit"></textarea>
+        <div class="feed-tips">Formatting: a short first line becomes the title · a short line in ALL CAPS becomes a section heading · start a line with "- " for a bullet · leave a blank line between paragraphs · long posts fold with "See more".</div>
+        <div id="feed-img-preview" class="feed-img-prev" hidden>
+          <img id="feed-img" alt="Photo for this post">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="clearFeedImage()"><i class="ti ti-x"></i>Remove photo</button>
+        </div>
+        <div id="feed-img-status" class="feed-tips" hidden></div>
+        <input type="file" id="feed-file" accept="image/*" hidden onchange="onFeedImage(event)">
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="document.getElementById('feed-file').click()"><i class="ti ti-photo"></i><span id="feed-img-btn">Add photo</span></button>
         <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">
           <label class="waiver-chk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="feed-pin" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer"><span style="font-size:13px;font-weight:600">Pin to top</span></label>
           <label class="waiver-chk" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="feed-public" style="width:16px;height:16px;accent-color:var(--gold);cursor:pointer"><span style="font-size:13px;font-weight:600">Show to logged-out visitors</span></label>
         </div>
-        <button type="button" class="btn btn-w" style="margin-top:14px" onclick="postFeed()"><i class="ti ti-send"></i>Post to Feed</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button type="button" class="btn btn-w" id="feed-save-btn" onclick="postFeed()"><i class="ti ti-send"></i>Post to Feed</button>
+          <button type="button" class="btn btn-ghost" id="feed-cancel-btn" hidden onclick="cancelFeedEdit()">Cancel edit</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-h"><div class="card-t"><i class="ti ti-list"></i>Posts</div><button type="button" class="btn btn-ghost btn-sm" onclick="renderFeedAdmin()"><i class="ti ti-refresh"></i>Refresh</button></div>
@@ -3947,21 +3962,91 @@ async function renderFeedAdmin(){
   el.innerHTML=posts.map(p=>`
     <div style="padding:12px 14px;background:var(--bg2);border-radius:10px;margin-bottom:10px;border:1px solid var(--b)">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-        <div style="font-size:11px;color:var(--tx3)">${feedEsc(p.author_name||'Admin')} · ${feedTime(p.created_at)}${p.pinned?' · <span style="color:var(--gold2);font-weight:700">PINNED</span>':''}${p.is_public?' · <span style="color:var(--tx2)">Public</span>':''}</div>
-        <button type="button" class="btn btn-rd btn-sm" onclick="delFeedPost('${p.id}')" data-tip="Delete post"><i class="ti ti-trash"></i></button>
+        <div style="font-size:11px;color:var(--tx3)">${feedEsc(p.author_name||'Admin')} · ${feedTime(p.created_at)}${p.edited_at?' · Edited':''}${p.pinned?' · <span style="color:var(--gold2);font-weight:700">PINNED</span>':''}${p.is_public?' · <span style="color:var(--tx2)">Public</span>':''}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0"><button type="button" class="btn btn-ghost btn-sm" onclick="editFeedPost('${p.id}')"><i class="ti ti-edit"></i>Edit</button><button type="button" class="btn btn-rd btn-sm" onclick="delFeedPost('${p.id}')" data-tip="Delete post" aria-label="Delete post"><i class="ti ti-trash"></i></button></div>
       </div>
       ${p.body?`<div style="font-size:14px;margin-top:6px;white-space:pre-wrap;line-height:1.5">${feedEsc(p.body)}</div>`:''}
-      ${p.image_url?`<img src="${feedEsc(p.image_url)}" loading="lazy" style="width:100%;max-height:300px;object-fit:cover;border-radius:8px;margin-top:8px;display:block" alt="">`:''}
+      ${p.image_url?`<img src="${feedEsc(p.image_url)}" loading="lazy" style="width:100%;max-height:360px;object-fit:contain;background:var(--bg4);border-radius:8px;margin-top:8px;display:block" alt="">`:''}
     </div>`).join('');
 }
+// ── Feed post form: new post or editing an existing one (with optional photo) ──
+let _feedEditId = null, _feedImgUrl = '';
+function compressForPost(file, maxDim, quality){
+  return new Promise(resolve=>{
+    try{
+      if(!file||!file.type||!file.type.startsWith('image/')){resolve(null);return;}
+      const url=URL.createObjectURL(file); const img=new Image();
+      img.onload=()=>{
+        URL.revokeObjectURL(url);
+        let w=img.width,h=img.height;
+        if(w>maxDim||h>maxDim){ if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;} else {w=Math.round(w*maxDim/h);h=maxDim;} }
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+        c.toBlob(b=>resolve(b||null),'image/jpeg',quality);
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+      img.src=url;
+    }catch(e){resolve(null);}
+  });
+}
+function setFeedImage(url){
+  _feedImgUrl = url || '';
+  const prev=document.getElementById('feed-img-preview');
+  document.getElementById('feed-img').src = _feedImgUrl;
+  prev.hidden = !_feedImgUrl;
+  document.getElementById('feed-img-btn').textContent = _feedImgUrl ? 'Change photo' : 'Add photo';
+}
+function clearFeedImage(){ setFeedImage(''); const f=document.getElementById('feed-file'); if(f) f.value=''; }
+async function onFeedImage(e){
+  const file=e.target.files&&e.target.files[0]; if(!file) return;
+  const st=document.getElementById('feed-img-status'); st.hidden=false; st.textContent='Uploading photo…';
+  const blob=await compressForPost(file,1600,0.82);
+  if(!blob){ st.textContent='Could not read that image. Try a JPG or PNG.'; return; }
+  try{
+    const path='post_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.jpg';
+    const r=await fetch(SB+'/storage/v1/object/proofs/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'image/jpeg'},body:blob});
+    if(!r.ok){ st.textContent='Upload failed. Check your connection and try again.'; return; }
+    setFeedImage(SB+'/storage/v1/object/public/proofs/'+path);
+    st.hidden=true;
+  }catch(err){ st.textContent='Upload failed. Check your connection and try again.'; }
+  e.target.value='';
+}
+function resetFeedForm(){
+  _feedEditId = null;
+  document.getElementById('feed-body').value='';
+  document.getElementById('feed-pin').checked=false;
+  document.getElementById('feed-public').checked=false;
+  clearFeedImage();
+  document.getElementById('feed-img-status').hidden=true;
+  document.getElementById('feed-form-title').innerHTML='<i class="ti ti-plus"></i>New Post';
+  document.getElementById('feed-save-btn').innerHTML='<i class="ti ti-send"></i>Post to Feed';
+  document.getElementById('feed-cancel-btn').hidden=true;
+}
+function editFeedPost(id){
+  const p=LC.arr('feed').find(x=>x.id===id); if(!p) return;
+  _feedEditId = id;
+  document.getElementById('feed-body').value = p.body||'';
+  document.getElementById('feed-pin').checked = !!p.pinned;
+  document.getElementById('feed-public').checked = !!p.is_public;
+  setFeedImage(p.image_url||'');
+  document.getElementById('feed-form-title').innerHTML='<i class="ti ti-edit"></i>Edit post';
+  document.getElementById('feed-save-btn').innerHTML='<i class="ti ti-check"></i>Save changes';
+  document.getElementById('feed-cancel-btn').hidden=false;
+  document.getElementById('feed-form-card').scrollIntoView({behavior:'smooth',block:'start'});
+  document.getElementById('feed-body').focus({preventScroll:true});
+}
+function cancelFeedEdit(){ resetFeedForm(); }
 async function postFeed(){
   const body=(document.getElementById('feed-body').value||'').trim();
-  if(!body){ toast('Write something first','er'); return; }
+  if(!body && !_feedImgUrl){ toast('Write something or add a photo','er'); return; }
   const pinned=document.getElementById('feed-pin').checked;
   const isPublic=document.getElementById('feed-public').checked;
-  const id=await rpc('admin_create_post',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_body:body,p_is_public:isPublic,p_pinned:pinned});
-  if(id){ document.getElementById('feed-body').value=''; document.getElementById('feed-pin').checked=false; document.getElementById('feed-public').checked=false; toast('Posted to feed'); renderFeedAdmin(); }
-  else toast('Post failed (admin only)','er');
+  const btn=document.getElementById('feed-save-btn'); btn.disabled=true;
+  const editing=!!_feedEditId;
+  const id=await rpc('admin_save_post',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_post_id:_feedEditId||'',p_body:body,p_image_url:_feedImgUrl||'',p_is_public:isPublic,p_pinned:pinned});
+  btn.disabled=false;
+  if(id){ resetFeedForm(); toast(editing?'Post updated':'Posted to feed'); renderFeedAdmin(); }
+  else toast(editing?'Could not save changes':'Post failed (admin only)','er');
 }
 async function delFeedPost(id){
   if(!confirm('Delete this post? This cannot be undone.')) return;

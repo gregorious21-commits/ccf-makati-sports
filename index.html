@@ -6399,7 +6399,7 @@ function feedPostHtml(p){
       <div class="fp-in">
         <div class="fp-head">
           ${feedAvatarHtml(p.author_id, name)}
-          <div class="fp-who"><div class="fp-name">${feedEsc(name)}${staff}</div><div class="fp-time" title="${feedEsc(feedTime(p.created_at))}">${feedAgo(p.created_at)}</div></div>
+          <div class="fp-who"><div class="fp-name">${feedEsc(name)}${staff}</div><div class="fp-time" title="${feedEsc(feedTime(p.created_at))}">${feedAgo(p.created_at)}${p.edited_at?' · Edited':''}</div></div>
           ${del}
         </div>
         ${body}
