@@ -1025,6 +1025,14 @@ select.fi{
   border-bottom:1px solid var(--border);
 }
 .log-row:last-child{border-bottom:none}
+.log-fix-btn{flex-shrink:0;min-height:32px;padding:0 10px;border-radius:var(--r-full,999px);border:1px solid var(--border);background:transparent;color:var(--text-2);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.log-fix-btn:hover{background:var(--surface-2);color:var(--text-1)}
+.log-fix{align-items:flex-start;flex-wrap:wrap}
+.log-fix-body{flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px}
+.log-fix-team{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.log-fix-team span{flex:1;min-width:0;color:var(--text-1);font-weight:600}
+.log-fix-team input{width:72px;text-align:center;font-weight:700}
+.log-fix-acts{display:flex;gap:8px}
 .log-court{
   font-family:var(--font-display);
   font-size:14px;color:var(--info);
@@ -2424,7 +2432,7 @@ body{letter-spacing:0}
           <option value="intermediate">Intermediate</option>
           <option value="expert">Expert</option>
       </select>
-      <label class="fl" style="margin-top:12px">Pickleball Skill Rating (2.0–8.0)</label>
+      <label class="fl" style="margin-top:12px">MPR · Makati Pickleball Rating (2.0–8.0)</label>
       <div style="display:flex;gap:8px;align-items:center">
         <input type="number" class="fi" id="e-rating" min="2" max="8" step="0.01" placeholder="e.g. 3.50" style="flex:1">
         <button type="button" class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="resetRatingToDupr()"><i class="ti ti-rotate"></i>Reset to DUPR</button>
@@ -5418,10 +5426,22 @@ function renderPballSession(){
     logEl.innerHTML = pbSession.log.slice().reverse().map(m=>{
       const winNames = (m.winner==='A'?m.teamA:m.teamB).map(pbName).join(' & ');
       const loseNames = (m.winner==='A'?m.teamB:m.teamA).map(pbName).join(' & ');
+      if (m.id && m.id === _pbFixId){
+        const namesA = m.teamA.map(pbName).join(' & '), namesB = m.teamB.map(pbName).join(' & ');
+        return `<div class="log-row log-fix">
+          <div class="log-court">${m.courtName}</div>
+          <div class="log-fix-body">
+            <label class="log-fix-team"><span>${namesA}</span><input type="number" id="pbfix-a" class="fi" min="0" max="99" inputmode="numeric" value="${Number(m.scoreA)||0}" aria-label="Score for ${namesA}"></label>
+            <label class="log-fix-team"><span>${namesB}</span><input type="number" id="pbfix-b" class="fi" min="0" max="99" inputmode="numeric" value="${Number(m.scoreB)||0}" aria-label="Score for ${namesB}"></label>
+            <div class="log-fix-acts"><button type="button" class="btn btn-w btn-sm" onclick="pbSaveFix('${m.id}')">Save score</button><button type="button" class="btn btn-ghost btn-sm" onclick="pbCancelFix()">Cancel</button></div>
+          </div>
+        </div>`;
+      }
       return `<div class="log-row">
         <div class="log-court">${m.courtName}</div>
         <div class="log-result"><strong>${winNames}</strong> beat ${loseNames}</div>
         <div class="log-score">${m.scoreA} – ${m.scoreB}</div>
+        ${m.id ? `<button type="button" class="log-fix-btn" onclick="pbStartFix('${m.id}')" aria-label="Fix this score">Fix</button>` : ''}
     </div>`;
     }).join('');
   }
@@ -5692,6 +5712,88 @@ function pbRemoveCourt(courtId){
   toast('Court removed'+(onCourt.length?' · '+onCourt.length+' back in queue':''));
 }
 
+// ── MPR (Makati Pickleball Rating) ─────────────────────────────
+// Every finished match is sent once with its own id. If the send fails it is
+// kept in a small local queue and retried (the server ignores repeats).
+const MPR_QUEUE_KEY = 'ccf_mpr_pending';
+function mprQueue(){ try { const q=JSON.parse(localStorage.getItem(MPR_QUEUE_KEY)||'[]'); return Array.isArray(q)?q:[]; } catch(e){ return []; } }
+function mprSaveQueue(q){ try { localStorage.setItem(MPR_QUEUE_KEY, JSON.stringify(q.slice(-200))); } catch(e){} }
+async function mprSend(item){
+  if (item.op === 'void'){
+    const ok = await rpc('admin_void_rated_match',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:item.id});
+    return ok === true;
+  }
+  const res = await rpc('admin_record_rated_match',{
+    p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(), p_id:item.id, p_sport:item.sport,
+    p_team_a:item.teamA, p_team_b:item.teamB, p_score_a:item.scoreA, p_score_b:item.scoreB
+  });
+  return !!(res && typeof res === 'object');
+}
+let _mprFlushing = false;
+async function mprFlush(){
+  if (_mprFlushing) return;
+  _mprFlushing = true;
+  try {
+    let q = mprQueue();
+    while (q.length){
+      let ok = false;
+      try { ok = await mprSend(q[0]); } catch(e){ ok = false; }
+      q = mprQueue();
+      if (!ok){
+        // Keep it and try again later. A match that keeps failing (refused by
+        // the server, not just offline) is dropped after a few tries so it
+        // can't hold up the matches behind it.
+        q[0].tries = (q[0].tries||0) + 1;
+        if (q[0].tries >= 6){
+          console.error('MPR: gave up on', q[0]);
+          toast('A match could not be rated after several tries. Its result is still saved in the session log.','er');
+          q.shift();
+        }
+        mprSaveQueue(q);
+        break;
+      }
+      q.shift(); mprSaveQueue(q);
+    }
+  } finally { _mprFlushing = false; }
+}
+function mprRecord(m, sport){
+  const q = mprQueue();
+  q.push({op:'record', id:m.id, sport, teamA:m.teamA, teamB:m.teamB, scoreA:m.scoreA, scoreB:m.scoreB});
+  mprSaveQueue(q);
+  mprFlush();
+}
+function mprVoid(id){
+  const q = mprQueue();
+  q.push({op:'void', id});
+  mprSaveQueue(q);
+  mprFlush();
+}
+window.addEventListener('online', () => { if (mprQueue().length) mprFlush(); });
+
+// Fix a wrong score from the results log: the old result's MPR change is
+// taken back and the corrected score is rated in its place.
+var _pbFixId = null;
+function pbStartFix(id){ _pbFixId = id; renderPballSession(); const a=document.getElementById('pbfix-a'); if(a) a.focus(); }
+function pbCancelFix(){ _pbFixId = null; renderPballSession(); }
+function pbSaveFix(id){
+  if (!pbSession) return;
+  const m = pbSession.log.find(x=>x.id===id); if (!m) { pbCancelFix(); return; }
+  const a = parseInt(document.getElementById('pbfix-a')?.value, 10);
+  const b = parseInt(document.getElementById('pbfix-b')?.value, 10);
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a<0 || b<0 || a>99 || b>99){ toast('Enter both scores (0 to 99)','er'); return; }
+  if (a === b){ toast('Scores can\'t be tied. Set a winner.','er'); return; }
+  if (a === m.scoreA && b === m.scoreB){ pbCancelFix(); return; }
+  const oldId = m.id;
+  m.id = oldId.split('-f')[0] + '-f' + Date.now().toString(36);
+  m.scoreA = a; m.scoreB = b; m.winner = a > b ? 'A' : 'B';
+  mprVoid(oldId);
+  mprRecord(m, gdSport==='badminton'?'badminton':'pickleball');
+  _pbFixId = null;
+  touchSharedSession();
+  renderPballSession();
+  toast('Score fixed · MPR updated');
+}
+
 function pbFinishMatch(courtId){
   if (!pbSession) return;
   const c = pbSession.courts.find(x=>x.id===courtId); if (!c) return;
@@ -5706,25 +5808,16 @@ function pbFinishMatch(courtId){
   if (!pbSession.played) pbSession.played = {};
   [...c.teamA, ...c.teamB].forEach(pid => { pbSession.played[pid] = (pbSession.played[pid]||0) + 1; });
   // Log
-  pbSession.log.push({
+  const logEntry = {
+    id: 'M'+Date.now().toString(36)+'-'+String(c.id).replace(/[^A-Za-z0-9]/g,'').slice(0,12),
     courtId:c.id, courtName:c.name,
     teamA:[...c.teamA], teamB:[...c.teamB],
     scoreA:c.scoreA, scoreB:c.scoreB,
     winner, endedAt: Date.now()
-  });
-  // Apply skill rating per match — fire-and-forget with score margin
-  (async()=>{
-    const wIds  = winner==='A' ? [...c.teamA] : [...c.teamB];
-    const lIds  = winner==='A' ? [...c.teamB] : [...c.teamA];
-    const sWin  = winner==='A' ? c.scoreA : c.scoreB;
-    const sLose = winner==='A' ? c.scoreB : c.scoreA;
-    await rpc('admin_apply_rating',{
-      p_my_phone:AUTH.phone(), p_my_pin:AUTH.pin(),
-      p_sport:(gdSport==='badminton'?'badminton':'pickleball'),
-      p_winner_ids:wIds, p_loser_ids:lIds,
-      p_score_winner:sWin, p_score_loser:sLose
-    });
-  })();
+  };
+  pbSession.log.push(logEntry);
+  // MPR: rate this match now (retried automatically if the connection drops)
+  mprRecord(logEntry, gdSport==='badminton'?'badminton':'pickleball');
   // Rotate
   const winners = winner==='A' ? c.teamA : c.teamB;
   const losers  = winner==='A' ? c.teamB : c.teamA;
@@ -6072,6 +6165,9 @@ async function checkPbSaveBackup(){
   let entry;
   try { entry = JSON.parse(raw); } catch(e) { localStorage.removeItem('ccf_pb_save_backup'); return; }
   const backupSport = entry.sport||'pickleball';
+  const sameMatches = (x, y) => JSON.stringify((x||[]).map(m=>[m.teamA,m.teamB,m.scoreA,m.scoreB])) === JSON.stringify((y||[]).map(m=>[m.teamA,m.teamB,m.scoreA,m.scoreB]));
+  const alreadySaved = LC.arr('history').some(h => h.id === entry.id || ((h.sport||'basketball') === backupSport && h.date === entry.game_date && sameMatches(h.matches, entry.matches)));
+  if (alreadySaved){ localStorage.removeItem('ccf_pb_save_backup'); return; }
   if (!confirm('A '+backupSport+' session from '+entry.game_date+' ('+entry.player_count+' players, '+(entry.matches||[]).length+' matches) failed to save last time. Retry saving it now?')) return;
   const ok = await rpc('admin_save_game_history',{p_my_phone:AUTH.phone(),p_my_pin:AUTH.pin(),p_id:entry.id,p_game_date:entry.game_date,p_player_count:entry.player_count,p_teams:entry.teams,p_matches:entry.matches,p_sport:backupSport});
   if (ok){
@@ -6118,12 +6214,17 @@ async function endPickleballSession(){
   const games = LC.arr('games');
   const next = games.find(g=>(g.sport||'basketball')===sportNow && (g.status==='confirmed'||g.status==='tbd'));
   const dateLabel = next ? next.label : fmtDate(new Date().toISOString().slice(0,10));
+  // One id per session: retrying a failed save updates the same row instead
+  // of creating a second copy.
+  if (!pbSession.historyId){ pbSession.historyId = 'GH'+Date.now(); touchSharedSession(); }
+  mprFlush();
   const entry = {
-    id:'GH'+Date.now(),
+    id: pbSession.historyId,
     game_date: dateLabel,
     player_count: everyoneAttended.size,
     teams: [{name:'Attendance', color:'#3B82F6', players:[...everyoneAttended], wins:0}],
     matches: pbSession.log.map(m=>({
+      id:m.id,
       court:m.courtName,
       teamA:m.teamA, teamB:m.teamB,
       scoreA:m.scoreA, scoreB:m.scoreB,

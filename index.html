@@ -1378,6 +1378,12 @@ textarea.fi, textarea.fi-b{padding-top:12px;padding-bottom:12px;line-height:1.5;
   font-size:32px;letter-spacing:.02em;line-height:1;
 }
 .pv-pos{font-size:13px;color:var(--text-3);font-weight:500}
+.pv-mpr{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--tx2);line-height:1.5}
+.pv-mpr-line b{color:var(--tx);font-weight:700}
+.pv-prov{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:var(--r-full);background:var(--surface-2);color:var(--text-2);font-size:11px;font-weight:700}
+.pv-mpr-how{margin-top:8px}
+.pv-mpr-how summary{cursor:pointer;font-weight:700;color:var(--brand);min-height:32px;display:flex;align-items:center}
+.pv-mpr-how p{margin:6px 0 0}
 .pv-sports{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:var(--s-3)}
 .pv-sp{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:var(--r-full);border:1px solid var(--border);background:var(--surface-1);color:var(--text-2);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .pv-sp.on{background:var(--brand);border-color:var(--brand);color:#fff}
@@ -2910,7 +2916,7 @@ button.sec-link{background:none;border:0;padding:8px 0;font:inherit;font-size:13
       <div id="ep-dupr-row" style="display:none">
         <label class="fl">Your DUPR Rating <span style="color:var(--tx3);font-weight:400">(optional · 2.0–8.0)</span></label>
         <input type="number" class="fi" id="ep-dupr" min="2" max="8" step="0.01" placeholder="e.g. 3.50" inputmode="decimal">
-        <div style="font-size:11px;color:var(--tx3);margin-top:5px">We use this to set your starting pickleball skill rating. It then adjusts automatically as you play.</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:5px">Sets your starting MPR (Makati Pickleball Rating). Once you've played a rated match, your MPR comes only from your results.</div>
     </div>
       <label class="fl">Dgroup</label>
       <div class="tog-row">
@@ -3938,8 +3944,9 @@ function profileStatsHtml(sportsList, since){
     out.push(block('Basketball', since?'Since '+since:'', [tile(ME.wins||0,'Wins'), tile(ME.games||0,'Games'), tile((ME.games||0)>0?Math.round((ME.wins||0)/ME.games*100)+'%':'—','Win rate')]));
   if (sportsList.includes('pickleball')) {
     const rt = ME.ratingPickleball!=null ? ME.ratingPickleball : (ME.dupr!=null ? ME.dupr : null);
-    const m = ME.pickleballMatches||0, prov = m < 3;
-    out.push(block('Pickleball', prov&&rt!=null?'Rating counts after 3 matches':'', [tile(rt!=null?Number(rt).toFixed(3):'—', 'Rating'+(prov&&rt!=null?' · '+m+'/3':'')), tile(pickleballGames(ME.id),'Games')]));
+    const m = ME.pickleballMatches||0, prov = m < MPR_PROVISIONAL;
+    const rel = mprReliability(ME.id);
+    out.push(block('Pickleball', prov&&rt!=null?'Provisional until '+MPR_PROVISIONAL+' matches':'', [tile(rt!=null?Number(rt).toFixed(3):'—', 'MPR'+(prov&&rt!=null?' · '+m+'/'+MPR_PROVISIONAL:'')), tile(rel.pct+'%','Reliability'), tile(pickleballGames(ME.id),'Games')]));
   }
   // Other sports get a row once there is something to count.
   const runs=runningRuns(ME.id), bad=badmintonGames(ME.id), boat=dragonboatRuns(ME.id);
@@ -4776,8 +4783,8 @@ function scDrawPickleballMatch(ctx, W, H, s) {
   // Secondary stat row — the match result "along with" the player's current
   // skill rating, so the card reads as both a result and a stat snapshot.
   const sy = divY + 148*s, cw = (W - 120*s) / 3;
-  const rating = ME.ratingPickleball!=null ? Number(ME.ratingPickleball).toFixed(2) : '—';
-  [['RATING', rating], ['MATCHES', String(ME.pickleballMatches||0)], ['SKILL', (ME.pickleballSkill||'—').toUpperCase()]].forEach(([lbl, val], i) => {
+  const rating = ME.ratingPickleball!=null ? Number(ME.ratingPickleball).toFixed(3) : '—';
+  [['MPR', rating], ['MATCHES', String(ME.pickleballMatches||0)], ['SKILL', (ME.pickleballSkill||'—').toUpperCase()]].forEach(([lbl, val], i) => {
     const cx = 60*s + i*cw + cw/2;
     ctx.textAlign = 'center';
     ctx.font = `900 ${76*s}px "Bebas Neue"`; ctx.fillStyle = scTh().num; ctx.textBaseline = 'alphabetic';
@@ -4821,7 +4828,7 @@ function scSetContentY(val) { SC.contentY = Number(val); scDraw(); }
 function scDrawPickleball(ctx, W, H, s) {
   const stats = [
     {lbl:'MATCHES', val:String(ME.pickleballMatches||0)},
-    {lbl:'RATING',  val:ME.ratingPickleball!=null?Number(ME.ratingPickleball).toFixed(2):'—'},
+    {lbl:'MPR',     val:ME.ratingPickleball!=null?Number(ME.ratingPickleball).toFixed(3):'—'},
     {lbl:'SKILL',   val:(ME.pickleballSkill||'—').toUpperCase()},
   ];
   const Y = H * (SC.contentY / 100);
@@ -5174,20 +5181,18 @@ async function saveProfile(){
     const dval = raw==='' ? null : parseFloat(raw);
     if (dval!==null && (isNaN(dval) || dval<2 || dval>8)){ toast('DUPR must be between 2.0 and 8.0','er'); }
     else {
-      // Warn if they already have a match-based rating
-      if(dval!=null && (ME.pickleballMatches||0)>0){
-        if(!confirm('Editing your DUPR will reset your skill rating earned from '+ME.pickleballMatches+' match'+(ME.pickleballMatches===1?'':'es')+'. Continue?')) return;
-      }
-      // Editing DUPR re-seeds BOTH the dupr value AND the played skill rating
-      // (server-side member_set_dupr does the same). dval==null = cleared = leave as is.
-      if(dval!=null){ ME.dupr=dval; ME.ratingPickleball=dval; }
+      // DUPR is only a starting point: it sets the MPR while no rated match has
+      // been played (server-side member_set_dupr does the same). After that,
+      // the MPR comes only from results. dval==null = cleared = leave as is.
+      const seedsMpr = dval!=null && (ME.pickleballMatches||0)===0;
+      if(dval!=null){ ME.dupr=dval; if(seedsMpr) ME.ratingPickleball=dval; }
       // Update players cache
       const players2=LC.arr('players'); const i2=players2.findIndex(p=>p.id===ME.id);
-      if(i2>-1 && dval!=null){ players2[i2].dupr=dval; players2[i2].ratingPickleball=dval; LC.set('players',players2); }
+      if(i2>-1 && dval!=null){ players2[i2].dupr=dval; if(seedsMpr) players2[i2].ratingPickleball=dval; LC.set('players',players2); }
       // Update roster cache too — leaderboard AND the sync-merge read from here,
       // so without this the next sync pulls back the OLD value and the edit reverts.
       const roster2=LC.arr('roster'); const r2=roster2.findIndex(p=>p.id===ME.id);
-      if(r2>-1 && dval!=null){ roster2[r2].dupr=dval; roster2[r2].ratingPickleball=dval; LC.set('roster',roster2); }
+      if(r2>-1 && dval!=null){ roster2[r2].dupr=dval; if(seedsMpr) roster2[r2].ratingPickleball=dval; LC.set('roster',roster2); }
       await rpc('member_set_dupr',{p_phone:AUTH.phone(),p_pin:AUTH.pin(),p_dupr:dval});
       // Re-render immediately so profile + leaderboard show the new value
       if(typeof renderProfile==='function') renderProfile();
@@ -6720,13 +6725,8 @@ function renderDirectory() {
     else                      { list.sort((a,b)=>{ const ra=a.games>0?(a.wins||0)/a.games:0,rb=b.games>0?(b.wins||0)/b.games:0; return rb-ra||(b.games||0)-(a.games||0); }); statLabel='Win %'; }
   } else if(dirSport==='pickleball'){
     const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
-    list=list.map(p=>({...p,_rt:rt(p),_pm:p.pickleballMatches||0}))
-      .sort((a,b)=>{
-        if(a._rt!=null&&b._rt!=null) return b._rt-a._rt;
-        if(a._rt!=null) return -1; if(b._rt!=null) return 1;
-        return b._pm-a._pm;
-      });
-    statLabel='Rating';
+    list=list.map(p=>({...p,_rt:rt(p),_pm:p.pickleballMatches||0})).sort(mprCompare);
+    statLabel='MPR';
   } else if(dirSport==='running'){
     list=list.map(p=>({...p,_runs:runningRuns(p.id)})).filter(p=>p._runs>0).sort((a,b)=>b._runs-a._runs);
     statLabel='Runs';
@@ -6770,7 +6770,7 @@ function renderDirectory() {
       : dirSport==='basketball'
       ? `${feedEsc(posShort(p.position)||'Player')} · ${p.games||0} games`
       : dirSport==='pickleball'
-      ? (()=>{ const wl=playerWL(p.id); return (p.pickleballSkill||'')+(wl.w+wl.l>0?' · '+wl.w+'W '+wl.l+'L':''); })()
+      ? (()=>{ const wl=playerWL(p.id); return (p.pickleballSkill||'')+(wl.w+wl.l>0?' · '+wl.w+'W '+wl.l+'L':'')+((p.pickleballMatches||0)<MPR_PROVISIONAL?' · Provisional':''); })()
       : dirSport==='running'
       ? `Runner · ${p._runs} run${p._runs===1?'':'s'}`
       : dirSport==='dragonboat'
@@ -6953,6 +6953,18 @@ function runStreak(playerId){
   return streak;
 }
 
+// Pickleball order: settled players (MPR_PROVISIONAL+ matches) first, then
+// provisional ones; within each group by MPR, unrated last.
+function mprCompare(a, b){
+  const sa=(a.pickleballMatches||0)>=MPR_PROVISIONAL, sb=(b.pickleballMatches||0)>=MPR_PROVISIONAL;
+  if (sa!==sb) return sa?-1:1;
+  const ra=a.ratingPickleball!=null?a.ratingPickleball:(a.dupr!=null?a.dupr:null);
+  const rb=b.ratingPickleball!=null?b.ratingPickleball:(b.dupr!=null?b.dupr:null);
+  if (ra!=null && rb!=null) return rb-ra;
+  if (ra!=null) return -1;
+  if (rb!=null) return 1;
+  return (b.pickleballMatches||0)-(a.pickleballMatches||0);
+}
 // Ordered board for one sport: the same order the Players leaderboard uses,
 // so a profile's rank always matches the board it was opened from.
 function sportBoard(sport){
@@ -6961,13 +6973,7 @@ function sportBoard(sport){
     const rt=p=>(p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null));
     return R.map(p=>({...p, rt:rt(p), pm:(p.pickleballMatches||0)}))
             .filter(p=>p.rt!=null || p.pm>0)
-            .sort((a,b)=>{
-              // Rated players first (by rating desc); unrated-but-played after
-              if(a.rt!=null && b.rt!=null) return b.rt-a.rt;
-              if(a.rt!=null) return -1;
-              if(b.rt!=null) return 1;
-              return b.pm-a.pm;
-            });
+            .sort(mprCompare);
   }
   if (sport==='dragonboat') return R.map(p=>({...p, dbRuns: dragonboatRuns(p.id)})).filter(p=>p.dbRuns>0).sort((a,b)=>b.dbRuns-a.dbRuns);
   if (sport==='badminton')  return R.map(p=>({...p, bdGames: badmintonGames(p.id)})).filter(p=>p.bdGames>0).sort((a,b)=>b.bdGames-a.bdGames);
@@ -6988,7 +6994,7 @@ function renderLeaderboard(){
       const mine=ME&&p.id===ME.id?' me':'';
       const seeded=(p.ratingPickleball==null && p.dupr!=null);
       const wl=playerWL(p.id);
-      const provisional=(wl.w+wl.l < 3);
+      const provisional=((p.pickleballMatches||0) < MPR_PROVISIONAL);
       const provTag = provisional
         ? ' <span style="font-size:9px;font-weight:700;color:#FBB827;background:rgba(251,184,39,.14);padding:1px 6px;border-radius:20px;vertical-align:middle">Provisional</span>'
         : '';
@@ -7004,7 +7010,7 @@ function renderLeaderboard(){
           <div class="lb-name">${feedEsc(p.firstName)} ${feedEsc(p.lastName)}${mine?' <span style="font-size:10px;color:var(--gold)">(You)</span>':''}${provTag}</div>
           <div class="lb-meta">${metaLabel}</div>
       </div>
-        <div class="lb-stat"><div class="lb-stat-n">${ratingDisplay}</div><div class="lb-stat-l">rating</div></div>
+        <div class="lb-stat"><div class="lb-stat-n">${ratingDisplay}</div><div class="lb-stat-l">MPR</div></div>
     </div>`;
     }).join('');
     return;
@@ -7110,6 +7116,31 @@ function playerWL(pid){
   });
   return {w,l};
 }
+// ── MPR (Makati Pickleball Rating) ─────────────────────────────
+const MPR_PROVISIONAL = 5;   // matches before an MPR is considered settled
+// When a saved session was played (ids are "GH" + a timestamp).
+function histTime(id, dateText){
+  const t = parseInt(String(id||'').replace(/^GH/,''), 10);
+  if (t > 1.5e12) return t;
+  const d = Date.parse(String(dateText||'').replace(/^[A-Za-z]{3},\s*/,''));
+  return isNaN(d) ? 0 : d;
+}
+// How much to trust a player's MPR (0-100%): more matches, more different
+// partners/opponents and recent play all raise it.
+function mprReliability(pid){
+  let n=0, last=0; const people=new Set();
+  allPickleballMatches().forEach(m=>{
+    if (!(m.teamA||[]).includes(pid) && !(m.teamB||[]).includes(pid)) return;
+    n++; last=Math.max(last, histTime(m.sessionId, m.sessionDate));
+    [...(m.teamA||[]),...(m.teamB||[])].forEach(x=>{ if(x!==pid) people.add(x); });
+  });
+  if (!n) return {pct:0, matches:0, people:0, last:0};
+  const days = last ? (Date.now()-last)/86400000 : 365;
+  const recent = days<=30 ? 1 : days>=180 ? 0.2 : 1 - 0.8*(days-30)/150;
+  const pct = Math.round(100*(0.5*Math.min(1,n/20) + 0.2*Math.min(1,people.size/12) + 0.3*recent));
+  return {pct, matches:n, people:people.size, last};
+}
+
 // All pickleball matches across archived history, newest session first.
 function allPickleballMatches(){
   const hist=LC.arr('history').filter(h=>(h.sport||'basketball')==='pickleball');
@@ -7296,7 +7327,7 @@ function pvStatsHtml(p, sport){
   if (sport==='pickleball'){
     const rt=p.ratingPickleball!=null?p.ratingPickleball:(p.dupr!=null?p.dupr:null);
     const wl=playerWL(p.id), n=wl.w+wl.l;
-    return pvStat(rt!=null?Number(rt).toFixed(3):'—','Rating',sport,true)
+    return pvStat(rt!=null?Number(rt).toFixed(3):'—','MPR',sport,true)
          + pvStat(wl.w,'Wins',sport) + pvStat(n,'Matches',sport) + pvStat(winRate(wl.w,n),'Rate',sport);
   }
   if (sport==='running')    return pvStat(runningRuns(p.id),'Runs',sport,true) + pvStat(runStreak(p.id),'Streak',sport);
@@ -7337,7 +7368,17 @@ function viewPlayer(id, sport){
       </div>`;
   } else if (sport==='pickleball'){
     const rec=playerMatchRecord(id);
+    const rel=mprReliability(id);
+    const prov=(p.pickleballMatches||rel.matches) < MPR_PROVISIONAL;
+    const lastTxt=rel.last?new Date(rel.last).toLocaleDateString('en-PH',{month:'short',day:'numeric'}):'';
     record=`
+      <div class="pv-mpr">
+        <div class="pv-mpr-line">${prov?'<span class="pv-prov">Provisional</span>':''}<b>Reliability ${rel.pct}%</b>${rel.matches?` · ${rel.matches} match${rel.matches===1?'':'es'} with ${rel.people} different players${lastTxt?' · last played '+lastTxt:''}`:' · no rated matches yet'}</div>
+        <details class="pv-mpr-how"><summary>How MPR works</summary>
+          <p>MPR (Makati Pickleball Rating) runs from 2.000 to 8.000. Before every game we predict the score from both teams' MPR. If your team scores better than predicted, your MPR goes up; if worse, it goes down. Even a win against a weaker team can lower it if it was closer than expected, and a close loss to a stronger team can raise it.</p>
+          <p>New players move faster. After about 5 matches your MPR settles and moves less each game. Reliability shows how much to trust a rating: it rises with more matches, more different players and recent play.</p>
+        </details>
+      </div>`+`
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <div style="font-size:12px;font-weight:700;color:var(--tx2)"><span class="spi spi-p"></span> Pickleball Record</div>
